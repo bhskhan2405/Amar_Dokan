@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "286305037504",
+    "project_id": "amar-dokan-6ed98",
+    "storage_bucket": "amar-dokan-6ed98.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:286305037504:android:34208871aab8a3f0cd5125",
+        "android_client_info": {
+          "package_name": "com.bhskhan.amardokan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGsXI_W8fbyZySelHaGLBEeKB39MsPIuE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:286305037504:android:823772bad095bfe2cd5125",
+        "android_client_info": {
+          "package_name": "com.example.my_first_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGsXI_W8fbyZySelHaGLBEeKB39MsPIuE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

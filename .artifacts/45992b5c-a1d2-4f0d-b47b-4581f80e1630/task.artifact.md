@@ -1,0 +1,7 @@
+- [x] `lib/utils/translations.dart` ফাইল তৈরি করা এবং প্রাথমিক শব্দগুলো যোগ করা
+- [x] `lib/main.dart` ফাইলে ভাষা সেভ ও লোড করার লজিক যোগ করা
+- [x] `lib/screens/settings_screen.dart` ফাইলে ভাষা পরিবর্তনের অপশন যোগ করা
+- [x] `lib/screens/dashboard_screen.dart` ফাইলে ল্যাঙ্গুয়েজ সাপোর্ট যোগ করা
+- [/] `lib/screens/products_screen.dart` ফাইলে ল্যাঙ্গুয়েজ সাপোর্ট যোগ করা
+- [/] `lib/screens/pos_screen.dart` ফাইলে ল্যাঙ্গুয়েজ সাপোর্ট যোগ করা
+- [ ] অন্যান্য স্ক্রিনগুলোতে ধাপে ধাপে ল্যাঙ্গুয়েজ সাপোর্ট যোগ করা

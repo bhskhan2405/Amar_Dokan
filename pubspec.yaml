@@ -1,0 +1,45 @@
+name: amardokan
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  image_picker: ^1.1.2
+  intl: ^0.20.2
+  local_auth: ^2.3.0
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.3.2
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  mobile_scanner: ^6.0.2
+  firebase_storage: ^12.4.10
+  connectivity_plus: ^6.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # এখানে আপনার লোগো বা ছবির অ্যাসেট পাথ যোগ করা হয়েছে
+  assets:
+    - assets/images/ic_launcher.png
+
+  fonts:
+    - family: SolaimanLipi
+      fonts:
+        - asset: assets/fonts/SolaimanLipi-Normal.ttf
+        - asset: assets/fonts/SolaimanLipi-Bold.ttf
+          weight: 700

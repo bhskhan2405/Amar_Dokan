@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gcm_defaultSenderId" translatable="false">286305037504</string>
+    <string name="google_api_key" translatable="false">AIzaSyDGsXI_W8fbyZySelHaGLBEeKB39MsPIuE</string>
+    <string name="google_app_id" translatable="false">1:286305037504:android:34208871aab8a3f0cd5125</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDGsXI_W8fbyZySelHaGLBEeKB39MsPIuE</string>
+    <string name="google_storage_bucket" translatable="false">amar-dokan-6ed98.firebasestorage.app</string>
+    <string name="project_id" translatable="false">amar-dokan-6ed98</string>
+</resources>

@@ -1,0 +1,684 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ক্লিপবোর্ডের জন্য
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'user_approval_screen.dart';
+import 'subscription_screen.dart';
+import '../utils/translations.dart';
+import '../utils/subscription_utils.dart';
+import '../main.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final user = FirebaseAuth.instance.currentUser;
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _shopNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _footerNoteController = TextEditingController();
+
+  File? _selectedImage;
+  String? _base64ImageString;
+  bool _isFingerprintEnabled = false;
+  bool _isLoading = false;
+
+  bool _isNameEditable = false;
+  bool _isShopNameEditable = false;
+  bool _isPhoneEditable = false;
+  bool _isEmailEditable = false;
+  bool _isAddressEditable = false;
+  bool _isNoteEditable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isFingerprintEnabled = prefs.getBool('fingerprint_enabled') ?? false;
+    });
+
+    if (user != null) {
+      var doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+      if (doc.exists) {
+        var data = doc.data();
+        setState(() {
+          _nameController.text = data?['name'] ?? '';
+          _shopNameController.text = data?['shopName'] ?? '';
+          _phoneController.text = data?['phone'] ?? '';
+          _emailController.text = data?['email'] ?? user?.email ?? '';
+          _addressController.text = data?['address'] ?? '';
+          _footerNoteController.text = data?['footerNote'] ?? '';
+          _base64ImageString = data?['photoBase64'];
+        });
+      }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 400,
+      maxHeight: 400,
+    );
+
+    if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
+      List<int> imageBytes = await imageFile.readAsBytes();
+      String base64String = base64Encode(imageBytes);
+
+      setState(() {
+        _selectedImage = imageFile;
+        _base64ImageString = base64String;
+      });
+    }
+  }
+
+  void _showPinVerificationDialog() {
+    final pinController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppTranslations.get('security_confirm_title')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(AppTranslations.get('security_confirm_msg')),
+            const SizedBox(height: 10),
+            TextField(
+              controller: pinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              decoration: InputDecoration(
+                labelText: AppTranslations.get('app_pin_label'),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppTranslations.get('cancel')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              String? savedPin = prefs.getString('app_pin') ?? '1234';
+
+              if (pinController.text.trim() == savedPin) {
+                Navigator.pop(dialogContext);
+                _saveSettings();
+              } else {
+                _showSnackBar(AppTranslations.get('wrong_pin_msg'));
+              }
+            },
+            child: Text(AppTranslations.get('confirm_btn')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePinDialog() {
+    final oldPinController = TextEditingController();
+    final newPinController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppTranslations.get('change_pin_title')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: oldPinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              decoration: InputDecoration(labelText: AppTranslations.get('old_pin')),
+            ),
+            TextField(
+              controller: newPinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              decoration: InputDecoration(labelText: AppTranslations.get('new_pin_4_digit')),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppTranslations.get('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              String? savedPin = prefs.getString('app_pin') ?? '1234';
+
+              if (oldPinController.text.trim() == savedPin) {
+                if (newPinController.text.trim().length == 4) {
+                  await prefs.setString('app_pin', newPinController.text.trim());
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  _showSnackBar(AppTranslations.get('pin_changed_msg'));
+                } else {
+                  _showSnackBar(AppTranslations.get('pin_must_4_digit'));
+                }
+              } else {
+                _showSnackBar(AppTranslations.get('old_pin_wrong'));
+              }
+            },
+            child: Text(AppTranslations.get('save_settings_btn')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveSettings() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      if (user != null) {
+        String newEmail = _emailController.text.trim();
+        String oldEmail = user?.email ?? '';
+
+        // যদি ইমেইল পরিবর্তন করা হয়, তবে ফায়ারবেস অথ-এ আপডেট করা হবে
+        if (newEmail.isNotEmpty && newEmail != oldEmail) {
+          try {
+            await user?.verifyBeforeUpdateEmail(newEmail);
+            _showSnackBar('আপনার নতুন ইমেইলে একটি ভেরিফিকেশন লিঙ্ক পাঠানো হয়েছে। ইমেইল পরিবর্তন সম্পন্ন করতে লিঙ্কে ক্লিক করুন।');
+          } catch (authError) {
+            if (authError.toString().contains('requires-recent-login')) {
+              _showSnackBar('নিরাপত্তার জন্য আপনাকে একবার লগআউট করে পুনরায় লগইন করতে হবে।');
+              setState(() => _isLoading = false);
+              return;
+            } else {
+              _showSnackBar('ইমেইল আপডেট করতে সমস্যা: $authError');
+            }
+          }
+        }
+
+        await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
+          'name': _nameController.text.trim(),
+          'shopName': _shopNameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'email': _emailController.text.trim(),
+          'address': _addressController.text.trim(),
+          'footerNote': _footerNoteController.text.trim(),
+          'photoBase64': _base64ImageString,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        setState(() {
+          _selectedImage = null;
+          _isNameEditable = false;
+          _isShopNameEditable = false;
+          _isPhoneEditable = false;
+          _isEmailEditable = false;
+          _isAddressEditable = false;
+          _isNoteEditable = false;
+        });
+
+        _showSnackBar(AppTranslations.get('settings_saved_msg'));
+      }
+    } catch (e) {
+      _showSnackBar('${AppTranslations.get('error_occurred')} $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ImageProvider? profileImage;
+    if (_selectedImage != null) {
+      profileImage = FileImage(_selectedImage!);
+    } else if (_base64ImageString != null && _base64ImageString!.isNotEmpty) {
+      try {
+        profileImage = MemoryImage(base64Decode(_base64ImageString!));
+      } catch (_) {
+        profileImage = null;
+      }
+    }
+
+    // এখানে সরাসরি ফায়ারবেসের আসল UID সেট করা হলো[cite: 5]
+    final String adminUid = user?.uid ?? 'UID পাওয়া যায়নি';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppTranslations.get('app_settings'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF0D47A1),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.blue.shade100,
+                      backgroundImage: profileImage,
+                      child: profileImage == null
+                          ? const Icon(Icons.store, size: 50, color: Color(0xFF0D47A1))
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: InkWell(
+                        onTap: _pickImage,
+                        child: const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Color(0xFF0D47A1),
+                          child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // --- দোকানের UID কপি করার বক্স ---
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppTranslations.get('shop_id_label'),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            adminUid,
+                            style: const TextStyle(fontSize: 12, color: Colors.black87),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy, color: Color(0xFF0D47A1), size: 20),
+                          tooltip: AppTranslations.get('copy_id_tooltip'),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: adminUid));
+                            _showSnackBar(AppTranslations.get('copy_id_msg'));
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Text('👤 ${AppTranslations.get('profile_shop_info')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+
+              TextFormField(
+                controller: _nameController,
+                readOnly: !_isNameEditable,
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('owner_name'),
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isNameEditable ? Icons.lock_open : Icons.edit,
+                      color: _isNameEditable ? Colors.green : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isNameEditable = !_isNameEditable;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) => value!.isEmpty ? AppTranslations.get('owner_name') : null,
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _shopNameController,
+                readOnly: !_isShopNameEditable,
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('shop_name'),
+                  prefixIcon: const Icon(Icons.store),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isShopNameEditable ? Icons.lock_open : Icons.edit,
+                      color: _isShopNameEditable ? Colors.green : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isShopNameEditable = !_isShopNameEditable;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) => value!.isEmpty ? AppTranslations.get('shop_name') : null,
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _phoneController,
+                readOnly: !_isPhoneEditable,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('mobile'),
+                  prefixIcon: const Icon(Icons.phone),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPhoneEditable ? Icons.lock_open : Icons.edit,
+                      color: _isPhoneEditable ? Colors.green : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPhoneEditable = !_isPhoneEditable;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _emailController,
+                readOnly: !_isEmailEditable,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('email'),
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isEmailEditable ? Icons.lock_open : Icons.edit,
+                      color: _isEmailEditable ? Colors.green : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isEmailEditable = !_isEmailEditable;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _addressController,
+                readOnly: !_isAddressEditable,
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('address'),
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isAddressEditable ? Icons.lock_open : Icons.edit,
+                      color: _isAddressEditable ? Colors.green : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isAddressEditable = !_isAddressEditable;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _footerNoteController,
+                readOnly: !_isNoteEditable,
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('footer_note'),
+                  prefixIcon: const Icon(Icons.note_alt_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isNoteEditable ? Icons.lock_open : Icons.edit,
+                      color: _isNoteEditable ? Colors.green : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isNoteEditable = !_isNoteEditable;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              const Divider(),
+              Text('💎 ${AppTranslations.get('subscriptions')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
+                title: Text(AppTranslations.get('buy_premium')),
+                subtitle: FutureBuilder<bool>(
+                  future: SubscriptionUtils.isPaidPremium(),
+                  builder: (context, snapshot) {
+                    if (snapshot.data == true) {
+                      return const Text('Active Premium Plan', style: TextStyle(color: Colors.green, fontSize: 12));
+                    }
+                    return const Text('Check your subscription status', style: TextStyle(fontSize: 12));
+                  },
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+                  );
+                },
+              ),
+
+              const Divider(),
+              Text('🔐 ${AppTranslations.get('security_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+
+              if (_phoneController.text == "01828424364") ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.admin_panel_settings, color: Colors.orange),
+                  title: Text(AppTranslations.get('user_approval')),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    // পিন দিয়ে প্যানেলে ঢোকার সুরক্ষা
+                    final pinController = TextEditingController();
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: Text(AppTranslations.get('security_pin')),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('সুপার এডমিন প্যানেলে প্রবেশ করতে পিন দিন:'),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: pinController,
+                              keyboardType: TextInputType.number,
+                              obscureText: true,
+                              maxLength: 4,
+                              decoration: InputDecoration(
+                                labelText: AppTranslations.get('app_pin_label'),
+                                border: const OutlineInputBorder(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppTranslations.get('cancel'))),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final prefs = await SharedPreferences.getInstance();
+                              String savedPin = prefs.getString('app_pin') ?? '1234';
+                              if (pinController.text.trim() == savedPin) {
+                                Navigator.pop(dialogContext);
+                                if (!mounted) return;
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const UserApprovalScreen()),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('wrong_pin_msg'))));
+                              }
+                            },
+                            child: Text(AppTranslations.get('confirm_btn')),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.lock_reset, color: Color(0xFF0D47A1)),
+                title: Text(AppTranslations.get('change_pin')),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _showChangePinDialog,
+              ),
+
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.fingerprint, color: Color(0xFF0D47A1)),
+                title: Text(AppTranslations.get('fingerprint')),
+                value: _isFingerprintEnabled,
+                onChanged: (val) async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('fingerprint_enabled', val);
+                  setState(() => _isFingerprintEnabled = val);
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              const Divider(),
+              Text('🌐 ${AppTranslations.get('language')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.language, color: Color(0xFF0D47A1)),
+                title: Text(AppTranslations.get('select_language')),
+                trailing: DropdownButton<String>(
+                  value: AppTranslations.currentLanguage,
+                  items: const [
+                    DropdownMenuItem(value: 'en', child: Text('English')),
+                    DropdownMenuItem(value: 'bn', child: Text('বাংলা')),
+                  ],
+                  onChanged: (val) async {
+                    if (val != null) {
+                      await AppTranslations.saveLanguage(val);
+                      if (mounted) {
+                        MyApp.setLocale(context, Locale(val));
+                      }
+                    }
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D47A1),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: _showPinVerificationDialog,
+                icon: const Icon(Icons.save, color: Colors.white),
+                label: Text(AppTranslations.get('save_settings'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+
+              const SizedBox(height: 12),
+
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  minimumSize: const Size(double.infinity, 50),
+                  side: const BorderSide(color: Colors.red),
+                ),
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  String? currentLang = prefs.getString('language_code');
+                  
+                  await prefs.clear();
+                  
+                  // ভাষা পুনরায় সেভ করা হলো যাতে লগআউটের পর মুছে না যায়
+                  if (currentLang != null) {
+                    await prefs.setString('language_code', currentLang);
+                  }
+
+                  await FirebaseAuth.instance.signOut();
+
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login',
+                          (route) => false,
+                    );
+                  }
+                },
+                icon: const Icon(Icons.logout),
+                label: Text(AppTranslations.get('logout'), style: const TextStyle(fontSize: 16)),
+              ),
+
+              const SizedBox(height: 20),
+              const Center(
+                child: Text('App Version: 1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
