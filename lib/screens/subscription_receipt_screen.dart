@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../utils/translations.dart';
 import '../utils/receipt_utils.dart';
 
@@ -9,7 +8,6 @@ class SubscriptionReceiptScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const String whatsappPhone = "8801875787997";
     final String planName = (requestData['plan'] ?? 'Unknown').toString().replaceAll('_', ' ').toUpperCase();
 
     return Scaffold(
@@ -42,7 +40,7 @@ class SubscriptionReceiptScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))],
               ),
               child: Column(
                 children: [

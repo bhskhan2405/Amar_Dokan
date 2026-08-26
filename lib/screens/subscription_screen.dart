@@ -19,9 +19,38 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   final TextEditingController _txIdController = TextEditingController();
   final TextEditingController _senderPhoneController = TextEditingController();
   bool _isSubmitting = false;
+  bool _hasPendingRequest = false;
+  Map<String, dynamic>? _pendingRequestData;
 
   final String _paymentPhone = "01828424364";
   final String _whatsappPhone = "8801875787997";
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPendingRequest();
+  }
+
+  Future<void> _checkPendingRequest() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('subscription_requests')
+        .where('uid', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _hasPendingRequest = true;
+          _pendingRequestData = snapshot.docs.first.data();
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -118,7 +147,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: _hasPendingRequest ? _buildPendingUI() : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -165,7 +194,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.blue.shade200, width: 2),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                 ),
                 child: Column(
                   children: [
@@ -305,7 +334,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           borderRadius: BorderRadius.circular(12),
           side: isSelected ? BorderSide(color: color, width: 2) : BorderSide.none,
         ),
-        color: isSelected ? color.withOpacity(0.05) : Colors.white,
+        color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           leading: CircleAvatar(
@@ -314,6 +343,54 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isSelected ? color : Colors.black87)),
           trailing: isSelected ? Icon(Icons.check_circle, color: color) : const Icon(Icons.circle_outlined, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingUI() {
+    String plan = _pendingRequestData?['plan'] ?? 'Unknown';
+    String planName = plan == '3_months' ? '৩ মাস' : (plan == '6_months' ? '৬ মাস' : '১২ মাস');
+    
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.pending_actions_rounded, size: 100, color: Colors.orange),
+            const SizedBox(height: 24),
+            const Text(
+              "আপনার প্রিমিয়াম প্ল্যান রিকোয়েস্টটি পেন্ডিং আছে।",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "আপনার $planName মেয়াদী প্ল্যানটি ২৪ ঘণ্টার মধ্যে সচল হয়ে যাবে। দয়া করে অপেক্ষা করুন।",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final url = Uri.parse('https://wa.me/$_whatsappPhone');
+                if (await canLaunchUrl(url)) await launchUrl(url);
+              },
+              icon: const Icon(Icons.chat),
+              label: const Text("হোয়াটসঅ্যাপে যোগাযোগ করুন"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("ফিরে যান"),
+            ),
+          ],
         ),
       ),
     );

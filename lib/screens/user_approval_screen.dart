@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../utils/notification_utils.dart';
 import '../utils/translations.dart';
 import '../utils/receipt_utils.dart';
@@ -30,23 +29,6 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     super.dispose();
   }
 
-  // হোয়াটসঅ্যাপে নোটিফিকেশন পাঠানোর হেল্পার
-  Future<void> _sendWhatsAppNotification(String phone, String message) async {
-    String formattedPhone = phone.trim();
-    if (!formattedPhone.startsWith('88')) {
-      if (formattedPhone.startsWith('0')) {
-        formattedPhone = '88$formattedPhone';
-      } else {
-        formattedPhone = '880$formattedPhone';
-      }
-    }
-    
-    final Uri url = Uri.parse('https://wa.me/$formattedPhone?text=${Uri.encodeComponent(message)}');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
-  }
-
   void _showApprovePinDialog(String uid, {
     bool isSubscription = false, 
     String? requestId, 
@@ -56,28 +38,48 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     String? shopName,
     String? txId,
     String? senderDigits,
+    bool isCancel = false,
   }) {
     final pinController = TextEditingController();
+    final reasonController = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         title: Text(
-          isSubscription ? AppTranslations.get('confirm_payment') : AppTranslations.get('verify_pin_to_approve'), 
+          isCancel ? "Cancel Request" : (isSubscription ? AppTranslations.get('confirm_payment') : AppTranslations.get('verify_pin_to_approve')), 
           style: const TextStyle(color: Colors.white, fontSize: 16)
         ),
-        content: TextField(
-          controller: pinController,
-          keyboardType: TextInputType.number,
-          obscureText: true,
-          maxLength: 4,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: AppTranslations.get('app_pin_label'),
-            labelStyle: const TextStyle(color: Colors.grey),
-            border: const OutlineInputBorder(),
-            counterText: '',
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isCancel) ...[
+              TextField(
+                controller: reasonController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: "Reason for cancellation",
+                  labelStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            TextField(
+              controller: pinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: AppTranslations.get('app_pin_label'),
+                labelStyle: const TextStyle(color: Colors.grey),
+                border: const OutlineInputBorder(),
+                counterText: '',
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(AppTranslations.get('cancel'))),
@@ -86,21 +88,66 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               final prefs = await SharedPreferences.getInstance();
               String savedPin = prefs.getString('app_pin') ?? '1234';
               if (pinController.text.trim() == savedPin) {
-                Navigator.pop(dialogContext);
-                if (isSubscription) {
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (isCancel) {
+                  _rejectSubscription(requestId!, userPhone!, name!, shopName!, plan!, txId!, senderDigits!, reasonController.text.trim());
+                } else if (isSubscription) {
                   _confirmSubscription(uid, requestId!, plan!, userPhone!, name!, shopName!, txId!, senderDigits);
                 } else {
                   _approveUser(uid, userPhone!, name!, shopName!);
                 }
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('wrong_pin_msg'))));
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(AppTranslations.get('wrong_pin_msg'))));
+                }
               }
             },
-            child: Text(AppTranslations.get('confirm_btn')),
+            style: ElevatedButton.styleFrom(backgroundColor: isCancel ? Colors.red : null),
+            child: Text(isCancel ? "Confirm Cancel" : AppTranslations.get('confirm_btn')),
           ),
         ],
       ),
     );
+  }
+
+  void _rejectSubscription(String requestId, String userPhone, String name, String shopName, String plan, String txId, String senderDigits, String reason) async {
+    setState(() => _isProcessing = true);
+    try {
+      await FirebaseFirestore.instance.collection('subscription_requests').doc(requestId).update({
+        'status': 'rejected',
+        'rejectionReason': reason,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Subscription request cancelled."), backgroundColor: Colors.orange),
+        );
+
+        await ReceiptUtils.shareSubscriptionCard(
+          name: name,
+          shopName: shopName,
+          phone: userPhone,
+          plan: plan,
+          txId: txId,
+          senderDigits: senderDigits,
+          rejectionReason: reason.isEmpty ? "Invalid payment information" : reason,
+          isRejection: true,
+        );
+
+        // Notify user via in-app notification
+        // (Assuming you want to keep the same notification structure)
+        await NotificationUtils.sendNotification(
+          title: "সাবস্ক্রিপশন রিকোয়েস্ট বাতিল",
+          message: "আপনার প্রিমিয়াম সাবস্ক্রিপশন রিকোয়েস্টটি বাতিল করা হয়েছে। কারণ: $reason",
+          targetUid: requestId, // This might need the actual user UID from the request data
+          type: 'subscription_rejection',
+        );
+      }
+    } catch (e) {
+      if (mounted) _showErrorSnackBar(e.toString());
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 
   void _approveUser(String uid, String userPhone, String name, String shopName) async {
@@ -140,9 +187,13 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     setState(() => _isProcessing = true);
     try {
       int months = 0;
-      if (plan == '3_months') months = 3;
-      else if (plan == '6_months') months = 6;
-      else if (plan == '12_months') months = 12;
+      if (plan == '3_months') {
+        months = 3;
+      } else if (plan == '6_months') {
+        months = 6;
+      } else if (plan == '12_months') {
+        months = 12;
+      }
 
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       DateTime currentExpiry = DateTime.now();
@@ -256,9 +307,9 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                 Icon(isApproved ? Icons.people_rounded : Icons.group_off_rounded, size: 64, color: Colors.white12),
                 const SizedBox(height: 16),
                 Text(
-                  isApproved ? 'No approved users.' : AppTranslations.get('no_pending_users'),
-                  style: const TextStyle(color: Colors.white30),
-                ),
+                      isApproved ? 'No approved users.' : AppTranslations.get('no_pending_users'),
+                      style: const TextStyle(color: Colors.white30),
+                    ),
               ],
             ),
           );
@@ -370,7 +421,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.receipt_long_rounded, size: 64, color: Colors.white12),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text('No subscription requests.', style: TextStyle(color: Colors.white30)),
               ],
             ),
@@ -425,12 +476,12 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                         Clipboard.setData(ClipboardData(text: phone));
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.copy, size: 12, color: Colors.blueAccent),
-                          const SizedBox(width: 4),
-                          const Text("নাম্বার কপি করুন", style: TextStyle(color: Colors.blueAccent, fontSize: 11)),
+                          Icon(Icons.copy, size: 12, color: Colors.blueAccent),
+                          SizedBox(width: 4),
+                          Text("নাম্বার কপি করুন", style: TextStyle(color: Colors.blueAccent, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -462,27 +513,53 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                       ],
                     ),
                     const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isProcessing ? null : () => _showApprovePinDialog(
-                          uid, 
-                          isSubscription: true, 
-                          requestId: reqId, 
-                          plan: plan, 
-                          userPhone: phone,
-                          name: name,
-                          shopName: shop,
-                          txId: txId,
-                          senderDigits: senderDigits,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                              uid, 
+                              isSubscription: true, 
+                              requestId: reqId, 
+                              plan: plan, 
+                              userPhone: phone,
+                              name: name,
+                              shopName: shop,
+                              txId: txId,
+                              senderDigits: senderDigits,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.greenAccent.shade700,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: Text(AppTranslations.get('confirm_payment')),
+                          ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.greenAccent.shade700,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                              uid, 
+                              isSubscription: true, 
+                              requestId: reqId, 
+                              plan: plan, 
+                              userPhone: phone,
+                              name: name,
+                              shopName: shop,
+                              txId: txId,
+                              senderDigits: senderDigits,
+                              isCancel: true,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent.shade700,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text("Cancel"),
+                          ),
                         ),
-                        child: Text(AppTranslations.get('confirm_payment')),
-                      ),
+                      ],
                     ),
                   ],
                 ),

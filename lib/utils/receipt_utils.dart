@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,8 +12,10 @@ class ReceiptUtils {
     String? plan,
     String? txId,
     String? senderDigits,
+    String? rejectionReason,
     bool isActivation = false,
     bool isApproval = false,
+    bool isRejection = false,
   }) async {
     final pdf = pw.Document();
 
@@ -46,6 +47,10 @@ class ReceiptUtils {
       title = 'ACCOUNT APPROVED';
       titleColor = PdfColors.blue700;
       borderColor = PdfColors.blue900;
+    } else if (isRejection) {
+      title = 'REQUEST CANCELLED';
+      titleColor = PdfColors.red700;
+      borderColor = PdfColors.red900;
     }
 
     pdf.addPage(
@@ -69,7 +74,7 @@ class ReceiptUtils {
                   children: [
                     pw.Image(image, width: 40, height: 40),
                     pw.SizedBox(width: 10),
-                    pw.Text('Amar Dokan', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: isActivation ? PdfColors.green800 : PdfColors.blue800)),
+                    pw.Text('Amar Dokan', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: isRejection ? PdfColors.red800 : (isActivation ? PdfColors.green800 : PdfColors.blue800))),
                   ],
                 ),
                 pw.SizedBox(height: 10),
@@ -115,6 +120,26 @@ class ReceiptUtils {
                       style: const pw.TextStyle(fontSize: 10, color: PdfColors.blue900),
                     ),
                   ),
+                ] else if (isRejection) ...[
+                  pw.SizedBox(height: 15),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(color: PdfColors.red50, borderRadius: pw.BorderRadius.circular(5)),
+                    child: pw.Column(
+                      children: [
+                        pw.Text(
+                          'Your request has been cancelled.',
+                          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(
+                          'Reason: ${rejectionReason ?? "Incorrect details"}',
+                          textAlign: pw.TextAlign.center,
+                          style: const pw.TextStyle(fontSize: 10, color: PdfColors.red700),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
 
                 pw.Spacer(),
@@ -138,13 +163,18 @@ class ReceiptUtils {
     );
 
     String fileName = 'card_${now.millisecondsSinceEpoch}.pdf';
-    if (isActivation) fileName = 'activation_card_$txId.pdf';
-    else if (isApproval) fileName = 'approval_card_$phone.pdf';
-    else if (txId != null) fileName = 'subscription_receipt_$txId.pdf';
+    if (isActivation) {
+      fileName = 'activation_card_$txId.pdf';
+    } else if (isApproval) {
+      fileName = 'approval_card_$phone.pdf';
+    } else if (isRejection) {
+      fileName = 'rejection_card_$phone.pdf';
+    } else if (txId != null) {
+      fileName = 'subscription_receipt_$txId.pdf';
+    }
 
     await Printing.sharePdf(bytes: await pdf.save(), filename: fileName);
   }
-
 
   static pw.Widget _buildRow(String label, String value) {
     return pw.Padding(
@@ -154,7 +184,7 @@ class ReceiptUtils {
         children: [
           pw.Text(label, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
           pw.Flexible(
-            child: pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+            child: pw.Text(value, style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
           ),
         ],
       ),
