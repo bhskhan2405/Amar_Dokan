@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../utils/translations.dart';
 
 class ManageStaffsScreen extends StatefulWidget {
@@ -12,6 +15,7 @@ class ManageStaffsScreen extends StatefulWidget {
 
 class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   final _isLoadingNotifier = ValueNotifier<bool>(false);
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
@@ -20,11 +24,21 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   }
 
   // নতুন স্টাফ ফায়ারস্টোরে যোগ করার ফাংশন
-  void _addStaff(BuildContext context, String adminUid, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer) async {
+  void _addStaff(BuildContext context, String adminUid, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer, File? imageFile) async {
     if (formKey.currentState!.validate()) {
       _isLoadingNotifier.value = true;
 
       try {
+        String? imageUrl;
+        if (imageFile != null) {
+          final ref = FirebaseStorage.instance
+              .ref()
+              .child('staff_images')
+              .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+          await ref.putFile(imageFile);
+          imageUrl = await ref.getDownloadURL();
+        }
+
         await FirebaseFirestore.instance
             .collection('users')
             .doc(adminUid)
@@ -34,6 +48,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
           'phone': phoneCtrl.text.trim(),
           'username': usernameCtrl.text.trim(),
           'password': passwordCtrl.text.trim(),
+          'profileImage': imageUrl,
           'role': 'staff',
           'permissions': {
             'product_list': pList,
@@ -61,11 +76,21 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   }
 
   // স্টাফের তথ্য ও পারমিশন আপডেট (এডিট) করার ফাংশন
-  void _updateStaff(BuildContext context, String adminUid, String staffId, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer) async {
+  void _updateStaff(BuildContext context, String adminUid, String staffId, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer, File? imageFile, String? existingImageUrl) async {
     if (formKey.currentState!.validate()) {
       _isLoadingNotifier.value = true;
 
       try {
+        String? imageUrl = existingImageUrl;
+        if (imageFile != null) {
+          final ref = FirebaseStorage.instance
+              .ref()
+              .child('staff_images')
+              .child('$staffId.jpg');
+          await ref.putFile(imageFile);
+          imageUrl = await ref.getDownloadURL();
+        }
+
         await FirebaseFirestore.instance
             .collection('users')
             .doc(adminUid)
@@ -76,6 +101,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
           'phone': phoneCtrl.text.trim(),
           'username': usernameCtrl.text.trim(),
           'password': passwordCtrl.text.trim(),
+          'profileImage': imageUrl,
           'permissions': {
             'product_list': pList,
             'pos_sale': pSale,
@@ -109,6 +135,9 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
     final usernameController = TextEditingController(text: staffData?['username'] ?? '');
     final passwordController = TextEditingController(text: staffData?['password'] ?? '');
 
+    File? selectedImage;
+    String? existingImageUrl = staffData?['profileImage'];
+
     var permissions = staffData?['permissions'] ?? {};
     bool canProductList = permissions['product_list'] ?? true;
     bool canPosSale = permissions['pos_sale'] ?? true;
@@ -129,8 +158,29 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                   key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      GestureDetector(
+                        onTap: () async {
+                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                          if (image != null) {
+                            setDialogState(() {
+                              selectedImage = File(image.path);
+                            });
+                          }
+                        },
+                        child: CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: selectedImage != null 
+                              ? FileImage(selectedImage!) 
+                              : (existingImageUrl != null ? NetworkImage(existingImageUrl!) : null) as ImageProvider?,
+                          child: (selectedImage == null && existingImageUrl == null) 
+                              ? const Icon(Icons.camera_alt, size: 30, color: Colors.grey) 
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: nameController,
                         decoration: InputDecoration(labelText: AppTranslations.get('staff_name')),
@@ -204,9 +254,9 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                           ? null
                           : () {
                         if (isEditing) {
-                          _updateStaff(context, adminUid, staffId, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer);
+                          _updateStaff(context, adminUid, staffId, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer, selectedImage, existingImageUrl);
                         } else {
-                          _addStaff(context, adminUid, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer);
+                          _addStaff(context, adminUid, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer, selectedImage);
                         }
                       },
                       child: isLoading
@@ -225,6 +275,49 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
 
   // স্টাফ ডিলিট করার ফাংশন
   void _deleteStaff(BuildContext context, String adminUid, String staffId) async {
+    final TextEditingController pinController = TextEditingController();
+
+    bool pinVerified = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppTranslations.get('login_pin') ?? 'Enter Admin PIN'),
+        content: TextField(
+          controller: pinController,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: '******',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppTranslations.get('cancel'))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () async {
+              try {
+                final userDoc = await FirebaseFirestore.instance.collection('users').doc(adminUid).get();
+                String savedPin = (userDoc.data()?['pin'] ?? userDoc.data()?['userPin'] ?? '').toString();
+                if (savedPin == pinController.text.trim()) {
+                  Navigator.pop(context, true);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppTranslations.get('wrong_pin')), backgroundColor: Colors.red),
+                  );
+                }
+              } catch (e) {
+                Navigator.pop(context, false);
+              }
+            },
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!pinVerified) return;
+
     bool confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -311,6 +404,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
               String name = staffData['name'] ?? '';
               String phone = staffData['phone'] ?? '';
               String username = staffData['username'] ?? '';
+              String? profileImage = staffData['profileImage'];
 
               var permissions = staffData['permissions'] ?? {};
               List<String> allowedFeatures = [];
@@ -325,7 +419,8 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.blue.shade100,
-                    child: const Icon(Icons.person, color: Color(0xFF0D47A1)),
+                    backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
+                    child: profileImage == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
                   ),
                   title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('${AppTranslations.get('username_label')} $username\n${AppTranslations.get('mobile_short')}: $phone\n${AppTranslations.get('access_label')} ${allowedFeatures.join(', ')}'),

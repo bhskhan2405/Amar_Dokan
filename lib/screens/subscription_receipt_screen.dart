@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/translations.dart';
+import '../utils/receipt_utils.dart';
 
 class SubscriptionReceiptScreen extends StatelessWidget {
   final Map<String, dynamic> requestData;
@@ -51,6 +52,7 @@ class SubscriptionReceiptScreen extends StatelessWidget {
                   const Divider(height: 32),
                   _buildReceiptRow(AppTranslations.get('plan_details'), planName, isBold: true),
                   _buildReceiptRow(AppTranslations.get('transaction_id'), requestData['txId'], color: Colors.orange.shade900, isBold: true),
+                  _buildReceiptRow('Sender Last 4', requestData['senderDigits'] ?? 'N/A', isBold: true),
                 ],
               ),
             ),
@@ -60,18 +62,16 @@ class SubscriptionReceiptScreen extends StatelessWidget {
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  String msg = "Amar Dokan Subscription Receipt\n\n"
-                      "Name: ${requestData['name']}\n"
-                      "Shop: ${requestData['shopName']}\n"
-                      "Phone: ${requestData['phone']}\n"
-                      "Plan: $planName\n"
-                      "TxID: ${requestData['txId']}\n\n"
-                      "Please confirm my payment.";
-                  
-                  final url = Uri.parse('https://wa.me/$whatsappPhone?text=${Uri.encodeComponent(msg)}');
-                  if (await canLaunchUrl(url)) await launchUrl(url);
+                  await ReceiptUtils.shareSubscriptionCard(
+                    name: requestData['name'] ?? '',
+                    shopName: requestData['shopName'] ?? '',
+                    phone: requestData['phone'] ?? '',
+                    plan: planName,
+                    txId: requestData['txId'] ?? '',
+                    senderDigits: requestData['senderDigits'],
+                  );
                 },
-                icon: const Icon(Icons.chat_bubble_rounded),
+                icon: const Icon(Icons.share_rounded),
                 label: Text(AppTranslations.get('whatsapp_us'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade700,

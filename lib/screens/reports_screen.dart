@@ -153,7 +153,7 @@ class SalesListTab extends StatelessWidget {
               pw.Divider(borderStyle: pw.BorderStyle.dashed),
               pw.SizedBox(height: 5),
               pw.Text('Date & Time: $dateStr', style: const pw.TextStyle(fontSize: 9)),
-              pw.Text(staffName == 'Admin' ? 'Sold By: Admin' : 'Sold By: Staff: $staffName', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text(staffName == 'Admin' ? 'Sell By: Admin' : 'Sell By: Staff: $staffName', style: const pw.TextStyle(fontSize: 9)),
               pw.SizedBox(height: 5),
               pw.Divider(borderStyle: pw.BorderStyle.dashed),
               pw.SizedBox(height: 8),
@@ -363,7 +363,7 @@ class SalesListTab extends StatelessWidget {
                           children: [
                             Text('${AppTranslations.get('time')}: $dateStr', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                             const SizedBox(height: 2),
-                            Text('Sold By: ${data['staffName'] ?? 'Admin'}', style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+                            Text('Sell By: ${data['staffName'] ?? 'Admin'}', style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
                             const SizedBox(height: 2),
                             Text('${AppTranslations.get('profit')}: Tk ${profit.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green)),
                           ],

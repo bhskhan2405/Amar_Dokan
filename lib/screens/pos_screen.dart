@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -46,6 +47,8 @@ class _POSScreenState extends State<POSScreen> {
   double _globalDiscountTk = 0.0;
   bool _isCashManuallyEdited = false;
   String _shopId = '';
+  String? _currentStaffName;
+  String? _currentStaffId;
 
   @override
   void initState() {
@@ -56,6 +59,18 @@ class _POSScreenState extends State<POSScreen> {
 
   Future<void> _loadShopId() async {
     _shopId = await ShopUtils.getShopId();
+    
+    if (widget.currentStaff != null) {
+      _currentStaffName = widget.currentStaff!['name'];
+      _currentStaffId = widget.currentStaff!['id'];
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      String role = prefs.getString('role') ?? 'admin';
+      if (role == 'staff') {
+        _currentStaffName = prefs.getString('staff_name');
+        _currentStaffId = prefs.getString('staff_id');
+      }
+    }
     setState(() {});
   }
 
@@ -506,7 +521,7 @@ class _POSScreenState extends State<POSScreen> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Sold By:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Sell By:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
                   pw.Text(staffName == 'Admin' ? 'Admin' : 'Staff: $staffName', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
@@ -820,8 +835,8 @@ class _POSScreenState extends State<POSScreen> {
       'totalCost': totalCost,
       'profit': profit,
       'createdAt': timestamp,
-      'staffId': widget.currentStaff != null ? widget.currentStaff!['id'] : null,
-      'staffName': widget.currentStaff != null ? widget.currentStaff!['name'] : 'Admin',
+      'staffId': _currentStaffId,
+      'staffName': _currentStaffName ?? 'Admin',
     };
 
     final firestore = FirebaseFirestore.instance;
@@ -1740,7 +1755,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                         .doc(_shopId)
                         .collection('sales')
                         .doc(saleDocId)
-                        .delete();
+                        .update({'isHiddenFromHistory': true});
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1814,6 +1829,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
                 final filteredDocs = docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+                  
+                  // হুকুম অনুযায়ী হিস্ট্রি থেকে হাইড করা রেকর্ডগুলো বাদ দেওয়া হলো
+                  if (data['isHiddenFromHistory'] == true) return false;
+
                   final customerName = (data['customerName'] ?? '').toString().toLowerCase();
                   final customerPhone = (data['customerPhone'] ?? '').toString().toLowerCase();
                   return customerName.contains(historySearchQuery) || customerPhone.contains(historySearchQuery);
@@ -1843,7 +1862,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${customerPhone.isNotEmpty ? 'মোবাইল: $customerPhone\n' : ''}পেমেন্ট টাইপ: $paymentType\nবিক্রেতা: $staffName\nপণ্য সংখ্যা: ${items.length} টি\nমোট বিল: Tk $totalAmount',
+                          '${customerPhone.isNotEmpty ? 'মোবাইল: $customerPhone\n' : ''}পেমেন্ট টাইপ: $paymentType\nSell By: $staffName\nপণ্য সংখ্যা: ${items.length} টি\nমোট বিল: Tk $totalAmount',
                         ),
                         isThreeLine: true,
                         trailing: Row(
@@ -2056,7 +2075,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Sold By:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Sell By:', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
                   pw.Text(staffName == 'Admin' ? 'Admin' : 'Staff: $staffName', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
                 ],
               ),

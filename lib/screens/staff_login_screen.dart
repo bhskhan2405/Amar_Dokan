@@ -83,6 +83,8 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('admin_uid', shopCode);
           await prefs.setString('role', 'staff');
+          await prefs.setString('staff_name', staffData['name'] ?? 'Staff');
+          await prefs.setString('staff_id', staffData['id'] ?? '');
 
           bool canProductList = permissions['product_list'] ?? false;
           bool canPosSale = permissions['pos_sale'] ?? false;

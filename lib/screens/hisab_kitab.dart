@@ -1282,7 +1282,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
               pw.Text('Sales Memo', style: const pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
               pw.SizedBox(height: 10),
               pw.Text('Time: $timeString'),
-              pw.Text(addedBy == 'Admin' ? 'Sold By: Admin' : 'Sold By: Staff: $addedBy', style: pw.TextStyle(font: banglaFont)),
+              pw.Text(addedBy == 'Admin' ? 'Sell By: Admin' : 'Sell By: Staff: $addedBy', style: pw.TextStyle(font: banglaFont)),
               pw.Text('Payment Type: $paymentType'),
               pw.Divider(),
               pw.Text('Total Amount: BDT ${saleAmt.toStringAsFixed(2)}'),

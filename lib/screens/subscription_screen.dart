@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,6 +17,7 @@ class SubscriptionScreen extends StatefulWidget {
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String? _selectedPlan;
   final TextEditingController _txIdController = TextEditingController();
+  final TextEditingController _senderPhoneController = TextEditingController();
   bool _isSubmitting = false;
 
   final String _paymentPhone = "01828424364";
@@ -24,6 +26,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   void dispose() {
     _txIdController.dispose();
+    _senderPhoneController.dispose();
     super.dispose();
   }
 
@@ -34,6 +37,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     }
     if (_txIdController.text.trim().isEmpty) {
       _showSnackBar(AppTranslations.get('txid_required'));
+      return;
+    }
+    if (_senderPhoneController.text.trim().length < 4) {
+      _showSnackBar("পেমেন্ট করা নাম্বারের শেষ ৪ ডিজিট দিন।");
       return;
     }
 
@@ -47,6 +54,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final userData = userDoc.data() ?? {};
 
+      final txId = _txIdController.text.trim();
+      final senderDigits = _senderPhoneController.text.trim();
+
       // পেমেন্ট রিকোয়েস্ট তৈরি
       await FirebaseFirestore.instance.collection('subscription_requests').add({
         'uid': user.uid,
@@ -54,7 +64,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         'shopName': userData['shopName'] ?? 'No Shop',
         'phone': userData['phone'] ?? 'No Phone',
         'plan': _selectedPlan,
-        'txId': _txIdController.text.trim(),
+        'txId': txId,
+        'senderDigits': senderDigits,
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -63,7 +74,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       String planName = _selectedPlan == '3_months' ? '৩ মাস' : (_selectedPlan == '6_months' ? '৬ মাস' : '১২ মাস');
       await NotificationUtils.notifyAdmin(
         title: "নতুন সাবস্ক্রিপশন রিকোয়েস্ট",
-        message: "${userData['name'] ?? 'ইউজার'} ($planName) প্রিমিয়াম প্ল্যানের জন্য পেমেন্ট সাবমিট করেছেন। TxID: ${_txIdController.text.trim()}",
+        message: "${userData['name'] ?? 'ইউজার'} ($planName) পেমেন্ট সাবমিট করেছেন।\nTxID: $txId\nSender Last 4: $senderDigits",
       );
 
       _showSnackBar(AppTranslations.get('payment_submitted_msg'));
@@ -74,7 +85,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         'shopName': userData['shopName'] ?? 'No Shop',
         'phone': userData['phone'] ?? 'No Phone',
         'plan': _selectedPlan,
-        'txId': _txIdController.text.trim(),
+        'txId': txId,
+        'senderDigits': senderDigits,
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       };
@@ -160,15 +172,86 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     const Text('Payment Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D47A1))),
                     const SizedBox(height: 12),
                     Text(
-                      'Send money to $_paymentPhone (bKash/Nagad)',
+                      'নিচের এই নাম্বারে Bkash/Nagad থেকে Send Money করুন।',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _paymentPhone,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.copy_all_rounded, color: Colors.blueAccent),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: _paymentPhone));
+                            _showSnackBar("পেমেন্ট নাম্বার কপি করা হয়েছে।");
+                          },
+                          tooltip: "পেমেন্ট নাম্বার কপি করুন",
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    Text(
+                      'পেমেন্ট করার পর রিসিট বা এপ্লিকেশন কার্ডটি নিচের হোয়াটসঅ্যাপ নাম্বারে পাঠিয়ে দিন।',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "+$_whatsappPhone",
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.copy, size: 18, color: Colors.green),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: "+$_whatsappPhone"));
+                            _showSnackBar("হোয়াটসঅ্যাপ নাম্বার কপি করা হয়েছে।");
+                          },
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '(সাবধান: এই হোয়াটসঅ্যাপ নাম্বারে কোনো প্রকার লেনদেন করবেন না)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: Colors.red.shade600, fontStyle: FontStyle.italic),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'টাকা পাঠানোর পর নিচের ১ নম্বর বক্সে TxID দিন এবং ২ নম্বর বক্সে যে নাম্বার থেকে টাকা পাঠিয়েছেন তার শেষ ৪ ডিজিট দিন।',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade800, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _txIdController,
                       decoration: InputDecoration(
-                        labelText: AppTranslations.get('enter_txid'),
+                        labelText: '১. ${AppTranslations.get('enter_txid')}',
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _senderPhoneController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      decoration: InputDecoration(
+                        labelText: '২. সেন্ডার নাম্বারের শেষ ৪ ডিজিট',
+                        counterText: '',
                         border: const OutlineInputBorder(),
                         isDense: true,
                         filled: true,

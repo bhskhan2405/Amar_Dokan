@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/notification_utils.dart';
 import '../utils/translations.dart';
+import '../utils/receipt_utils.dart';
 
 class UserApprovalScreen extends StatefulWidget {
   const UserApprovalScreen({super.key});
@@ -45,7 +47,16 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     }
   }
 
-  void _showApprovePinDialog(String uid, {bool isSubscription = false, String? requestId, String? plan, String? userPhone}) {
+  void _showApprovePinDialog(String uid, {
+    bool isSubscription = false, 
+    String? requestId, 
+    String? plan, 
+    String? userPhone,
+    String? name,
+    String? shopName,
+    String? txId,
+    String? senderDigits,
+  }) {
     final pinController = TextEditingController();
     showDialog(
       context: context,
@@ -77,9 +88,9 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               if (pinController.text.trim() == savedPin) {
                 Navigator.pop(dialogContext);
                 if (isSubscription) {
-                  _confirmSubscription(uid, requestId!, plan!, userPhone!);
+                  _confirmSubscription(uid, requestId!, plan!, userPhone!, name!, shopName!, txId!, senderDigits);
                 } else {
-                  _approveUser(uid, userPhone!);
+                  _approveUser(uid, userPhone!, name!, shopName!);
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('wrong_pin_msg'))));
@@ -92,7 +103,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     );
   }
 
-  void _approveUser(String uid, String userPhone) async {
+  void _approveUser(String uid, String userPhone, String name, String shopName) async {
     setState(() => _isProcessing = true);
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
@@ -104,9 +115,12 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
           SnackBar(content: Text(AppTranslations.get('user_approved_msg')), backgroundColor: Colors.green),
         );
 
-        String msg = "Congratulations! Your Amar Dokan account has been approved. You can now login and manage your shop.\n\n"
-            "অভিনন্দন! আপনার আমার দোকান অ্যাকাউন্টটি অনুমোদিত হয়েছে। এখন আপনি লগইন করে আপনার দোকান পরিচালনা করতে পারেন।";
-        _sendWhatsAppNotification(userPhone, msg);
+        await ReceiptUtils.shareSubscriptionCard(
+          name: name,
+          shopName: shopName,
+          phone: userPhone,
+          isApproval: true,
+        );
 
         await NotificationUtils.sendNotification(
           title: "অ্যাকাউন্ট অনুমোদিত হয়েছে",
@@ -122,7 +136,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     }
   }
 
-  void _confirmSubscription(String uid, String requestId, String plan, String userPhone) async {
+  void _confirmSubscription(String uid, String requestId, String plan, String userPhone, String name, String shopName, String txId, String? senderDigits) async {
     setState(() => _isProcessing = true);
     try {
       int months = 0;
@@ -156,9 +170,15 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
           const SnackBar(content: Text("Subscription confirmed successfully!"), backgroundColor: Colors.green),
         );
 
-        String msg = "Great news! Your premium subscription for Amar Dokan is now active. Enjoy all the professional features.\n\n"
-            "সুখবর! আমার দোকান অ্যাপে আপনার প্রিমিয়াম সাবস্ক্রিপশনটি এখন সচল হয়েছে। সব প্রফেশনাল ফিচারগুলো উপভোগ করুন।";
-        _sendWhatsAppNotification(userPhone, msg);
+        await ReceiptUtils.shareSubscriptionCard(
+          name: name,
+          shopName: shopName,
+          phone: userPhone,
+          plan: plan,
+          txId: txId,
+          senderDigits: senderDigits,
+          isActivation: true,
+        );
 
         String planName = plan == '3_months' ? '৩ মাস' : (plan == '6_months' ? '৬ মাস' : '১২ মাস');
         await NotificationUtils.sendNotification(
@@ -294,13 +314,26 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                         const Icon(Icons.phone_android_rounded, size: 14, color: Colors.white60),
                         const SizedBox(width: 6),
                         Text('${AppTranslations.get('mobile')}: $phone', style: const TextStyle(color: Colors.white70)),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: phone));
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
+                          },
+                          child: const Icon(Icons.copy, size: 14, color: Colors.blueAccent),
+                        ),
                       ],
                     ),
                   ],
                 ),
                 trailing: !isApproved 
                   ? ElevatedButton(
-                      onPressed: _isProcessing ? null : () => _showApprovePinDialog(uid, userPhone: phone),
+                      onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                        uid, 
+                        userPhone: phone,
+                        name: name,
+                        shopName: shopName,
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.greenAccent.shade700,
                         foregroundColor: Colors.white,
@@ -357,6 +390,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
             final shop = data['shopName'] ?? 'No Shop';
             final plan = data['plan'] ?? 'Unknown';
             final txId = data['txId'] ?? 'No TxID';
+            final senderDigits = data['senderDigits'] ?? 'N/A';
             final phone = data['phone'] ?? '';
 
             return Card(
@@ -385,6 +419,21 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                       ),
                     ),
                     Text("$shop ($phone)", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: phone));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.copy, size: 12, color: Colors.blueAccent),
+                          const SizedBox(width: 4),
+                          const Text("নাম্বার কপি করুন", style: TextStyle(color: Colors.blueAccent, fontSize: 11)),
+                        ],
+                      ),
+                    ),
                     const Divider(height: 24, color: Colors.white12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -405,11 +454,28 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Text("Sender Last 4: ", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(senderDigits, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _isProcessing ? null : () => _showApprovePinDialog(uid, isSubscription: true, requestId: reqId, plan: plan, userPhone: phone),
+                        onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                          uid, 
+                          isSubscription: true, 
+                          requestId: reqId, 
+                          plan: plan, 
+                          userPhone: phone,
+                          name: name,
+                          shopName: shop,
+                          txId: txId,
+                          senderDigits: senderDigits,
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.greenAccent.shade700,
                           foregroundColor: Colors.white,

@@ -787,8 +787,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     borderRadius: BorderRadius.circular(22),
                     child: Image.asset(
                       'assets/images/ic_launcher.png',
-                      height: 200,
-                      width: 200,
+                      height: 280,
+                      width: 280,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -976,6 +976,43 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         decorationColor: Colors.white,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          final Uri url = Uri.parse('https://wa.me/8801875787997');
+                          launchUrl(url, mode: LaunchMode.externalApplication);
+                        },
+                        child: const Text(
+                          'Help and Support',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white70,
+                          ),
+                        ),
+                      ),
+                      const Text('|', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                      TextButton(
+                        onPressed: () {
+                          final Uri url = Uri.parse('https://bhskhan2405.github.io/Amar_Dokan/');
+                          launchUrl(url, mode: LaunchMode.externalApplication);
+                        },
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

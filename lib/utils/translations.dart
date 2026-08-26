@@ -1455,8 +1455,8 @@ class AppTranslations {
       'bn': 'তারিখ:',
     },
     'user_staff_label': {
-      'en': 'User/Staff:',
-      'bn': 'ইউজার/স্টাফ:',
+      'en': 'Sell By:',
+      'bn': 'Sell By:',
     },
     'no_employee_found': {
       'en': 'No employees added',
