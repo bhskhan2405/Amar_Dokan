@@ -530,7 +530,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                             icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 30),
                             tooltip: AppTranslations.get('download_pdf') ?? 'Download PDF',
                             onPressed: () {
-                              _generateEmployeePdf(empName, designation, phone, address, baseSalary, paymentDocs, userId);
+                              _generateEmployeePdf(empName, designation, phone, address, baseSalary, _convertToDouble(empData['bonus']), paymentDocs, userId);
                             },
                           ),
                         ],
@@ -587,6 +587,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       String phone,
       String address,
       double baseSalary,
+      double bonus,
       List<QueryDocumentSnapshot<Object?>> payments,
       String userId) async {
     final pdf = pw.Document();
@@ -607,7 +608,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
             pw.Text('Phone: $phone', style: pw.TextStyle(fontSize: 12, font: banglaFont)),
             pw.Text('Address: $address', style: pw.TextStyle(fontSize: 12, font: banglaFont)),
             pw.Text(
-              'Base Salary: BDT ${baseSalary.toStringAsFixed(2)} | Bonus: BDT ${_convertToDouble(empData['bonus']).toStringAsFixed(2)}', 
+              'Base Salary: BDT ${baseSalary.toStringAsFixed(2)} | Bonus: BDT ${bonus.toStringAsFixed(2)}', 
               style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: banglaFont)
             ),
             pw.SizedBox(height: 15),
