@@ -30,6 +30,11 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {}); // Tab পরিবর্তন হলে FAB আপডেট করার জন্য
+      }
+    });
     _loadShopId();
   }
 
@@ -293,6 +298,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     final addressController = TextEditingController(text: existingData?['address'] ?? '');
     final designationController = TextEditingController(text: existingData?['designation'] ?? '');
     final salaryController = TextEditingController(text: existingData != null ? existingData['salary'].toString() : '');
+    final bonusController = TextEditingController(text: existingData != null ? (existingData['bonus'] ?? '').toString() : '');
 
     if (!context.mounted) return;
 
@@ -331,6 +337,12 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(labelText: AppTranslations.get('monthly_salary_tk')),
                 ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: bonusController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: AppTranslations.get('bonus_tk')),
+                ),
               ],
             ),
           ),
@@ -350,6 +362,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                     'phone': phoneController.text.trim(),
                     'address': addressController.text.trim(),
                     'salary': double.tryParse(salaryController.text) ?? 0.0,
+                    'bonus': double.tryParse(bonusController.text) ?? 0.0,
                     'managedBy': managerName, // মাল্টিপল ইউজার ট্র্যাকিং
                   };
 
@@ -523,8 +536,12 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                         ],
                       ),
                       const Divider(),
-                      Text('${AppTranslations.get('mobile')}: $phone | ${AppTranslations.get('address')}: $address'),
-                      Text('${AppTranslations.get('monthly_salary_tk')}: ৳ ${baseSalary.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+    Text('${AppTranslations.get('mobile')}: $phone | ${AppTranslations.get('address')}: $address'),
+                      Text(
+                        '${AppTranslations.get('monthly_salary_tk')}: ৳ ${baseSalary.toStringAsFixed(2)} | '
+                        '${AppTranslations.get('bonus')}: ৳ ${_convertToDouble(empData['bonus']).toStringAsFixed(2)}', 
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)
+                      ),
                       const SizedBox(height: 10),
                       Text(AppTranslations.get('salary_payment_history'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       const SizedBox(height: 5),
@@ -589,7 +606,10 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
             if (designation.isNotEmpty) pw.Text('Designation: $designation', style: pw.TextStyle(fontSize: 12, font: banglaFont)),
             pw.Text('Phone: $phone', style: pw.TextStyle(fontSize: 12, font: banglaFont)),
             pw.Text('Address: $address', style: pw.TextStyle(fontSize: 12, font: banglaFont)),
-            pw.Text('Base Salary: BDT ${baseSalary.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: banglaFont)),
+            pw.Text(
+              'Base Salary: BDT ${baseSalary.toStringAsFixed(2)} | Bonus: BDT ${_convertToDouble(empData['bonus']).toStringAsFixed(2)}', 
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: banglaFont)
+            ),
             pw.SizedBox(height: 15),
             pw.Divider(),
             pw.SizedBox(height: 10),
@@ -1189,6 +1209,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
         String phone = data['phone'] ?? '';
         String address = data['address'] ?? '';
         double salary = _convertToDouble(data['salary']);
+        double bonus = _convertToDouble(data['bonus']);
         String managedBy = data['managedBy'] ?? 'Admin';
 
         return Card(
@@ -1224,7 +1245,13 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('${AppTranslations.get('salary_label')} ${AppTranslations.get('currency_symbol')} ${salary.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('${AppTranslations.get('salary_label')} ${AppTranslations.get('currency_symbol')} ${salary.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                        if (bonus > 0) Text('${AppTranslations.get('bonus')} +${AppTranslations.get('currency_symbol')} ${bonus.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
