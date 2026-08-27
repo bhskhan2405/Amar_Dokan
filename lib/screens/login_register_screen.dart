@@ -232,6 +232,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               if (updatedUser != null && updatedUser.emailVerified) {
                 Navigator.pop(context);
                 await _saveUserDataAfterVerification(updatedUser);
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                  );
+                }
               } else {
                 setState(() => isLoading = false);
                 _showSnackBar(AppTranslations.get('email_not_verified'));
@@ -676,8 +682,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       );
 
       _showSnackBar(AppTranslations.get('account_created_msg'));
-      if (!mounted) return;
-      _showPendingApprovalDialog(phone);
+      // Note: Navigation to Dashboard is now handled in the verification dialog
+      // so we don't show the pending dialog here anymore.
+      // _showPendingApprovalDialog(phone);
     } catch (e) {
       _showSnackBar('ডেটা সেভ করতে ত্রুটি: $e');
     } finally {

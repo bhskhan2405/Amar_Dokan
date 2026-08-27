@@ -4,10 +4,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/translations.dart';
 import '../utils/subscription_utils.dart';
-import '../utils/ad_helper.dart';
 import '../utils/notification_utils.dart';
 import '../widgets/custom_banner_ad.dart';
 import 'subscription_screen.dart';
@@ -35,6 +34,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isOnline = true;
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   int _trialRemaining = 7;
+  bool _isApproved = true;
+  String _userPhone = '';
+  String _userName = '';
+  String _shopName = '';
 
   @override
   void initState() {
@@ -43,6 +46,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadUserData();
     _checkConnectivity();
     _checkTrialStatus();
+    _checkApprovalStatus();
+  }
+
+  Future<void> _checkApprovalStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots().listen((doc) {
+        if (doc.exists && mounted) {
+          setState(() {
+            _isApproved = doc.data()?['isApproved'] ?? false;
+            _userPhone = doc.data()?['phone'] ?? '';
+            _userName = doc.data()?['name'] ?? '';
+            _shopName = doc.data()?['shopName'] ?? '';
+          });
+        }
+      });
+    }
   }
 
   Future<void> _checkTrialStatus() async {
@@ -173,93 +193,161 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const CustomBannerAd(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTrialBanner(),
-                  _buildLowStockAlert(),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade200, width: 1.5),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Colors.blue.shade100,
-                          backgroundImage: profileImage,
-                          child: profileImage == null
-                              ? Text(
-                            ownerName.isNotEmpty ? ownerName[0].toUpperCase() : 'B',
-                            style: const TextStyle(fontSize: 28, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
-                          )
-                              : null,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(shopName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
-                              const SizedBox(height: 4),
-                              Text('${AppTranslations.get('owner')}: $ownerName', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                              Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(AppTranslations.get('menu_choose'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.1,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                const CustomBannerAd(),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDashboardCard(context, title: AppTranslations.get('products'), icon: Icons.inventory_2_outlined, iconColor: Colors.orange, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsScreen()))),
-                      _buildDashboardCard(context, title: AppTranslations.get('pos'), icon: Icons.point_of_sale, iconColor: Colors.green, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const POSScreen()))),
-                      _buildDashboardCard(context, title: AppTranslations.get('hisab'), icon: Icons.bar_chart, iconColor: Colors.purple, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HisabKitabPage()))),
-                      _buildDashboardCard(context, title: AppTranslations.get('customers'), icon: Icons.people_outline, iconColor: Colors.teal, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CustomerScreen()))),
-                      _buildDashboardCard(
-                        context, 
-                        title: AppTranslations.get('staff'), 
-                        icon: Icons.badge_outlined, 
-                        iconColor: Colors.indigo, 
-                        isPremium: true,
-                        onTap: () async {
-                          if (await SubscriptionUtils.isPremium()) {
-                            if (!context.mounted) return;
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageStaffsScreen()));
-                          } else {
-                            if (!context.mounted) return;
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
-                          }
-                        }
+                      _buildTrialBanner(),
+                      _buildLowStockAlert(),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundColor: Colors.blue.shade100,
+                              backgroundImage: profileImage,
+                              child: profileImage == null
+                                  ? Text(
+                                ownerName.isNotEmpty ? ownerName[0].toUpperCase() : 'B',
+                                style: const TextStyle(fontSize: 28, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
+                              )
+                                  : null,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(shopName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                                  const SizedBox(height: 4),
+                                  Text('${AppTranslations.get('owner')}: $ownerName', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                  Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      _buildDashboardCard(context, title: AppTranslations.get('settings'), icon: Icons.settings_outlined, iconColor: Colors.blueGrey, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()))),
+                      const SizedBox(height: 20),
+                      Text(AppTranslations.get('menu_choose'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 1.1,
+                        children: [
+                          _buildDashboardCard(context, title: AppTranslations.get('products'), icon: Icons.inventory_2_outlined, iconColor: Colors.orange, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsScreen()))),
+                          _buildDashboardCard(context, title: AppTranslations.get('pos'), icon: Icons.point_of_sale, iconColor: Colors.green, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const POSScreen()))),
+                          _buildDashboardCard(context, title: AppTranslations.get('hisab'), icon: Icons.bar_chart, iconColor: Colors.purple, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HisabKitabPage()))),
+                          _buildDashboardCard(context, title: AppTranslations.get('customers'), icon: Icons.people_outline, iconColor: Colors.teal, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CustomerScreen()))),
+                          _buildDashboardCard(
+                            context, 
+                            title: AppTranslations.get('staff'), 
+                            icon: Icons.badge_outlined, 
+                            iconColor: Colors.indigo, 
+                            isPremium: true,
+                            onTap: () async {
+                              if (await SubscriptionUtils.isPremium()) {
+                                if (!context.mounted) return;
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageStaffsScreen()));
+                              } else {
+                                if (!context.mounted) return;
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                              }
+                            }
+                          ),
+                          _buildDashboardCard(context, title: AppTranslations.get('settings'), icon: Icons.settings_outlined, iconColor: Colors.blueGrey, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()))),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (!_isApproved) _buildPendingOverlay(),
+        ],
       ),
     );
+  }
+
+  Widget _buildPendingOverlay() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.8),
+      width: double.infinity,
+      height: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.hourglass_empty_rounded, size: 80, color: Colors.amber),
+          const SizedBox(height: 24),
+          const Text(
+            'অ্যাকাউন্ট অনুমোদনের অপেক্ষায়',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'PENDING',
+            style: TextStyle(color: Colors.amber, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'আপনার অ্যাকাউন্টটি বর্তমানে আমাদের টিমের পর্যালোচনার অধীনে রয়েছে। ১ ঘণ্টার বেশি হয়ে গেলে নিচের WhatsApp বাটনে ক্লিক করে আমাদের জানান।',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: _launchWhatsApp,
+            icon: const Icon(Icons.message_rounded),
+            label: const Text('WhatsApp-এ যোগাযোগ করুন'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => FirebaseAuth.instance.signOut(),
+            child: const Text('লগ আউট করুন', style: TextStyle(color: Colors.white60)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _launchWhatsApp() async {
+    final message = "আসসালামু আলাইকুম। আমার দোকান অ্যাপে আমি রেজিস্ট্রেশন করেছি, দয়া করে আমার অ্যাকাউন্টটি এপ্রুভ করে দিন।\n\n"
+        "দোকানের নাম: $_shopName\n"
+        "মালিকের নাম: $_userName\n"
+        "মোবাইল নম্বর: $_userPhone";
+    
+    final encodedMsg = Uri.encodeComponent(message);
+    final url = "https://wa.me/${SubscriptionUtils.SUPER_ADMIN_PHONE}?text=$encodedMsg";
+    
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildTrialBanner() {

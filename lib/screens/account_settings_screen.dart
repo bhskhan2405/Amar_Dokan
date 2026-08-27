@@ -17,6 +17,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final user = FirebaseAuth.instance.currentUser;
   bool _isLoading = false;
   bool _isVerifying = false;
+  bool _isOldEmailVerified = false;
+  String? _pendingField;
+  String? _pendingValue;
   Timer? _timer;
 
   final TextEditingController _nameController = TextEditingController();
@@ -93,34 +96,122 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _updateField(String field, String value) async {
     _showPinDialog(() async {
+      if (field == 'email' || field == 'phone') {
+        _startOldEmailVerificationFlow(field, value);
+        return;
+      }
+
       setState(() => _isLoading = true);
       try {
-        if (field == 'email') {
-          await user?.verifyBeforeUpdateEmail(value);
-          _startVerificationCheck();
-        } else if (field == 'phone') {
-          String newTempPass = 'Pass_${value}_${await _getCurrentPin()}';
-          await user?.updatePassword(newTempPass);
-          await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
-            'phone': value,
-            'tempPassword': newTempPass,
-          });
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('saved_phone', value);
-        } else {
-          await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({field: value});
-        }
-        
-        if (field != 'email') {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('তথ্য সফলভাবে আপডেট হয়েছে')));
-          _loadUserData();
-        }
+        await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({field: value});
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('তথ্য সফলভাবে আপডেট হয়েছে')));
+        _loadUserData();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ত্রুটি: $e')));
       } finally {
         setState(() => _isLoading = false);
       }
     });
+  }
+
+  Future<void> _startOldEmailVerificationFlow(String field, String value) async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _pendingField = field;
+        _pendingValue = value;
+      });
+
+      // বর্তমানে সেট করা ইমেইলে ভেরিফিকেশন লিঙ্ক পাঠানো
+      await user?.sendEmailVerification();
+      
+      setState(() {
+        _isLoading = false;
+        _isVerifying = true;
+        _isOldEmailVerified = false;
+      });
+
+      // পুরোনো ইমেইল ভেরিফাই হয়েছে কি না তা চেক করার জন্য টাইমার
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+        await user?.reload();
+        final updatedUser = FirebaseAuth.instance.currentUser;
+        if (updatedUser != null && updatedUser.emailVerified) {
+          timer.cancel();
+          _onOldEmailVerified();
+        }
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ভেরিফিকেশন লিঙ্ক পাঠাতে সমস্যা হয়েছে: $e')));
+    }
+  }
+
+  Future<void> _onOldEmailVerified() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isOldEmailVerified = true;
+    });
+
+    try {
+      if (_pendingField == 'email') {
+        // এখন নতুন ইমেইলে ভেরিফিকেশন পাঠানো হবে
+        await user?.verifyBeforeUpdateEmail(_pendingValue!);
+        // _startVerificationCheck নতুন ইমেইল ভেরিফিকেশন চেক করবে (আগের কোড অনুযায়ী)
+        _startNewEmailVerificationCheck();
+      } else if (_pendingField == 'phone') {
+        // ফোন নম্বর আপডেট করা
+        String phone = _pendingValue!;
+        String newTempPass = 'Pass_${phone}_${await _getCurrentPin()}';
+        await user?.updatePassword(newTempPass);
+        await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+          'phone': phone,
+          'tempPassword': newTempPass,
+        });
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_phone', phone);
+        
+        setState(() {
+          _isVerifying = false;
+          _pendingField = null;
+          _pendingValue = null;
+        });
+        _loadUserData();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ফোন নম্বর সফলভাবে আপডেট হয়েছে!')));
+      }
+    } catch (e) {
+      setState(() => _isVerifying = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('আপডেট করতে সমস্যা হয়েছে: $e')));
+    }
+  }
+
+  void _startNewEmailVerificationCheck() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      await user?.reload();
+      final updatedUser = FirebaseAuth.instance.currentUser;
+      // দ্রষ্টব্য: verifyBeforeUpdateEmail ব্যবহারের পর emailVerified সরাসরি true হয় না যতক্ষণ না নতুন লিঙ্ক ক্লিক করা হয়
+      // এবং মাঝেমধ্যে Firebase ইমেইল পরিবর্তন না হওয়া পর্যন্ত পুরোনো ইমেইলটিই দেখায়।
+      if (updatedUser != null && updatedUser.email == _pendingValue) {
+        timer.cancel();
+        await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({'email': updatedUser.email});
+        if (mounted) {
+          setState(() {
+            _isVerifying = false;
+            _pendingField = null;
+            _pendingValue = null;
+          });
+          _loadUserData();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ইমেইল সফলভাবে আপডেট ও ভেরিফাই হয়েছে!')));
+        }
+      }
+    });
+  }
+
+  // পুরোনো মেথডটি সরিয়ে দিচ্ছি কারণ এটি নতুন ফ্লোতে অন্তর্ভুক্ত করা হয়েছে
+  void _startVerificationCheck() {
+    // এটি এখন আর সরাসরি ব্যবহৃত হচ্ছে না
   }
 
   Future<String> _getCurrentPin() async {
@@ -181,17 +272,24 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.mark_email_read_rounded, size: 64, color: Color(0xFF0D47A1)),
+                      Icon(
+                        _isOldEmailVerified ? Icons.mark_email_unread_rounded : Icons.mark_email_read_rounded, 
+                        size: 64, 
+                        color: const Color(0xFF0D47A1)
+                      ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'ইমেইল ভেরিফিকেশন প্রয়োজন',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      Text(
+                        _isOldEmailVerified ? 'নতুন ইমেইল ভেরিফাই করুন' : 'বর্তমান ইমেইল ভেরিফাই করুন',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'আপনার নতুন ইমেইলে একটি ভেরিফিকেশন লিঙ্ক পাঠানো হয়েছে। দয়া করে লিঙ্কটিতে ক্লিক করুন। ভেরিফিকেশন শেষ না হওয়া পর্যন্ত আপনি অ্যাপ ব্যবহার করতে পারবেন না।',
+                      Text(
+                        _isOldEmailVerified 
+                          ? 'আপনার নতুন ইমেইল (${_pendingValue}) এ একটি ভেরিফিকেশন লিঙ্ক পাঠানো হয়েছে। পরিবর্তনটি সম্পন্ন করতে দয়া করে সেখানে ক্লিক করুন।'
+                          : 'নিরাপত্তার স্বার্থে আপনার বর্তমান ইমেইল (${user?.email}) এ একটি লিঙ্ক পাঠানো হয়েছে। পরিবর্তনটি শুরু করতে আগে সেটি ভেরিফাই করুন।',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
+                        style: const TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 24),
                       const CircularProgressIndicator(),
