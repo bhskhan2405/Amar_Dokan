@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../utils/translations.dart';
+import '../widgets/custom_banner_ad.dart';
 
 class ManageStaffsScreen extends StatefulWidget {
   const ManageStaffsScreen({super.key});
@@ -372,81 +373,88 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
         icon: const Icon(Icons.person_add),
         label: Text(AppTranslations.get('add_new_staff')),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('staffs')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          const CustomBannerAd(),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .collection('staffs')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Text(
-                AppTranslations.get('no_staff_added'),
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      AppTranslations.get('no_staff_added'),
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
 
-          var staffDocs = snapshot.data!.docs;
+                var staffDocs = snapshot.data!.docs;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: staffDocs.length,
-            itemBuilder: (context, index) {
-              var staffData = staffDocs[index].data() as Map<String, dynamic>;
-              String staffId = staffDocs[index].id;
-              String name = staffData['name'] ?? '';
-              String phone = staffData['phone'] ?? '';
-              String username = staffData['username'] ?? '';
-              String? profileImage = staffData['profileImage'];
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: staffDocs.length,
+                  itemBuilder: (context, index) {
+                    var staffData = staffDocs[index].data() as Map<String, dynamic>;
+                    String staffId = staffDocs[index].id;
+                    String name = staffData['name'] ?? '';
+                    String phone = staffData['phone'] ?? '';
+                    String username = staffData['username'] ?? '';
+                    String? profileImage = staffData['profileImage'];
 
-              var permissions = staffData['permissions'] ?? {};
-              List<String> allowedFeatures = [];
-              if (permissions['product_list'] == true) allowedFeatures.add(AppTranslations.get('product_list_perm'));
-              if (permissions['pos_sale'] == true) allowedFeatures.add(AppTranslations.get('pos_sale_label'));
-              if (permissions['accounts'] == true) allowedFeatures.add(AppTranslations.get('hisab'));
-              if (permissions['customer'] == true || permissions['can_customer'] == true) allowedFeatures.add(AppTranslations.get('customer'));
+                    var permissions = staffData['permissions'] ?? {};
+                    List<String> allowedFeatures = [];
+                    if (permissions['product_list'] == true) allowedFeatures.add(AppTranslations.get('product_list_perm'));
+                    if (permissions['pos_sale'] == true) allowedFeatures.add(AppTranslations.get('pos_sale_label'));
+                    if (permissions['accounts'] == true) allowedFeatures.add(AppTranslations.get('hisab'));
+                    if (permissions['customer'] == true || permissions['can_customer'] == true) allowedFeatures.add(AppTranslations.get('customer'));
 
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue.shade100,
-                    backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
-                    child: profileImage == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
-                  ),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${AppTranslations.get('username_label')} $username\n${AppTranslations.get('mobile_short')}: $phone\n${AppTranslations.get('access_label')} ${allowedFeatures.join(', ')}'),
-                  isThreeLine: true,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // এডিট বাটন
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        tooltip: AppTranslations.get('edit'),
-                        onPressed: () => _showStaffDialog(context, user.uid, staffData: staffData, staffId: staffId),
+                    return Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blue.shade100,
+                          backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
+                          child: profileImage == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
+                        ),
+                        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${AppTranslations.get('username_label')} $username\n${AppTranslations.get('mobile_short')}: $phone\n${AppTranslations.get('access_label')} ${allowedFeatures.join(', ')}'),
+                        isThreeLine: true,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // এডিট বাটন
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              tooltip: AppTranslations.get('edit'),
+                              onPressed: () => _showStaffDialog(context, user.uid, staffData: staffData, staffId: staffId),
+                            ),
+                            // ডিলিট বাটন
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              tooltip: AppTranslations.get('delete'),
+                              onPressed: () => _deleteStaff(context, user.uid, staffId),
+                            ),
+                          ],
+                        ),
                       ),
-                      // ডিলিট বাটন
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        tooltip: AppTranslations.get('delete'),
-                        onPressed: () => _deleteStaff(context, user.uid, staffId),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

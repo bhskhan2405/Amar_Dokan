@@ -11,6 +11,8 @@ import 'package:printing/printing.dart';
 import '../utils/translations.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
+import '../utils/ad_manager.dart'; // অ্যাড ম্যানেজার ইমপোর্ট
+import '../widgets/custom_banner_ad.dart'; // ব্যানার অ্যাড উইজেট ইমপোর্ট
 import 'subscription_screen.dart';
 
 class POSScreen extends StatefulWidget {
@@ -87,6 +89,7 @@ class _POSScreenState extends State<POSScreen> {
 
   void _openScanner(List<QueryDocumentSnapshot> allProducts) {
     bool isScanned = false;
+    final MobileScannerController controller = MobileScannerController();
 
     Navigator.push(
       context,
@@ -96,10 +99,23 @@ class _POSScreenState extends State<POSScreen> {
             title: Text(AppTranslations.get('scan_barcode'), style: const TextStyle(color: Colors.white)),
             backgroundColor: const Color(0xFF0D47A1),
             iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.flash_on),
+                onPressed: () => controller.toggleTorch(),
+              ),
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.cameraswitch),
+                onPressed: () => controller.switchCamera(),
+              ),
+            ],
           ),
           body: Stack(
             children: [
               MobileScanner(
+                controller: controller,
                 onDetect: (capture) {
                   if (isScanned) return;
                   final List<Barcode> barcodes = capture.barcodes;
@@ -157,7 +173,7 @@ class _POSScreenState extends State<POSScreen> {
           ),
         ),
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _addToCart(String productId, Map<String, dynamic> product) {
@@ -796,8 +812,10 @@ class _POSScreenState extends State<POSScreen> {
   Future<void> _confirmSaleAndSaveToDatabase() async {
     if (_shopId.isEmpty || _cart.isEmpty) return;
 
-    double totalCost = 0;
-    double totalRevenue = _finalTotalAmount;
+    // সেল করার সময় বিজ্ঞাপন চেক
+    AdManager.checkAndShowSaleAd(() async {
+      double totalCost = 0;
+      double totalRevenue = _finalTotalAmount;
 
     _cart.forEach((key, value) {
       double costPrice = (value['costPrice'] as num).toDouble();
@@ -929,6 +947,7 @@ class _POSScreenState extends State<POSScreen> {
     if (mounted) {
       _showSuccessPopup(saleMapData);
     }
+    }); // AdManager closure
   }
 
   @override
@@ -999,6 +1018,7 @@ class _POSScreenState extends State<POSScreen> {
 
           return Column(
             children: [
+              const CustomBannerAd(),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(

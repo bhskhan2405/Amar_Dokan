@@ -9,6 +9,7 @@ import '../main.dart';
 import 'staff_login_screen.dart'; // স্টাফ লগইন স্ক্রিন ইমপোর্ট করা হলো[cite: 6]
 import '../utils/translations.dart';
 import '../utils/notification_utils.dart';
+import '../utils/device_utils.dart'; // ডিভাইস ইউটিলিটি ইমপোর্ট করা হলো
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -101,10 +102,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
       bool didAuthenticate = await auth.authenticate(
         localizedReason: AppTranslations.get('biometric_reason') ?? 'Scan your fingerprint to enter Dashboard',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
       );
 
       if (didAuthenticate) {
@@ -134,6 +133,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
             if (!isApproved) {
               _showPendingApprovalDialog(normalized);
+              setState(() => isLoading = false);
+              return;
+            }
+
+            // নতুন ডিভাইস ভেরিফিকেশন চেক (ফিঙ্গারপ্রিন্টের জন্যও)
+            String currentDeviceId = await DeviceUtils.getUniqueId();
+            List<dynamic> authorizedDevices = userData['authorizedDevices'] ?? [];
+
+            if (authorizedDevices.isNotEmpty && !authorizedDevices.contains(currentDeviceId)) {
+              if (!mounted) return;
+              _showNewDeviceVerificationDialog(normalized, email, currentDeviceId, querySnapshot.docs.first.id);
               setState(() => isLoading = false);
               return;
             }
@@ -510,6 +520,123 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Help and Support", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.email_rounded, color: Color(0xFF0D47A1)),
+              title: const Text("Email Us"),
+              subtitle: const Text("sup.amar.dokan@gmail.com"),
+              onTap: () async {
+                final Uri url = Uri.parse('mailto:sup.amar.dokan@gmail.com');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.chat_rounded, color: Colors.green),
+              title: const Text("WhatsApp"),
+              subtitle: const Text("+8801875787997"),
+              onTap: () async {
+                final Uri url = Uri.parse('https://wa.me/8801875787997');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel'))),
+        ],
+      ),
+    );
+  }
+
+  void _showNewDeviceVerificationDialog(String phone, String email, String deviceId, String uid) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("New Device Detected", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.phonelink_lock_rounded, size: 56, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            const Text(
+              "আপনি একটি নতুন ডিভাইস থেকে লগইন করার চেষ্টা করছেন। নিরাপত্তার জন্য আপনার ইমেইল ভেরিফাই করা প্রয়োজন।",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Text("ইমেইল: ${_maskEmail(email)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+            const SizedBox(height: 16),
+            const Text(
+              "নিচের বাটনে ক্লিক করে ইমেইলে ভেরিফিকেশন লিংক পাঠান এবং লিংকে ক্লিক করার পর 'Verified' বাটনে চাপ দিন।",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppTranslations.get('cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                User? user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await user.sendEmailVerification();
+                  _showSnackBar("ভেরিফিকেশন লিংক আপনার ইমেইলে পাঠানো হয়েছে।");
+                }
+              } catch (e) {
+                _showSnackBar("লিংক পাঠাতে ত্রুটি: $e");
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+            child: const Text("Send Link"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              User? user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                await user.reload();
+                if (FirebaseAuth.instance.currentUser!.emailVerified) {
+                  // ডিভাইস অথোরাইজ করা
+                  await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                    'authorizedDevices': FieldValue.arrayUnion([deviceId])
+                  });
+                  
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  _submit(); // আবার সাবমিট করলে এবার সফলভাবে লগইন হবে
+                } else {
+                  _showSnackBar("আপনার ইমেইল এখনো ভেরিফাই করা হয়নি।");
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            child: const Text("Verified"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveUserDataAfterVerification(User user) async {
     try {
       String shopName = _shopNameController.text.trim();
@@ -519,6 +646,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       String pin = _pinController.text.trim();
       String tempPassword = 'Pass_${phone}_$pin';
       DateTime now = DateTime.now();
+      String currentDeviceId = await DeviceUtils.getUniqueId();
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'shopName': shopName,
@@ -528,6 +656,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         'pin': pin,
         'tempPassword': tempPassword,
         'isApproved': false, // নতুন রেজিস্ট্রেশন পেন্ডিং থাকবে
+        'authorizedDevices': [currentDeviceId], // রেজিস্ট্রেশন করা ডিভাইসটি অটো-অ্যাপ্রুভ হবে
         'trialStartDate': FieldValue.serverTimestamp(),
         'subscriptionExpiryDate': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
@@ -641,6 +770,23 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               email: email,
               password: password,
             );
+
+            // নতুন ডিভাইস ভেরিফিকেশন চেক
+            String currentDeviceId = await DeviceUtils.getUniqueId();
+            List<dynamic> authorizedDevices = userData['authorizedDevices'] ?? [];
+
+            if (authorizedDevices.isEmpty) {
+              // প্রথমবার লগইন করলে এই ডিভাইসটি অটোমেটিক অথোরাইজ হবে
+              await FirebaseFirestore.instance.collection('users').doc(userDoc.id).update({
+                'authorizedDevices': FieldValue.arrayUnion([currentDeviceId])
+              });
+            } else if (!authorizedDevices.contains(currentDeviceId)) {
+              // নতুন ডিভাইস হলে ভেরিফিকেশন ডায়ালগ দেখানো হবে
+              if (!mounted) return;
+              _showNewDeviceVerificationDialog(phone, email, currentDeviceId, userDoc.id);
+              setState(() => isLoading = false);
+              return;
+            }
 
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('saved_phone', phone);
@@ -982,10 +1128,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        onPressed: () {
-                          final Uri url = Uri.parse('https://wa.me/8801875787997');
-                          launchUrl(url, mode: LaunchMode.externalApplication);
-                        },
+                        onPressed: _showHelpDialog,
                         child: const Text(
                           'Help and Support',
                           style: TextStyle(

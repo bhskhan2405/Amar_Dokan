@@ -252,6 +252,93 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     );
   }
 
+  void _showUserDetailsDialog(Map<String, dynamic> data, String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.person_pin_rounded, color: Colors.blueAccent),
+            const SizedBox(width: 10),
+            Expanded(child: Text(data['name'] ?? 'User Details', style: const TextStyle(color: Colors.white, fontSize: 18))),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _detailItem("Shop ID", uid, isCopyable: true),
+                _detailItem("Shop Name", data['shopName']),
+                _detailItem("Owner Name", data['name']),
+                _detailItem("Mobile", data['phone'], isCopyable: true),
+                _detailItem("Email", data['email']),
+                _detailItem("Address", data['address'] ?? 'N/A'),
+                _detailItem("PIN", data['pin'] ?? 'N/A'),
+                _detailItem("Temp Password", data['tempPassword'] ?? 'N/A'),
+                _detailItem("Status", (data['isApproved'] ?? false) ? "Approved" : "Pending", color: (data['isApproved'] ?? false) ? Colors.green : Colors.orange),
+                _detailItem("Trial Start", _formatTimestamp(data['trialStartDate'])),
+                _detailItem("Subscription Expiry", _formatTimestamp(data['subscriptionExpiryDate']), color: Colors.amber),
+                _detailItem("Created At", _formatTimestamp(data['createdAt'])),
+                _detailItem("Authorized Devices", (data['authorizedDevices'] as List?)?.join(", ") ?? "None"),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
+        ],
+      ),
+    );
+  }
+
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+    if (timestamp is Timestamp) {
+      DateTime dt = timestamp.toDate();
+      return "${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute}";
+    }
+    return timestamp.toString();
+  }
+
+  Widget _detailItem(String label, String? value, {bool isCopyable = false, Color color = Colors.white70}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value ?? 'N/A',
+                  style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+              if (isCopyable && value != null)
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 16, color: Colors.blueAccent),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: value));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$label copied!"), duration: const Duration(seconds: 1)));
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const Divider(color: Colors.white10, height: 10),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -332,68 +419,72 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               color: const Color(0xFF1E1E1E),
               margin: const EdgeInsets.symmetric(vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(20),
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
-                      ),
-                      child: SelectableText(
-                        "Shop ID: $uid",
-                        style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.store_rounded, size: 14, color: Colors.white60),
-                        const SizedBox(width: 6),
-                        Text('${AppTranslations.get('shop_name')}: $shopName', style: const TextStyle(color: Colors.white70)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_android_rounded, size: 14, color: Colors.white60),
-                        const SizedBox(width: 6),
-                        Text('${AppTranslations.get('mobile')}: $phone', style: const TextStyle(color: Colors.white70)),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: phone));
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
-                          },
-                          child: const Icon(Icons.copy, size: 14, color: Colors.blueAccent),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _showUserDetailsDialog(data, uid),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(20),
+                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
                         ),
-                      ],
-                    ),
-                  ],
+                        child: SelectableText(
+                          "Shop ID: $uid",
+                          style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.store_rounded, size: 14, color: Colors.white60),
+                          const SizedBox(width: 6),
+                          Text('${AppTranslations.get('shop_name')}: $shopName', style: const TextStyle(color: Colors.white70)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_android_rounded, size: 14, color: Colors.white60),
+                          const SizedBox(width: 6),
+                          Text('${AppTranslations.get('mobile')}: $phone', style: const TextStyle(color: Colors.white70)),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: phone));
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
+                            },
+                            child: const Icon(Icons.copy, size: 14, color: Colors.blueAccent),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  trailing: !isApproved 
+                    ? ElevatedButton(
+                        onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                          uid, 
+                          userPhone: phone,
+                          name: name,
+                          shopName: shopName,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.greenAccent.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: Text(AppTranslations.get('approve_btn'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      )
+                    : const Icon(Icons.verified_user_rounded, color: Colors.greenAccent, size: 30),
                 ),
-                trailing: !isApproved 
-                  ? ElevatedButton(
-                      onPressed: _isProcessing ? null : () => _showApprovePinDialog(
-                        uid, 
-                        userPhone: phone,
-                        name: name,
-                        shopName: shopName,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.greenAccent.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: Text(AppTranslations.get('approve_btn'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    )
-                  : const Icon(Icons.verified_user_rounded, color: Colors.greenAccent, size: 30),
               ),
             );
           },
@@ -449,119 +540,139 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               elevation: 4,
               margin: const EdgeInsets.symmetric(vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      margin: const EdgeInsets.only(top: 4, bottom: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () async {
+                  setState(() => _isProcessing = true);
+                  try {
+                    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                    if (userDoc.exists) {
+                      if (!context.mounted) return;
+                      _showUserDetailsDialog(userDoc.data() as Map<String, dynamic>, uid);
+                    } else {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User data not found.")));
+                    }
+                  } catch (e) {
+                    if (context.mounted) _showErrorSnackBar(e.toString());
+                  } finally {
+                    if (mounted) setState(() => _isProcessing = false);
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        margin: const EdgeInsets.only(top: 4, bottom: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                        ),
+                        child: SelectableText(
+                          "Shop ID: $uid",
+                          style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      child: SelectableText(
-                        "Shop ID: $uid",
-                        style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                      Text("$shop ($phone)", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: phone));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
+                        },
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.copy, size: 12, color: Colors.blueAccent),
+                            SizedBox(width: 4),
+                            Text("নাম্বার কপি করুন", style: TextStyle(color: Colors.blueAccent, fontSize: 11)),
+                          ],
+                        ),
                       ),
-                    ),
-                    Text("$shop ($phone)", style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 4),
-                    GestureDetector(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: phone));
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
-                      },
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
+                      const Divider(height: 24, color: Colors.white12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.copy, size: 12, color: Colors.blueAccent),
-                          SizedBox(width: 4),
-                          Text("নাম্বার কপি করুন", style: TextStyle(color: Colors.blueAccent, fontSize: 11)),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Plan:", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text(plan.replaceAll('_', ' ').toUpperCase(), style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text("Transaction ID:", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text(txId, style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ],
                       ),
-                    ),
-                    const Divider(height: 24, color: Colors.white12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("Plan:", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            Text(plan.replaceAll('_', ' ').toUpperCase(), style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text("Transaction ID:", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                            Text(txId, style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Text("Sender Last 4: ", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        Text(senderDigits, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isProcessing ? null : () => _showApprovePinDialog(
-                              uid, 
-                              isSubscription: true, 
-                              requestId: reqId, 
-                              plan: plan, 
-                              userPhone: phone,
-                              name: name,
-                              shopName: shop,
-                              txId: txId,
-                              senderDigits: senderDigits,
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Text("Sender Last 4: ", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          Text(senderDigits, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                                uid, 
+                                isSubscription: true, 
+                                requestId: reqId, 
+                                plan: plan, 
+                                userPhone: phone,
+                                name: name,
+                                shopName: shop,
+                                txId: txId,
+                                senderDigits: senderDigits,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.greenAccent.shade700,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: Text(AppTranslations.get('confirm_payment')),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.greenAccent.shade700,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: Text(AppTranslations.get('confirm_payment')),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isProcessing ? null : () => _showApprovePinDialog(
-                              uid, 
-                              isSubscription: true, 
-                              requestId: reqId, 
-                              plan: plan, 
-                              userPhone: phone,
-                              name: name,
-                              shopName: shop,
-                              txId: txId,
-                              senderDigits: senderDigits,
-                              isCancel: true,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isProcessing ? null : () => _showApprovePinDialog(
+                                uid, 
+                                isSubscription: true, 
+                                requestId: reqId, 
+                                plan: plan, 
+                                userPhone: phone,
+                                name: name,
+                                shopName: shop,
+                                txId: txId,
+                                senderDigits: senderDigits,
+                                isCancel: true,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent.shade700,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Text("Cancel"),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent.shade700,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: const Text("Cancel"),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -614,44 +725,48 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               elevation: 4,
               margin: const EdgeInsets.symmetric(vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(20),
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.amber,
-                  child: Icon(Icons.workspace_premium, color: Colors.white),
-                ),
-                title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      margin: const EdgeInsets.only(top: 4, bottom: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _showUserDetailsDialog(data, uid),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(20),
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.amber,
+                    child: Icon(Icons.workspace_premium, color: Colors.white),
+                  ),
+                  title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        margin: const EdgeInsets.only(top: 4, bottom: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                        ),
+                        child: SelectableText(
+                          "Shop ID: $uid",
+                          style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      child: SelectableText(
-                        "Shop ID: $uid",
-                        style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                      Text("$shop ($phone)", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          "Expires in: $daysRemaining days",
+                          style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ),
-                    Text("$shop ($phone)", style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        "Expires in: $daysRemaining days",
-                        style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

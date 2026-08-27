@@ -45,8 +45,8 @@ class _PinLockScreenState extends State<PinLockScreen> {
   Future<void> _authenticateWithFingerprint() async {
     try {
       bool authenticated = await auth.authenticate(
-        localizedReason: AppTranslations.get('open_app_fingerprint'),
-        options: const AuthenticationOptions(biometricOnly: true),
+        localizedReason: AppTranslations.get('open_app_fingerprint') ?? 'Authenticate to unlock',
+        biometricOnly: true,
       );
 
       if (authenticated && mounted) {

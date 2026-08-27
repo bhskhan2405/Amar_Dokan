@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/translations.dart';
+import '../widgets/custom_banner_ad.dart';
 import '../utils/shop_utils.dart';
 
 class CustomerScreen extends StatefulWidget {
@@ -1269,6 +1270,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
         ),
         body: Column(
           children: [
+            const CustomBannerAd(),
             if (!_isSelectionMode) ...[
               StreamBuilder<QuerySnapshot>(
               key: const ValueKey('customer_summary_stable_box'),

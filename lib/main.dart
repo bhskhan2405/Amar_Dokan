@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // ফায়ারবেস অথ ইমপোর্ট করা হলো
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // ফায়ারস্টোর ইমপোর্ট করা হলো
 import 'screens/auth_gate.dart';
 import 'utils/translations.dart';
@@ -40,6 +41,7 @@ class MyHttpOverrides extends HttpOverrides {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   HttpOverrides.global = MyHttpOverrides();
 
   // ফায়ারবেস ইনিশিয়ালাইজ করা হলো

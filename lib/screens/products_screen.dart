@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/translations.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
+import '../utils/ad_manager.dart'; // অ্যাড ম্যানেজার ইমপোর্ট
+import '../widgets/custom_banner_ad.dart'; // ব্যানার অ্যাড উইজেট ইমপোর্ট
 import 'subscription_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
@@ -134,10 +136,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   Future<void> _pickImage(Function dialogSetState) async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 50);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 500, // রেজোলিউশন কমিয়ে সাইজ ১০০কেবি-র নিচে রাখা
+      maxHeight: 500,
+    );
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
       List<int> imageBytes = await imageFile.readAsBytes();
+      
+      // যদি সাইজ ১০০কেবি-র বেশি হয়, তবে আমরা maxWidth/Height আরও কমিয়ে আনতে পারি
+      // বর্তমানে ৫০০x৫০০ এবং ৫০ কোয়ালিটি ১০০কেবি-র অনেক নিচেই থাকবে।
+      
       String base64String = base64Encode(imageBytes);
 
       dialogSetState(() {
@@ -148,7 +159,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   Future<void> _captureImage(Function dialogSetState) async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 50);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 50,
+      maxWidth: 500,
+      maxHeight: 500,
+    );
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
       List<int> imageBytes = await imageFile.readAsBytes();
@@ -193,6 +209,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   void _openBarcodeScanner() {
     bool isScanned = false;
+    final MobileScannerController controller = MobileScannerController();
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -201,8 +219,21 @@ class _ProductsScreenState extends State<ProductsScreen> {
             title: Text(AppTranslations.get('scan_barcode'), style: const TextStyle(color: Colors.white)),
             backgroundColor: const Color(0xFF0D47A1),
             iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.flash_on),
+                onPressed: () => controller.toggleTorch(),
+              ),
+              IconButton(
+                color: Colors.white,
+                icon: const Icon(Icons.cameraswitch),
+                onPressed: () => controller.switchCamera(),
+              ),
+            ],
           ),
           body: MobileScanner(
+            controller: controller,
             onDetect: (capture) {
               if (isScanned) return;
               final barcodes = capture.barcodes;
@@ -226,7 +257,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
         ),
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _showProductDialog({DocumentSnapshot? doc}) {
@@ -607,17 +638,25 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     };
 
                     if (doc == null) {
-                      productData['createdAt'] = FieldValue.serverTimestamp();
-                      await productsRef.add(productData);
+                      // নতুন প্রোডাক্ট অ্যাড করার সময় অ্যাড চেক
+                      AdManager.checkAndShowProductAd(() async {
+                        productData['createdAt'] = FieldValue.serverTimestamp();
+                        await productsRef.add(productData);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(AppTranslations.get('product_saved_msg')), backgroundColor: Colors.green),
+                          );
+                        }
+                      });
                     } else {
                       await productsRef.doc(doc.id).update(productData);
-                    }
-
-                    if (dialogContext.mounted) {
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(AppTranslations.get('product_saved_msg')), backgroundColor: Colors.green),
-                      );
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(AppTranslations.get('product_saved_msg')), backgroundColor: Colors.green),
+                        );
+                      }
                     }
                   } catch (e) {
                     if (dialogContext.mounted) {
@@ -879,6 +918,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
           return Column(
             children: [
+              const CustomBannerAd(),
               Container(
                 height: 50,
                 padding: const EdgeInsets.symmetric(vertical: 8),
