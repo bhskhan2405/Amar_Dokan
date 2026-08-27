@@ -209,31 +209,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     });
   }
 
-  // পুরোনো মেথডটি সরিয়ে দিচ্ছি কারণ এটি নতুন ফ্লোতে অন্তর্ভুক্ত করা হয়েছে
-  void _startVerificationCheck() {
-    // এটি এখন আর সরাসরি ব্যবহৃত হচ্ছে না
-  }
+
 
   Future<String> _getCurrentPin() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('app_pin') ?? '1234';
-  }
-
-  void _startVerificationCheck() {
-    setState(() => _isVerifying = true);
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      await user?.reload();
-      final updatedUser = FirebaseAuth.instance.currentUser;
-      if (updatedUser != null && updatedUser.emailVerified) {
-        timer.cancel();
-        await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({'email': updatedUser.email});
-        if (mounted) {
-          setState(() => _isVerifying = false);
-          _loadUserData();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ইমেইল সফলভাবে ভেরিফাই হয়েছে!')));
-        }
-      }
-    });
   }
 
   @override

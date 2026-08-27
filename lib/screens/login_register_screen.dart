@@ -131,11 +131,15 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             String password = userData['tempPassword'];
             bool isApproved = userData['isApproved'] ?? true; // পুরোনো ইউজারদের জন্য true
 
+            // Note: Now we allow the user to go to the Dashboard even if not approved,
+            // as the Dashboard handles the 'PENDING' overlay.
+            /*
             if (!isApproved) {
               _showPendingApprovalDialog(normalized);
               setState(() => isLoading = false);
               return;
             }
+            */
 
             // নতুন ডিভাইস ভেরিফিকেশন চেক (ফিঙ্গারপ্রিন্টের জন্যও)
             String currentDeviceId = await DeviceUtils.getUniqueId();
@@ -766,7 +770,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         final bool isApproved = userData['isApproved'] ?? true;
 
         if (!isApproved) {
-          _showPendingApprovalDialog(phone);
+          // Note: Dashboard now handles the pending state.
+      // _showPendingApprovalDialog(phone);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      }
           setState(() => isLoading = false);
           return;
         }
