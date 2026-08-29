@@ -65,5 +65,11 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="sms"/>
         </intent>
+
+        <!-- ইমেইল পাঠানোর জন্য নতুন যোগ করা হলো -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="mailto"/>
+        </intent>
     </queries>
 </manifest>

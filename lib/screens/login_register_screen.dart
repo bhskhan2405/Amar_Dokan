@@ -544,9 +544,16 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               title: Text(AppTranslations.get('email_us')),
               subtitle: const Text("sup.amar.dokan@gmail.com"),
               onTap: () async {
-                final Uri url = Uri.parse('mailto:sup.amar.dokan@gmail.com');
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url);
+                final Uri url = Uri.parse('mailto:sup.amar.dokan@gmail.com?subject=Support%20Request&body=Hello%20Team,');
+                try {
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    // যদি canLaunchUrl ব্যর্থ হয়, তবুও সরাসরি লঞ্চ করার চেষ্টা করা
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                } catch (e) {
+                  debugPrint("Email error: $e");
                 }
                 if (context.mounted) Navigator.pop(context);
               },
@@ -891,10 +898,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF42A5F5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          image: DecorationImage(
+            image: AssetImage('assets/images/login_bg.png'),
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
@@ -1104,12 +1110,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   TextButton(
                     onPressed: () => setState(() => isLogin = !isLogin),
                     child: Text(
-                      isLogin ? AppTranslations.get('new_account_question') : AppTranslations.get('already_have_account_question'),
+                      isLogin ? AppTranslations.get('register') : AppTranslations.get('login'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        letterSpacing: 0.3,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        letterSpacing: 0.5,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
@@ -1138,33 +1145,19 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextButton(
+                      IconButton(
                         onPressed: _showHelpDialog,
-                        child: Text(
-                          AppTranslations.get('help_support'),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white70,
-                          ),
-                        ),
+                        icon: const Icon(Icons.help_outline_rounded, color: Colors.white70),
+                        tooltip: AppTranslations.get('help_support'),
                       ),
-                      const Text('|', style: TextStyle(color: Colors.white38, fontSize: 12)),
-                      TextButton(
+                      const SizedBox(width: 20),
+                      IconButton(
                         onPressed: () {
                           final Uri url = Uri.parse('https://bhskhan2405.github.io/Amar_Dokan/');
                           launchUrl(url, mode: LaunchMode.externalApplication);
                         },
-                        child: Text(
-                          AppTranslations.get('privacy_policy'),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white70,
-                          ),
-                        ),
+                        icon: const Icon(Icons.privacy_tip_outlined, color: Colors.white70),
+                        tooltip: AppTranslations.get('privacy_policy'),
                       ),
                     ],
                   ),

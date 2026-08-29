@@ -38,6 +38,7 @@ flutter:
   # এখানে আপনার লোগো বা ছবির অ্যাসেট পাথ যোগ করা হয়েছে
   assets:
     - assets/images/ic_launcher.png
+    - assets/images/login_bg.png
 
   fonts:
     - family: SolaimanLipi
