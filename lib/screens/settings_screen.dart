@@ -241,12 +241,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Delete Account?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          title: Text(AppTranslations.get('delete_account'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("আপনি কি নিশ্চিত? অ্যাকাউন্ট ডিলিট করলে আপনার সব ডাটা চিরতরে মুছে যাবে।", style: TextStyle(fontSize: 13)),
+                Text(AppTranslations.get('delete_account_warning'), style: const TextStyle(fontSize: 13)),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: selectedReason,
@@ -258,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: reasonController,
-                    decoration: const InputDecoration(labelText: "আপনার কারণ লিখুন", border: OutlineInputBorder()),
+                    decoration: InputDecoration(labelText: AppTranslations.get('write_reason_hint'), border: const OutlineInputBorder()),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -282,16 +282,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
-                String savedPin = prefs.getString('app_pin') ?? '1234';
+                String savedPin = prefs.getString('app_pin') ?? '';
+
+                // যদি SharedPreferences এ পিন না থাকে, তবে ফায়ারস্টোর থেকে চেক করা হবে
+                if (savedPin.isEmpty && user != null) {
+                  final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+                  savedPin = doc.data()?['pin'] ?? '1234';
+                } else if (savedPin.isEmpty) {
+                  savedPin = '1234';
+                }
 
                 if (pinController.text.trim() == savedPin) {
                   Navigator.pop(dialogContext);
-                  _deleteAccount(selectedReason ?? "No reason", reasonController.text.trim());
+                  _deleteAccount(selectedReason ?? "No reason", reasonController.text.trim(), pinController.text.trim());
                 } else {
                   _showSnackBar(AppTranslations.get('wrong_pin_msg'));
                 }
               },
-              child: const Text("Delete Forever"),
+              child: Text(AppTranslations.get('delete')),
             ),
           ],
         ),
@@ -299,27 +307,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _deleteAccount(String reason, String otherReason) async {
+  Future<void> _deleteAccount(String reason, String otherReason, String pin) async {
     setState(() => _isLoading = true);
     try {
-      if (user != null) {
+      if (user != null && user?.email != null) {
         String finalReason = reason == "অন্যান্য" ? otherReason : reason;
-        String userPhone = _phoneController.text;
+        String userPhone = _phoneController.text.trim();
         String shopName = _shopNameController.text;
 
+        // ১. অ্যাডমিনকে জানানো
         await NotificationUtils.notifyAdmin(
           title: "ইউজার অ্যাকাউন্ট ডিলিট করেছেন",
           message: "ইউজার: $shopName ($userPhone)\nকারণ: $finalReason",
         );
 
+        // ২. রি-অথেন্টিকেশন (Firebase Account ডিলিট করার জন্য এটি প্রয়োজন)
+        try {
+          String email = user!.email!;
+          String password = 'Pass_${userPhone}_$pin';
+          AuthCredential credential = EmailAuthProvider.credential(email: email, password: password);
+          await user!.reauthenticateWithCredential(credential);
+        } catch (reauthError) {
+          debugPrint("Re-auth failed: $reauthError");
+          // যদি ফোন নম্বর বা পাসওয়ার্ডে কোনো গরমিল থাকে, তবে পুরোনো ডাটা দিয়ে একবার চেষ্টা করা
+          try {
+            var userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+            String? dbPass = userDoc.data()?['tempPassword'];
+            if (dbPass != null) {
+              AuthCredential credential = EmailAuthProvider.credential(email: user!.email!, password: dbPass);
+              await user!.reauthenticateWithCredential(credential);
+            }
+          } catch (_) {}
+        }
+
+        // ৩. ফায়ারস্টোর থেকে মেইন ডকুমেন্ট ডিলিট করা
         await FirebaseFirestore.instance.collection('users').doc(user!.uid).delete();
 
+        // ৪. ফায়ারবেস অথেন্টিকেশন থেকে ইউজার ডিলিট করা
         try {
           await user!.delete();
         } catch (authError) {
           debugPrint("Auth Delete Error: $authError");
         }
 
+        // ৫. লোকাল ডাটা ক্লিয়ার করা
         final prefs = await SharedPreferences.getInstance();
         await prefs.clear();
         
@@ -440,14 +471,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        Text('👤 Account & Shop Settings', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('👤 ${AppTranslations.get('account_shop_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 10),
                         
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.account_circle_outlined, color: Color(0xFF0D47A1)),
-                          title: Text(AppTranslations.get('account_settings') ?? 'Account Settings'),
-                          subtitle: Text(_nameController.text.isEmpty ? 'Manage name, phone & email' : _nameController.text),
+                          title: Text(AppTranslations.get('account_settings')),
+                          subtitle: Text(_nameController.text.isEmpty ? AppTranslations.get('manage_account_hint') : _nameController.text),
                           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: () {
                             Navigator.push(
@@ -652,19 +683,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red.shade700,
-                            minimumSize: const Size(double.infinity, 50),
-                            side: BorderSide(color: Colors.red.shade200),
-                          ),
-                          onPressed: _showAccountDeleteDialog,
-                          icon: const Icon(Icons.delete_forever_rounded),
-                          label: const Text("Delete Account", style: TextStyle(fontSize: 16)),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
                             minimumSize: const Size(double.infinity, 50),
                             side: const BorderSide(color: Colors.red),
@@ -686,6 +704,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
 
                         const SizedBox(height: 20),
+
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: _showAccountDeleteDialog,
+                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 18),
+                            label: Text(
+                              AppTranslations.get('delete_account'),
+                              style: const TextStyle(color: Colors.red, fontSize: 13, decoration: TextDecoration.underline),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
                         const Center(
                           child: Text('App Version: 1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12)),
                         ),

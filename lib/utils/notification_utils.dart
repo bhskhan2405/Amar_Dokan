@@ -114,4 +114,36 @@ class NotificationUtils {
     }
     await batch.commit();
   }
+
+  // নোটিফিকেশন ডিলিট করা
+  static Future<void> deleteNotification(String notifId) async {
+    await FirebaseFirestore.instance.collection('notifications').doc(notifId).delete();
+  }
+
+  // একাধিক নোটিফিকেশন ডিলিট করা
+  static Future<void> deleteMultipleNotifications(List<String> notifIds) async {
+    final batch = FirebaseFirestore.instance.batch();
+    for (String id in notifIds) {
+      batch.delete(FirebaseFirestore.instance.collection('notifications').doc(id));
+    }
+    await batch.commit();
+  }
+
+  // সব নোটিফিকেশন ডিলিট করা
+  static Future<void> deleteAllNotifications(bool isAdmin) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null && !isAdmin) return;
+
+    final query = isAdmin 
+        ? FirebaseFirestore.instance.collection('notifications').where('targetUid', isEqualTo: ADMIN_ID)
+        : FirebaseFirestore.instance.collection('notifications').where('targetUid', isEqualTo: user!.uid);
+
+    final snapshot = await query.get();
+    
+    final batch = FirebaseFirestore.instance.batch();
+    for (var doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
 }

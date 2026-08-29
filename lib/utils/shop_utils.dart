@@ -5,22 +5,28 @@ class ShopUtils {
   static Future<String> getShopId() async {
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('role');
+    final adminUid = prefs.getString('admin_uid');
     
+    // ১. যদি ইউজার স্টাফ হয়, তবে এডমিনের UID ই শপ আইডি
     if (role == 'staff') {
-      final adminUid = prefs.getString('admin_uid');
       if (adminUid != null && adminUid.isNotEmpty) {
         return adminUid;
       }
     }
     
-    // যদি রোল 'admin' হয় অথবা কিছু না থাকে, তবে বর্তমান ইউজারের UID ই শপ আইডি
+    // ২. বর্তমান ইউজারের UID চেক করা (অ্যাডমিনদের জন্য)
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      // নিশ্চিত করা যে রোলটি admin হিসেবে সেট আছে
+      // যদি রোল সেট না থাকে, তবে এডমিন হিসেবে সেট করা
       if (role == null) {
         await prefs.setString('role', 'admin');
       }
       return currentUser.uid;
+    }
+    
+    // ৩. ব্যাকআপ: যদি অথেন্টিকেশন না থাকে কিন্তু admin_uid সেভ করা থাকে
+    if (adminUid != null && adminUid.isNotEmpty) {
+      return adminUid;
     }
     
     return '';

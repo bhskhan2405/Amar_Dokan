@@ -699,7 +699,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
         ),
       );
     } else {
-      double calculatedDue = amount - paidAmount;
+      // বিক্রয়ের ক্ষেত্রে হিসাব: 
+      // ১. Total Price = যদি 'totalAmount' থাকে তবে সেটি, না থাকলে 'amount' + 'paidAmount'
+      // ২. Payment = 'paidAmount'
+      // ৩. Balance Due = 'dueAmount' বা 'balance'
+      
+      double totalProductPrice = (tData['totalAmount'] as num?)?.toDouble() ?? (amount + paidAmount);
+      double paymentReceived = paidAmount;
+      double balanceDue = (tData['dueAmount'] as num?)?.toDouble() ?? (tData['balance'] as num?)?.toDouble() ?? 0.0;
 
       pdf.addPage(
         pw.Page(
@@ -762,7 +769,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Total Price:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                          pw.Text('Tk $amount', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
+                          pw.Text('Tk $totalProductPrice', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
                         ],
                       ),
                       pw.SizedBox(height: 4),
@@ -770,7 +777,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Payment:', style: pw.TextStyle(font: banglaFont)),
-                          pw.Text('Tk $paidAmount', style: pw.TextStyle(font: banglaFont)),
+                          pw.Text('Tk $paymentReceived', style: pw.TextStyle(font: banglaFont)),
                         ],
                       ),
                       pw.SizedBox(height: 4),
@@ -778,7 +785,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Balance Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                          pw.Text('Tk $calculatedDue', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+                          pw.Text('Tk $balanceDue', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
                         ],
                       ),
                     ],
@@ -1743,14 +1750,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       itemCount: filteredTrans.length,
                       itemBuilder: (context, index) {
                         var tData = filteredTrans[index].data() as Map<String, dynamic>;
-                        String type = tData['type'] ?? '';
+                        String rawType = tData['type'] ?? '';
+                        String type = AppTranslations.get(rawType);
                         double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
                         double balance = (tData['balance'] as num?)?.toDouble() ?? 0.0;
                         String note = tData['note'] ?? '';
                         Timestamp? ts = _parseDate(tData['date']);
                         String dateStr = ts != null ? DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate()) : '';
 
-                        bool isJama = type == 'জমা';
+                        bool isJama = rawType == 'জমা' || rawType == 'jama';
 
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

@@ -55,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots().listen((doc) {
         if (doc.exists && mounted) {
           setState(() {
-            _isApproved = doc.data()?['isApproved'] ?? false;
+            _isApproved = doc.data()?['isApproved'] ?? true; // পুরাতন ইউজারদের জন্য ডিফল্ট true
             _userPhone = doc.data()?['phone'] ?? '';
             _userName = doc.data()?['name'] ?? '';
             _shopName = doc.data()?['shopName'] ?? '';
@@ -343,7 +343,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         "মোবাইল নম্বর: $_userPhone";
     
     final encodedMsg = Uri.encodeComponent(message);
-    final url = "https://wa.me/${SubscriptionUtils.SUPER_ADMIN_PHONE}?text=$encodedMsg";
+    final url = "https://wa.me/${SubscriptionUtils.WHATSAPP_CONTACT}?text=$encodedMsg";
     
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);

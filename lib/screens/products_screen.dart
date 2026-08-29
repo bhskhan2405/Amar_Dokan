@@ -911,7 +911,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           double totalProfit = totalSaleValue - totalCostPrice;
 
           final products = allProducts.where((doc) {
-            if (_selectedCategoryFilter == 'সব') return true;
+            if (_selectedCategoryFilter == AppTranslations.get('all')) return true;
             final data = doc.data() as Map<String, dynamic>;
             return data['category'] == _selectedCategoryFilter;
           }).toList();

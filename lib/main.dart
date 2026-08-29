@@ -72,12 +72,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Locale _locale = Locale(AppTranslations.currentLanguage);
+  late Locale _locale;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateLocale();
+  }
+
+  void _updateLocale() {
+    String langCode = AppTranslations.currentLanguage;
+    _locale = langCode == 'bn' ? const Locale('bn', 'BD') : const Locale('en', 'US');
+  }
 
   void setLocale(Locale locale) {
     setState(() {
-      _locale = locale;
       AppTranslations.currentLanguage = locale.languageCode;
+      _updateLocale();
     });
   }
 

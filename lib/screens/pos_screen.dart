@@ -896,8 +896,9 @@ class _POSScreenState extends State<POSScreen> {
         final txnRef = customerRef.collection('transactions').doc();
         batch.set(txnRef, {
           'type': 'sale_due',
-          'amount': totalRevenue,
-          'paidAmount': paidAmount,
+          'amount': currentDue, // লেজারে দেখানোর জন্য শুধু বকেয়া
+          'totalAmount': totalRevenue, // মেমো রিসিটের জন্য মোট দাম
+          'paidAmount': paidAmount, // মেমো রিসিটের জন্য কত জমা দিয়েছে
           'dueAmount': currentDue,
           'note': descText,
           'staffName': widget.currentStaff != null ? widget.currentStaff!['name'] : 'Admin',
@@ -916,8 +917,9 @@ class _POSScreenState extends State<POSScreen> {
         final txnRef = newCustomerRef.collection('transactions').doc();
         batch.set(txnRef, {
           'type': 'sale_due',
-          'amount': totalRevenue,
-          'paidAmount': paidAmount,
+          'amount': currentDue, // লেজারে দেখানোর জন্য শুধু বকেয়া
+          'totalAmount': totalRevenue, // মেমো রিসিটের জন্য মোট দাম
+          'paidAmount': paidAmount, // মেমো রিসিটের জন্য কত জমা দিয়েছে
           'dueAmount': currentDue,
           'note': descText,
           'staffName': widget.currentStaff != null ? widget.currentStaff!['name'] : 'Admin',
@@ -1103,9 +1105,22 @@ class _POSScreenState extends State<POSScreen> {
                             var doc = filteredProducts[index];
                             var data = doc.data() as Map<String, dynamic>;
 
-                            final double price = (data['price'] ?? 0.0) as double;
-                            final double discount = (data['discount'] ?? 0.0) as double;
-                            final double effectivePrice = discount > 0 ? price - ((price * discount) / 100) : price;
+                            final double price = (data['price'] ?? 0.0).toDouble();
+                            final double discountVal = (data['discount'] ?? 0.0).toDouble();
+                            final String discountType = data['discountType'] ?? '%';
+                            
+                            double discountPercent = 0.0;
+                            double effectivePrice = price;
+
+                            if (discountVal > 0) {
+                              if (discountType == '%') {
+                                discountPercent = discountVal;
+                                effectivePrice = price - ((price * discountVal) / 100);
+                              } else {
+                                discountPercent = (discountVal / price) * 100;
+                                effectivePrice = price - discountVal;
+                              }
+                            }
                             final stock = data['stock'] ?? 0;
                             final String unit = data['unit'] ?? 'Pcs';
                             final String productSize = (data['size'] ?? '').toString().trim();
@@ -1144,7 +1159,7 @@ class _POSScreenState extends State<POSScreen> {
                                             child: const Icon(Icons.shopping_bag, size: 40, color: Color(0xFF0D47A1)),
                                           ),
                                         ),
-                                        if (discount > 0)
+                                        if (discountPercent > 0)
                                           Positioned(
                                             top: 0,
                                             right: 0,
@@ -1155,7 +1170,7 @@ class _POSScreenState extends State<POSScreen> {
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                '${discount.toStringAsFixed(0)}% ${AppTranslations.get('discount')}',
+                                                '${discountPercent.toStringAsFixed(0)}% ${AppTranslations.get('discount')}',
                                                 style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                                               ),
                                             ),
@@ -1174,7 +1189,7 @@ class _POSScreenState extends State<POSScreen> {
                                       alignment: WrapAlignment.center,
                                       crossAxisAlignment: WrapCrossAlignment.center,
                                       children: [
-                                        if (discount > 0)
+                                        if (discountPercent > 0)
                                           Text(
                                             '${AppTranslations.get('currency_symbol')}${price.toStringAsFixed(0)} ',
                                             style: const TextStyle(

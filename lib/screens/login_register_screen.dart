@@ -239,7 +239,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 if (mounted) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                    MaterialPageRoute(builder: (context) => const RegistrationSuccessPage()),
                   );
                 }
               } else {
@@ -302,7 +302,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   _showSnackBar(AppTranslations.get('user_not_found'));
                 }
               } catch (e) {
-                _showSnackBar('ত্রুটি: $e');
+                _showSnackBar(AppTranslations.get('error_msg').replaceAll('@error', e.toString()));
               } finally {
                 setState(() => isLoading = false);
               }
@@ -378,7 +378,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   _showSetNewPinDialog(phone);
                 }
               } catch (e) {
-                _showSnackBar('লগইন ব্যর্থ: $e');
+                _showSnackBar(AppTranslations.get('login_failed_msg'));
               } finally {
                 setState(() => isLoading = false);
               }
@@ -406,14 +406,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               keyboardType: TextInputType.number,
               maxLength: 4,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'New PIN', counterText: ''),
+              decoration: InputDecoration(labelText: AppTranslations.get('new_pin'), counterText: ''),
             ),
             TextField(
               controller: pin2,
               keyboardType: TextInputType.number,
               maxLength: 4,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirm New PIN', counterText: ''),
+              decoration: InputDecoration(labelText: AppTranslations.get('confirm_new_pin'), counterText: ''),
             ),
           ],
         ),
@@ -443,12 +443,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     await prefs.setString('app_pin', newPin);
                     await prefs.setString('saved_phone', phone);
 
-                    _showSnackBar('পিন সফলভাবে পরিবর্তন হয়েছে!');
+                    _showSnackBar(AppTranslations.get('pin_changed_success'));
                     if (!mounted) return;
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
                   }
                 } catch (e) {
-                  _showSnackBar('পিন সেট করতে ত্রুটি: $e');
+                  _showSnackBar(AppTranslations.get('pin_set_error').replaceAll('@error', e.toString()));
                 } finally {
                   setState(() => isLoading = false);
                 }
@@ -508,7 +508,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               Expanded(
                 child: TextButton.icon(
                   onPressed: () async {
-                    String message = "আমার অ্যাকাউন্টটি ভেরিফাই করুন। নম্বর: $userPhone";
+                    String message = AppTranslations.get('admin_verify_request_msg').replaceAll('@phone', userPhone);
                     final Uri url = Uri.parse('https://wa.me/$ADMIN_PHONE?text=${Uri.encodeComponent(message)}');
                     if (await canLaunchUrl(url)) await launchUrl(url);
                   },
@@ -535,13 +535,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Help and Support", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppTranslations.get('help_support_title'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.email_rounded, color: Color(0xFF0D47A1)),
-              title: const Text("Email Us"),
+              title: Text(AppTranslations.get('email_us')),
               subtitle: const Text("sup.amar.dokan@gmail.com"),
               onTap: () async {
                 final Uri url = Uri.parse('mailto:sup.amar.dokan@gmail.com');
@@ -554,7 +554,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.chat_rounded, color: Colors.green),
-              title: const Text("WhatsApp"),
+              title: Text(AppTranslations.get('whatsapp_label')),
               subtitle: const Text("+8801875787997"),
               onTap: () async {
                 final Uri url = Uri.parse('https://wa.me/8801875787997');
@@ -579,24 +579,24 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("New Device Detected", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppTranslations.get('new_device_title'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.phonelink_lock_rounded, size: 56, color: Colors.redAccent),
             const SizedBox(height: 16),
-            const Text(
-              "আপনি একটি নতুন ডিভাইস থেকে লগইন করার চেষ্টা করছেন। নিরাপত্তার জন্য আপনার ইমেইল ভেরিফাই করা প্রয়োজন।",
+            Text(
+              AppTranslations.get('new_device_msg'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
-            Text("ইমেইল: ${_maskEmail(email)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+            Text("${AppTranslations.get('email_label')}: ${_maskEmail(email)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
             const SizedBox(height: 16),
-            const Text(
-              "নিচের বাটনে ক্লিক করে ইমেইলে ভেরিফিকেশন লিংক পাঠান এবং লিংকে ক্লিক করার পর 'Verified' বাটনে চাপ দিন।",
+            Text(
+              AppTranslations.get('verification_instruction'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
         ),
@@ -618,7 +618,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
-            child: const Text("Send Link"),
+            child: Text(AppTranslations.get('send_link_btn')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -635,12 +635,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   Navigator.pop(context);
                   _submit(); // আবার সাবমিট করলে এবার সফলভাবে লগইন হবে
                 } else {
-                  _showSnackBar("আপনার ইমেইল এখনো ভেরিফাই করা হয়নি।");
+                  _showSnackBar(AppTranslations.get('email_not_verified_msg'));
                 }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-            child: const Text("Verified"),
+            child: Text(AppTranslations.get('verified_label')),
           ),
         ],
       ),
@@ -678,6 +678,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       await prefs.setBool('remember_phone', true);
       await prefs.setString('trial_start_date', now.toIso8601String());
       await prefs.setString('subscription_expiry_date', now.toIso8601String());
+
+      // রেজিস্ট্রেশনের পর সাইন আউট করা যাতে ইউজার আবার লগইন করে
+      await FirebaseAuth.instance.signOut();
 
       // এডমিনকে নতুন রেজিস্ট্রেশন রিকোয়েস্ট জানানো
       await NotificationUtils.notifyAdmin(
@@ -730,7 +733,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       _showVerificationDialog(userCredential.user!);
 
     } catch (e) {
-      _showSnackBar('রেজিস্ট্রেশন ত্রুটি: ${e.toString()}');
+      _showSnackBar(AppTranslations.get('registration_error_msg').replaceAll('@error', e.toString()));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -757,7 +760,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             .get();
 
         if (querySnapshot.docs.isEmpty) {
-          _showSnackBar('এই ফোন নম্বর দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি। দয়া করে নম্বর চেক করুন।');
+          _showSnackBar(AppTranslations.get('phone_not_registered_msg'));
           setState(() => isLoading = false);
           return;
         }
@@ -769,21 +772,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         final password = userData['tempPassword'];
         final bool isApproved = userData['isApproved'] ?? true;
 
-        if (!isApproved) {
-          // Note: Dashboard now handles the pending state.
-      // _showPendingApprovalDialog(phone);
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
-      }
-          setState(() => isLoading = false);
-          return;
-        }
-
         if (pin == savedPin) {
           try {
+            // ১. ফায়ারবেসে লগইন (সাইন-ইন) করা হচ্ছে, যাতে পেন্ডিং থাকলেও UID পাওয়া যায়
             await FirebaseAuth.instance.signInWithEmailAndPassword(
               email: email,
               password: password,
@@ -818,15 +809,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             await prefs.setString('app_pin', pin);
 
             if (!mounted) return;
+
+            // এখন ড্যাশবোর্ডে পাঠানো হবে, সেখানে _isApproved চেক করে ওভারলে দেখানো হবে
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const DashboardScreen()),
             );
           } catch (e) {
-            _showSnackBar('লগইন ব্যর্থ: পাসওয়ার্ড ভেরিফিকেশন ফেইল করেছে। এরর: $e');
+            _showSnackBar(AppTranslations.get('login_failed_msg'));
           }
         } else {
-          _showSnackBar('ভুল পিন (PIN) দিয়েছেন। দয়া করে সঠিক পিন দিয়ে আবার চেষ্টা করুন।');
+          _showSnackBar(AppTranslations.get('wrong_pin_msg'));
         }
       } else {
         String shopName = _shopNameController.text.trim();
@@ -837,7 +830,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         String confirmPin = _confirmPinController.text.trim();
 
         if (shopName.isEmpty || ownerName.isEmpty || phone.isEmpty || email.isEmpty) {
-          _showSnackBar(email.isEmpty ? "ইমেইল দেওয়া আবশ্যক!" : AppTranslations.get('required_fields_msg'));
+          _showSnackBar(email.isEmpty ? AppTranslations.get('email_required_msg') : AppTranslations.get('required_fields_msg'));
           setState(() => isLoading = false);
           return;
         }
@@ -863,7 +856,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         await _completeRegistration(null);
       }
     } catch (e) {
-      _showSnackBar('ত্রুটি: ${e.toString()}');
+      _showSnackBar(AppTranslations.get('error_msg').replaceAll('@error', e.toString()));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -1007,7 +1000,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           const SizedBox(height: 14),
                           _buildTextField(
                             controller: _pinController,
-                            label: '4 Digit PIN',
+                            label: AppTranslations.get('enter_4_digit_pin'),
                             icon: Icons.lock_rounded,
                             isPassword: true,
                             maxLength: 4,
@@ -1015,7 +1008,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           const SizedBox(height: 14),
                           _buildTextField(
                             controller: _confirmPinController,
-                            label: 'Confirm PIN',
+                            label: AppTranslations.get('confirm_pin'),
                             icon: Icons.lock_outline_rounded,
                             isPassword: true,
                             maxLength: 4,
@@ -1058,7 +1051,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               Expanded(
                                 child: _buildTextField(
                                   controller: _loginPinController,
-                                  label: '4 Digit PIN',
+                                  label: AppTranslations.get('enter_4_digit_pin'),
                                   icon: Icons.lock_rounded,
                                   isPassword: true,
                                   maxLength: 4,
@@ -1147,9 +1140,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     children: [
                       TextButton(
                         onPressed: _showHelpDialog,
-                        child: const Text(
-                          'Help and Support',
-                          style: TextStyle(
+                        child: Text(
+                          AppTranslations.get('help_support'),
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
                             decoration: TextDecoration.underline,
@@ -1163,9 +1156,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           final Uri url = Uri.parse('https://bhskhan2405.github.io/Amar_Dokan/');
                           launchUrl(url, mode: LaunchMode.externalApplication);
                         },
-                        child: const Text(
-                          'Privacy Policy',
-                          style: TextStyle(
+                        child: Text(
+                          AppTranslations.get('privacy_policy'),
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
                             decoration: TextDecoration.underline,
@@ -1219,6 +1212,80 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: Color(0xFF0D47A1), width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// রেজিস্ট্রেশন পরবর্তী পেন্ডিং মেসেজ পেজ
+class RegistrationSuccessPage extends StatelessWidget {
+  const RegistrationSuccessPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 8,
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.pending_actions_rounded, size: 80, color: Colors.orange),
+                    const SizedBox(height: 24),
+                    Text(
+                      AppTranslations.get('account_pending_msg'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      AppTranslations.get('please_login_msg'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D47A1),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginRegisterScreen()),
+                            (route) => false,
+                          );
+                        },
+                        child: Text(
+                          AppTranslations.get('login_now'),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

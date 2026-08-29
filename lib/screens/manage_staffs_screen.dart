@@ -281,7 +281,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
     bool pinVerified = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppTranslations.get('login_pin') ?? 'Enter Admin PIN'),
+        title: Text(AppTranslations.get('login_pin')),
         content: TextField(
           controller: pinController,
           keyboardType: TextInputType.number,
@@ -311,7 +311,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                 Navigator.pop(context, false);
               }
             },
-            child: const Text('Verify'),
+            child: Text(AppTranslations.get('confirm')),
           ),
         ],
       ),

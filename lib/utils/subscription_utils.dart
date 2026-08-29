@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SubscriptionUtils {
   static const String SUPER_ADMIN_PHONE = "01828424364";
+  static const String WHATSAPP_CONTACT = "8801875787997";
 
   static Future<bool> isSuperAdmin() async {
     final prefs = await SharedPreferences.getInstance();

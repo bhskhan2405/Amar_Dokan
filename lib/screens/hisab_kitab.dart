@@ -483,6 +483,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     String phone = empData['phone'] ?? '';
     String address = empData['address'] ?? '';
     double baseSalary = _convertToDouble(empData['salary']);
+    double bonus = _convertToDouble(empData['bonus']);
 
     showModalBottomSheet(
       context: context,
@@ -530,7 +531,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                             icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 30),
                             tooltip: AppTranslations.get('download_pdf') ?? 'Download PDF',
                             onPressed: () {
-                              _generateEmployeePdf(empName, designation, phone, address, baseSalary, _convertToDouble(empData['bonus']), paymentDocs, userId);
+                              _generateEmployeePdf(empName, designation, phone, address, baseSalary, bonus, paymentDocs, userId);
                             },
                           ),
                         ],
@@ -539,7 +540,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     Text('${AppTranslations.get('mobile')}: $phone | ${AppTranslations.get('address')}: $address'),
                       Text(
                         '${AppTranslations.get('monthly_salary_tk')}: ৳ ${baseSalary.toStringAsFixed(2)} | '
-                        '${AppTranslations.get('bonus')}: ৳ ${_convertToDouble(empData['bonus']).toStringAsFixed(2)}', 
+                        '${AppTranslations.get('bonus')}: ৳ ${bonus.toStringAsFixed(2)}', 
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)
                       ),
                       const SizedBox(height: 10),
