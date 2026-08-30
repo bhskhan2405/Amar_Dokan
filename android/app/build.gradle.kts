@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,7 +8,7 @@ plugins {
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
@@ -57,18 +59,6 @@ android {
                 "proguard-rules.pro"
             )
         }
-    }
-}
-
-// Force copy the APK to where Flutter expects it
-tasks.register<Copy>("copyApkToFlutterDir") {
-    from("${layout.buildDirectory.get().asFile}/outputs/apk/debug/app-debug.apk")
-    into("${project.rootProject.projectDir}/../build/app/outputs/flutter-apk")
-}
-
-project.afterEvaluate {
-    tasks.named("assembleDebug") {
-        finalizedBy("copyApkToFlutterDir")
     }
 }
 
