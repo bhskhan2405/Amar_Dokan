@@ -293,11 +293,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     .where('phone', isEqualTo: phone)
                     .get();
 
-                if (query.docs.isNotEmpty) {
+              if (query.docs.isNotEmpty) {
                   String email = query.docs.first.data()['email'];
+                  String maskedEmail = _maskEmail(email);
                   await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-                  _showSnackBar(AppTranslations.get('reset_link_sent'));
-                  _showRecoveryInstructionDialog(phone, email);
+                  
+                  if (!mounted) return;
+                  _showRecoveryInstructionDialog(phone, email, maskedEmail);
                 } else {
                   _showSnackBar(AppTranslations.get('user_not_found'));
                 }
@@ -314,18 +316,34 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 
-  void _showRecoveryInstructionDialog(String phone, String email) {
+  void _showRecoveryInstructionDialog(String phone, String email, String maskedEmail) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(AppTranslations.get('forgot_pin')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(AppTranslations.get('forgot_pin'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.mark_email_read_rounded, size: 64, color: Color(0xFF0D47A1)),
             const SizedBox(height: 16),
-            Text(AppTranslations.get('recovery_instructions'), textAlign: TextAlign.center),
+            Text(
+              'আপনার ইমেইলে একটি পিন রিসেট লিঙ্ক পাঠানো হয়েছে:',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              maskedEmail,
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            _buildInstructionItem(Icons.mail_outline, 'ইমেইল ইনবক্স বা স্প্যাম ফোল্ডার চেক করুন।'),
+            _buildInstructionItem(Icons.link, 'লিঙ্কে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।'),
+            _buildInstructionItem(Icons.login, 'পাসওয়ার্ড সেট করা হলে আবার অ্যাপে ফিরে আসুন।'),
           ],
         ),
         actions: [
@@ -335,9 +353,27 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               Navigator.pop(context);
               _showPasswordLoginDialog(phone, email);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D47A1), 
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             child: Text(AppTranslations.get('password_set_done')),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade700))),
         ],
       ),
     );

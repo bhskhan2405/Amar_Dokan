@@ -404,7 +404,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-              TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsScreen())), child: const Text('দেখুন')),
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (context) => const ProductsScreen(showLowStockOnly: true))
+                ), 
+                child: const Text('দেখুন')
+              ),
             ],
           ),
         );

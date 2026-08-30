@@ -869,7 +869,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
         if (_isDateMatched(expenseDate)) {
           filteredExpenses.add(doc);
           String note = data['note'] ?? '';
-          if (note.startsWith('বেতন')) {
+          if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
             totalSalary += _convertToDouble(data['amount']);
           } else {
             totalExpense += _convertToDouble(data['amount']);
@@ -960,14 +960,14 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                       double amt = _convertToDouble(data['amount']);
                       String note = data['note'] ?? 'Expense';
                       String addedBy = data['addedBy'] ?? 'N/A';
-                      bool isSalary = note.startsWith(AppTranslations.get('salary')) || note.startsWith('বেতন');
-                      String titleLabel = isSalary ? '${AppTranslations.get('salary')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}' : '${AppTranslations.get('expense') ?? 'Expense'}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}';
+                      bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
+                      String titleLabel = isSalary ? '${AppTranslations.get('salary')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}' : '${AppTranslations.get('expense')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}';
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         child: ListTile(
                           title: Text(titleLabel, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                          subtitle: Text('Note: $note\n${AppTranslations.get('added_by')}: $addedBy | ${AppTranslations.get('time')}: $timeStr'),
+                          subtitle: Text('${AppTranslations.get('memo_no_desc')}: $note\n${AppTranslations.get('added_by')}: $addedBy | ${AppTranslations.get('time')}: $timeStr'),
                           isThreeLine: true,
                           trailing: IconButton(
                             icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 30),
@@ -1091,7 +1091,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
         DateTime expenseDate = timestamp.toDate();
         if (expenseDate.year == selectedDate.year && expenseDate.month == selectedDate.month) {
           String note = data['note'] ?? '';
-          if (note.startsWith('বেতন') || note.startsWith(AppTranslations.get('salary'))) {
+          if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
             monthlyTotalSalary += _convertToDouble(data['amount']);
           } else {
             monthlyTotalExpense += _convertToDouble(data['amount']);
@@ -1311,7 +1311,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
               pw.Text('Sales Memo', style: const pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
               pw.SizedBox(height: 10),
               pw.Text('Time: $timeString'),
-              pw.Text(addedBy == 'Admin' ? 'Sell By: Admin' : 'Sell By: Staff: $addedBy', style: pw.TextStyle(font: banglaFont)),
+              pw.Text(addedBy == 'Admin' ? 'Sell By: Admin' : 'Sell By Staff: $addedBy', style: pw.TextStyle(font: banglaFont)),
               pw.Text('Payment Type: $paymentType'),
               pw.Divider(),
               pw.Text('Total Amount: BDT ${saleAmt.toStringAsFixed(2)}'),
@@ -1333,7 +1333,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     double expenseAmt = _convertToDouble(data['amount']);
     String note = data['note'] ?? 'General Expense';
     String addedBy = data['addedBy'] ?? 'N/A';
-    bool isSalary = note.startsWith('বেতন');
+    bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
 
     String memoTitle = isSalary ? 'Salary Memo' : 'Expense Memo';
     String amountLabel = isSalary ? 'Salary Amount' : 'Expense Amount';
@@ -1407,7 +1407,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
           dailySummary[dayKey] = {'sale': 0.0, 'profit': 0.0, 'expense': 0.0, 'salary': 0.0};
         }
 
-        if (note.startsWith('বেতন')) {
+        if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
           dailySummary[dayKey]!['salary'] = dailySummary[dayKey]!['salary']! + amount;
         } else {
           dailySummary[dayKey]!['expense'] = dailySummary[dayKey]!['expense']! + amount;
@@ -1451,12 +1451,14 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
             pw.SizedBox(height: 10),
             pw.Text('SUMMARY REPORT', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: banglaFont)),
             pw.SizedBox(height: 8),
-            pw.Text('Total Sale: BDT ${totalSale.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-            pw.Text('Total Profit: BDT ${totalProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont)), // এখানে pw.FootWeight এর পরিবর্তে pw.FontWeight হবে
-            pw.Text('Total Expense: BDT ${totalExpense.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-            pw.Text('Total Salary: BDT ${totalSalary.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-            pw.Text('Net Balance (Profit - Expense - Salary): BDT ${(totalProfit - (totalExpense + totalSalary)).toStringAsFixed(2)}',
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont)),
+            pw.Text('Total Sale: BDT ${totalSale.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, font: banglaFont)),
+            pw.Text('Total Profit: BDT ${totalProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, font: banglaFont, color: PdfColors.green900)),
+            pw.SizedBox(height: 4),
+            pw.Text('Total Expense (General): BDT ${totalExpense.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, font: banglaFont, color: PdfColors.red900)),
+            pw.Text('Total Salary Paid: BDT ${totalSalary.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, font: banglaFont, color: PdfColors.orange900)),
+            pw.Divider(height: 20),
+            pw.Text('Net Profit: BDT ${(totalProfit - (totalExpense + totalSalary)).toStringAsFixed(2)}',
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont, color: (totalProfit - (totalExpense + totalSalary)) >= 0 ? PdfColors.blue900 : PdfColors.red900)),
           ];
         },
       ),

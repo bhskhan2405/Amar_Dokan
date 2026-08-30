@@ -276,6 +276,7 @@ class AppTranslations {
     'employee': {'en': 'Employee', 'bn': 'কর্মচারী'},
     'no_employee_found': {'en': 'No employee found.', 'bn': 'কোনো কর্মচারী পাওয়া যায়নি।'},
     'salary_label': {'en': 'Salary', 'bn': 'বেতন'},
+    'salary': {'en': 'Salary', 'bn': 'বেতন'},
     'pay_salary': {'en': 'Pay Salary', 'bn': 'বেতন দিন'},
     'add_employee': {'en': 'Add Staff', 'bn': 'কর্মচারী যোগ'},
     'staff_name': {'en': 'Staff Name', 'bn': 'কর্মচারীর নাম'},

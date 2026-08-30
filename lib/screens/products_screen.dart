@@ -15,7 +15,8 @@ import '../widgets/custom_banner_ad.dart'; // ব্যানার অ্যা
 import 'subscription_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
-  const ProductsScreen({super.key});
+  final bool showLowStockOnly;
+  const ProductsScreen({super.key, this.showLowStockOnly = false});
 
   @override
   State<ProductsScreen> createState() => _ProductsScreenState();
@@ -67,7 +68,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedCategoryFilter = AppTranslations.get('all');
+    _selectedCategoryFilter = widget.showLowStockOnly ? 'Low Stock' : AppTranslations.get('all');
     _allAvailableCategories = List.from(_categoryList);
     _priceController.addListener(_calculateDiscountAmount);
     _discountController.addListener(_calculateDiscountAmount);
@@ -913,6 +914,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
           final products = allProducts.where((doc) {
             if (_selectedCategoryFilter == AppTranslations.get('all')) return true;
             final data = doc.data() as Map<String, dynamic>;
+            if (_selectedCategoryFilter == 'Low Stock') {
+              double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
+              double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
+              return stock <= limit;
+            }
             return data['category'] == _selectedCategoryFilter;
           }).toList();
 
@@ -1011,8 +1017,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
                     String sizeDisplay = size.isNotEmpty ? ' | ${AppTranslations.get('size') ?? 'Size'}: $size' : '';
 
+                    final double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
+                    final double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
+                    bool isLowStock = stock <= limit;
+
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: isLowStock ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
+                      ),
                       child: ListTile(
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
