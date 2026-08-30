@@ -5,7 +5,8 @@ class AdHelper {
   // টেস্ট আইডিগুলো ব্যবহার করা হয়েছে
   static String get bannerAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111';
+      // আপনার রিয়েল ব্যানার অ্যাড আইডি
+      return 'ca-app-pub-6060531284268467/3600494304';
     } else {
       throw UnsupportedError('Unsupported platform');
     }
@@ -13,7 +14,8 @@ class AdHelper {
 
   static String get interstitialAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712';
+      // আপনার রিয়েল ইন্টারস্টিশিয়াল অ্যাড আইডি
+      return 'ca-app-pub-6060531284268467/6583197518';
     } else {
       throw UnsupportedError('Unsupported platform');
     }

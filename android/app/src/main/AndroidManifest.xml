@@ -40,10 +40,10 @@
             android:name="flutterEmbedding" 
             android:value="2"/>
 
-        <!-- Google AdMob App ID (Test ID) -->
+        <!-- Google AdMob App ID (Real ID) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-6060531284268467~2651691365"/>
     </application>
 
     <!-- Required to query activities that can process text, and for url_launcher (tel, sms) -->

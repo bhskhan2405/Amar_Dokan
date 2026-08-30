@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 import '../utils/translations.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
+import '../widgets/custom_banner_ad.dart';
 import 'subscription_screen.dart';
 
 class HisabKitabPage extends StatefulWidget {
@@ -734,12 +735,19 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                   List<QueryDocumentSnapshot<Object?>> expenseDocs = expenseSnapshot.hasData ? expenseSnapshot.data!.docs : [];
                   List<QueryDocumentSnapshot<Object?>> employeeDocs = employeeSnapshot.hasData ? employeeSnapshot.data!.docs : [];
 
-                  return TabBarView(
-                    controller: _tabController,
+                  return Column(
                     children: [
-                      _buildDailyReportView(salesDocs, expenseDocs, _shopId),
-                      _buildMonthlyReportView(salesDocs, expenseDocs),
-                      _buildEmployeeView(employeeDocs, _shopId),
+                      const CustomBannerAd(),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildDailyReportView(salesDocs, expenseDocs, _shopId),
+                            _buildMonthlyReportView(salesDocs, expenseDocs),
+                            _buildEmployeeView(employeeDocs, _shopId),
+                          ],
+                        ),
+                      ),
                     ],
                   );
                 },

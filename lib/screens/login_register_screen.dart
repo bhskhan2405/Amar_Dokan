@@ -10,6 +10,7 @@ import 'staff_login_screen.dart'; // স্টাফ লগইন স্ক্�
 import '../utils/translations.dart';
 import '../utils/notification_utils.dart';
 import '../utils/device_utils.dart'; // ডিভাইস ইউটিলিটি ইমপোর্ট করা হলো
+import '../widgets/custom_banner_ad.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -981,6 +982,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      const CustomBannerAd(),
+                      const SizedBox(height: 10),
                       // পুরোনো আইকন ও টেক্সট সরিয়ে নতুন পিকচার বসানো হলো
                   ClipRRect(
                     borderRadius: BorderRadius.circular(22),
