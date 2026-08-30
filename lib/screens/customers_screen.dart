@@ -12,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/translations.dart';
 import '../widgets/custom_banner_ad.dart';
 import '../utils/shop_utils.dart';
+import '../utils/subscription_utils.dart';
+import 'subscription_screen.dart';
 
 class CustomerScreen extends StatefulWidget {
   final String? customerId;
@@ -1685,14 +1687,24 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           child: _buildTopActionIcon(Icons.chat_bubble_outline, AppTranslations.get('message')),
                         ),
                         InkWell(
-                          onTap: () {
-                            _sendDueReminder(phoneNum, custName, totalDue);
+                          onTap: () async {
+                            if (await SubscriptionUtils.isPremium()) {
+                              _sendDueReminder(phoneNum, custName, totalDue);
+                            } else {
+                              if (!mounted) return;
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                            }
                           },
                           child: _buildTopActionIcon(Icons.access_time, AppTranslations.get('reminder')),
                         ),
                         InkWell(
-                          onTap: () {
-                            _sendInvitation(phoneNum, custName);
+                          onTap: () async {
+                            if (await SubscriptionUtils.isPremium()) {
+                              _sendInvitation(phoneNum, custName);
+                            } else {
+                              if (!mounted) return;
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                            }
                           },
                           child: _buildTopActionIcon(Icons.card_giftcard, AppTranslations.get('invitation')),
                         ),

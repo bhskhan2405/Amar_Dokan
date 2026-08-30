@@ -351,26 +351,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildTrialBanner() {
-    return FutureBuilder<List<bool>>(
-      future: Future.wait([SubscriptionUtils.isSuperAdmin(), SubscriptionUtils.isPaidPremium()]),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data![0] || snapshot.data![1]) return const SizedBox.shrink();
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.shade300)),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.amber),
-              const SizedBox(width: 12),
-              Expanded(child: Text(AppTranslations.get('trial_remaining').replaceAll('@days', _trialRemaining.toString()), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-              TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen())), child: Text(AppTranslations.get('buy_premium'))),
-            ],
-          ),
-        );
-      },
-    );
+    return const SizedBox.shrink(); // ট্রায়াল অফ করে দেওয়া হয়েছে
   }
 
   Widget _buildLowStockAlert() {

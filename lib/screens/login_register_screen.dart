@@ -240,7 +240,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 if (mounted) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const RegistrationSuccessPage()),
+                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
                   );
                 }
               } else {
@@ -709,7 +709,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         'email': email,
         'pin': pin,
         'tempPassword': tempPassword,
-        'isApproved': false, // নতুন রেজিস্ট্রেশন পেন্ডিং থাকবে
+        'isApproved': true, // নতুন রেজিস্ট্রেশন এখন অটো-অ্যাপ্রুভ হবে
         'authorizedDevices': [currentDeviceId], // রেজিস্ট্রেশন করা ডিভাইসটি অটো-অ্যাপ্রুভ হবে
         'trialStartDate': FieldValue.serverTimestamp(),
         'subscriptionExpiryDate': FieldValue.serverTimestamp(),
@@ -720,16 +720,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       await prefs.setString('app_pin', pin);
       await prefs.setString('saved_phone', phone);
       await prefs.setBool('remember_phone', true);
+      await prefs.setString('role', 'admin'); // রোল সেট করা হলো
       await prefs.setString('trial_start_date', now.toIso8601String());
       await prefs.setString('subscription_expiry_date', now.toIso8601String());
 
-      // রেজিস্ট্রেশনের পর সাইন আউট করা যাতে ইউজার আবার লগইন করে
-      await FirebaseAuth.instance.signOut();
+      // রেজিস্ট্রেশনের পর সাইন আউট করা বন্ধ করা হলো যাতে সরাসরি ড্যাশবোর্ডে যাওয়া যায়
+      // await FirebaseAuth.instance.signOut();
 
-      // এডমিনকে নতুন রেজিস্ট্রেশন রিকোয়েস্ট জানানো
+      // এডমিনকে নতুন রেজিস্ট্রেশন রিকোয়েস্ট জানানো (তথ্য হিসেবে)
       await NotificationUtils.notifyAdmin(
-        title: "নতুন ইউজার রেজিস্ট্রেশন",
-        message: "$ownerName ($shopName) অ্যাকাউন্ট অনুমোদনের জন্য আবেদন করেছেন। নম্বর: $phone",
+        title: "নতুন ইউজার রেজিস্ট্রেশন (অটো-অ্যাপ্রুভ)",
+        message: "$ownerName ($shopName) অ্যাকাউন্ট খুলেছেন। নম্বর: $phone",
       );
 
       _showSnackBar(AppTranslations.get('account_created_msg'));

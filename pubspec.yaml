@@ -34,11 +34,13 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
   image_path: "assets/images/ic_launcher.png"
-  min_sdk_android: 21 # your app's min_sdk_android
+  min_sdk_android: 21
   remove_alpha_ios: true
+  adaptive_icon_background: "#0D47A1" # আপনার অ্যাপের থিম কালার (নীল)
+  adaptive_icon_foreground: "assets/images/ic_launcher.png"
 
 flutter:
   uses-material-design: true

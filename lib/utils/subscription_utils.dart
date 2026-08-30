@@ -44,19 +44,7 @@ class SubscriptionUtils {
     if (await isSuperAdmin()) return true;
     if (await isPaidPremium()) return true;
 
-    final prefs = await SharedPreferences.getInstance();
-    final trialStartDateStr = prefs.getString('trial_start_date');
-
-    // ট্রায়াল পিরিয়ড চেক (৭ দিন)
-    if (trialStartDateStr != null) {
-      try {
-        DateTime trialStart = DateTime.parse(trialStartDateStr);
-        if (DateTime.now().difference(trialStart).inDays < 7) {
-          return true;
-        }
-      } catch (_) {}
-    }
-
+    // ট্রায়াল অফ করে দেওয়া হয়েছে
     return false;
   }
 
