@@ -1203,14 +1203,25 @@ class _CustomerScreenState extends State<CustomerScreen> {
     }
   }
 
-  Widget _buildTopActionIcon(IconData icon, String label) {
+  Widget _buildTopActionIcon(IconData icon, String label, {bool isPremium = false}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: Colors.blue.shade50,
-          child: Icon(icon, color: const Color(0xFF0D47A1), size: 20),
+        Stack(
+          alignment: Alignment.topRight,
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: Colors.blue.shade50,
+              child: Icon(icon, color: const Color(0xFF0D47A1), size: 20),
+            ),
+            if (isPremium)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: SubscriptionUtils.premiumIcon(size: 14),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 11, color: Colors.black87)),
@@ -1695,7 +1706,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
                             }
                           },
-                          child: _buildTopActionIcon(Icons.access_time, AppTranslations.get('reminder')),
+                          child: _buildTopActionIcon(Icons.access_time, AppTranslations.get('reminder'), isPremium: true),
                         ),
                         InkWell(
                           onTap: () async {
@@ -1706,7 +1717,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
                             }
                           },
-                          child: _buildTopActionIcon(Icons.card_giftcard, AppTranslations.get('invitation')),
+                          child: _buildTopActionIcon(Icons.card_giftcard, AppTranslations.get('invitation'), isPremium: true),
                         ),
                       ],
                     ),

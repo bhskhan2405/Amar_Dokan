@@ -87,16 +87,16 @@ class SubscriptionUtils {
     } catch (_) {}
   }
 
-  static Widget premiumIcon() {
+  static Widget premiumIcon({double size = 20}) {
     return FutureBuilder<bool>(
       future: isPremium(),
       builder: (context, snapshot) {
         // লোডিং হওয়ার সময় বা প্রিমিয়াম ইউজার হলে আইকন দেখানোর দরকার নেই
         if (!snapshot.hasData || snapshot.data == true) return const SizedBox.shrink();
         
-        return const Padding(
-          padding: EdgeInsets.only(left: 4.0),
-          child: Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 16),
+        return Padding(
+          padding: const EdgeInsets.only(left: 4.0),
+          child: Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: size),
         );
       },
     );

@@ -235,12 +235,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               await user.reload();
               final updatedUser = FirebaseAuth.instance.currentUser;
               if (updatedUser != null && updatedUser.emailVerified) {
-                Navigator.pop(context);
+                // ১. আগে ডায়ালগটি বন্ধ করা হচ্ছে (সঠিক Context ব্যবহার করে)
+                if (mounted) Navigator.pop(context); 
+                
+                // ২. ইউজারের ডাটা সেভ করা হচ্ছে
                 await _saveUserDataAfterVerification(updatedUser);
+                
+                // ৩. এখন সরাসরি ড্যাশবোর্ডে পাঠানো হচ্ছে (স্ক্রিনের Context ব্যবহার করে)
                 if (mounted) {
-                  Navigator.pushReplacement(
+                  Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                    (route) => false, // পেছনের সব রুট ক্লিয়ার করে দেওয়া হলো
                   );
                 }
               } else {
