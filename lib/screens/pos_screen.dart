@@ -813,7 +813,7 @@ class _POSScreenState extends State<POSScreen> {
     if (_shopId.isEmpty || _cart.isEmpty) return;
 
     // সেল করার সময় বিজ্ঞাপন চেক
-    AdManager.checkAndShowSaleAd(() async {
+    await AdManager.checkAndShowSaleAd(() async {
       double totalCost = 0;
       double totalRevenue = _finalTotalAmount;
 
@@ -1513,10 +1513,10 @@ class _POSScreenState extends State<POSScreen> {
                                   children: [
                                     DropdownButton<String>(
                                       value: _selectedPaymentType,
-                                      items: const [
-                                        DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                                        DropdownMenuItem(value: 'bKash', child: Text('bKash')),
-                                        DropdownMenuItem(value: 'Card', child: Text('Card')),
+                                      items: [
+                                        DropdownMenuItem(value: 'Cash', child: Text(AppTranslations.get('cash'))),
+                                        DropdownMenuItem(value: 'bKash', child: const Text('bKash')),
+                                        DropdownMenuItem(value: 'Card', child: const Text('Card')),
                                       ],
                                       onChanged: (val) {
                                         if (val != null) {
@@ -1857,7 +1857,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('কোনো বিক্রির ইতিহাস পাওয়া যায়নি।'));
+                  return Center(child: Text(AppTranslations.get('no_sales_history_found')));
                 }
 
                 final docs = snapshot.data!.docs;
@@ -1874,7 +1874,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
-                  return const Center(child: Text('মিলিসম্পন্ন কোনো ইতিহাস পাওয়া যায়নি'));
+                  return Center(child: Text(AppTranslations.get('no_matching_history_found')));
                 }
 
                 return ListView.builder(
@@ -1882,11 +1882,11 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   itemBuilder: (context, index) {
                     final doc = filteredDocs[index];
                     final data = doc.data() as Map<String, dynamic>;
-                    final customerName = data['customerName'] ?? 'সাধারণ কাস্টমার';
+                    final customerName = data['customerName'] ?? AppTranslations.get('walk_in_customer');
                     final customerPhone = data['customerPhone'] ?? '';
                     final totalAmount = data['totalAmount'] ?? 0.0;
                     final paymentType = data['paymentType'] ?? 'Cash';
-                    final staffName = data['staffName'] ?? 'Admin';
+                    final staffName = data['staffName'] ?? AppTranslations.get('owner');
                     final items = data['items'] as Map<String, dynamic>? ?? {};
 
                     return Card(

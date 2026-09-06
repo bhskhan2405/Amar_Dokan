@@ -104,10 +104,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       setState(() => _isLoading = true);
       try {
         await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({field: value});
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('তথ্য সফলভাবে আপডেট হয়েছে')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('info_updated_msg'))));
         _loadUserData();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ত্রুটি: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('error_msg').replaceAll('@error', e.toString()))));
       } finally {
         setState(() => _isLoading = false);
       }
@@ -143,7 +143,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ভেরিফিকেশন লিঙ্ক পাঠাতে সমস্যা হয়েছে: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('verification_link_sent_error').replaceAll('@error', e.toString()))));
     }
   }
 
@@ -178,11 +178,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           _pendingValue = null;
         });
         _loadUserData();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ফোন নম্বর সফলভাবে আপডেট হয়েছে!')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('phone_updated_success'))));
       }
     } catch (e) {
       setState(() => _isVerifying = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('আপডেট করতে সমস্যা হয়েছে: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('error_msg').replaceAll('@error', e.toString()))));
     }
   }
 
@@ -203,7 +203,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             _pendingValue = null;
           });
           _loadUserData();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ইমেইল সফলভাবে আপডেট ও ভেরিফাই হয়েছে!')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('email_updated_success'))));
         }
       }
     });
@@ -222,7 +222,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       children: [
         Scaffold(
           appBar: AppBar(
-            title: const Text('Account Details', style: TextStyle(color: Colors.white)),
+            title: Text(AppTranslations.get('account_details'), style: const TextStyle(color: Colors.white)),
             backgroundColor: const Color(0xFF0D47A1),
             iconTheme: const IconThemeData(color: Colors.white),
           ),
@@ -232,10 +232,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    _buildAccountItem(Icons.person, 'Owner Name', _nameController, 'name'),
-                    _buildAccountItem(Icons.store, 'Shop Name', _shopNameController, 'shopName'),
-                    _buildAccountItem(Icons.phone, 'Phone Number', _phoneController, 'phone'),
-                    _buildAccountItem(Icons.email, 'Email Address', _emailController, 'email'),
+                    _buildAccountItem(Icons.person, AppTranslations.get('owner_name'), _nameController, 'name'),
+                    _buildAccountItem(Icons.store, AppTranslations.get('shop_name'), _shopNameController, 'shopName'),
+                    _buildAccountItem(Icons.phone, AppTranslations.get('phone_label'), _phoneController, 'phone'),
+                    _buildAccountItem(Icons.email, AppTranslations.get('email_label'), _emailController, 'email'),
                   ],
                 ),
               ),
@@ -259,15 +259,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        _isOldEmailVerified ? 'নতুন ইমেইল ভেরিফাই করুন' : 'বর্তমান ইমেইল ভেরিফাই করুন',
+                        _isOldEmailVerified ? AppTranslations.get('verify_new_email') : AppTranslations.get('verify_current_email'),
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         _isOldEmailVerified 
-                          ? 'আপনার নতুন ইমেইল (${_pendingValue}) এ একটি ভেরিফিকেশন লিঙ্ক পাঠানো হয়েছে। পরিবর্তনটি সম্পন্ন করতে দয়া করে সেখানে ক্লিক করুন।'
-                          : 'নিরাপত্তার স্বার্থে আপনার বর্তমান ইমেইল (${user?.email}) এ একটি লিঙ্ক পাঠানো হয়েছে। পরিবর্তনটি শুরু করতে আগে সেটি ভেরিফাই করুন।',
+                          ? AppTranslations.get('new_email_verification_msg').replaceAll('@email', _pendingValue ?? '')
+                          : AppTranslations.get('current_email_verification_msg').replaceAll('@email', user?.email ?? ''),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey),
                       ),
@@ -279,7 +279,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                           _timer?.cancel();
                           setState(() => _isVerifying = false);
                         },
-                        child: const Text('বাতিল করুন'),
+                        child: Text(AppTranslations.get('cancel')),
                       )
                     ],
                   ),
@@ -315,19 +315,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Change $label'),
+        title: Text('${AppTranslations.get('change')} $label'),
         content: TextField(
           controller: editController,
-          decoration: InputDecoration(border: const OutlineInputBorder(), labelText: 'New $label'),
+          decoration: InputDecoration(border: const OutlineInputBorder(), labelText: AppTranslations.get('new_label').replaceAll('@label', label)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel'))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               _updateField(field, editController.text.trim());
             },
-            child: const Text('Update'),
+            child: Text(AppTranslations.get('update')),
           ),
         ],
       ),

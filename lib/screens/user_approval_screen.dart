@@ -48,7 +48,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         title: Text(
-          isCancel ? "Cancel Request" : (isSubscription ? AppTranslations.get('confirm_payment') : AppTranslations.get('verify_pin_to_approve')), 
+          isCancel ? AppTranslations.get('cancel_request') : (isSubscription ? AppTranslations.get('confirm_payment') : AppTranslations.get('verify_pin_to_approve')), 
           style: const TextStyle(color: Colors.white, fontSize: 16)
         ),
         content: Column(
@@ -58,10 +58,10 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               TextField(
                 controller: reasonController,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Reason for cancellation",
-                  labelStyle: TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: AppTranslations.get('cancellation_reason'),
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -103,7 +103,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: isCancel ? Colors.red : null),
-            child: Text(isCancel ? "Confirm Cancel" : AppTranslations.get('confirm_btn')),
+            child: Text(isCancel ? AppTranslations.get('confirm_cancel') : AppTranslations.get('confirm_btn')),
           ),
         ],
       ),
@@ -120,7 +120,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Subscription request cancelled."), backgroundColor: Colors.orange),
+          SnackBar(content: Text(AppTranslations.get('sub_request_cancelled')), backgroundColor: Colors.orange),
         );
 
         await ReceiptUtils.shareSubscriptionCard(
@@ -135,11 +135,10 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
         );
 
         // Notify user via in-app notification
-        // (Assuming you want to keep the same notification structure)
         await NotificationUtils.sendNotification(
-          title: "সাবস্ক্রিপশন রিকোয়েস্ট বাতিল",
-          message: "আপনার প্রিমিয়াম সাবস্ক্রিপশন রিকোয়েস্টটি বাতিল করা হয়েছে। কারণ: $reason",
-          targetUid: requestId, // This might need the actual user UID from the request data
+          title: AppTranslations.currentLanguage == 'bn' ? "সাবস্ক্রিপশন রিকোয়েস্ট বাতিল" : "Subscription Request Cancelled",
+          message: "${AppTranslations.currentLanguage == 'bn' ? 'আপনার প্রিমিয়াম সাবস্ক্রিপশন রিকোয়েস্টটি বাতিল করা হয়েছে। কারণ: ' : 'Your premium subscription request has been cancelled. Reason: '}$reason",
+          targetUid: requestId,
           type: 'subscription_rejection',
         );
       }
@@ -170,8 +169,10 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
         );
 
         await NotificationUtils.sendNotification(
-          title: "অ্যাকাউন্ট অনুমোদিত হয়েছে",
-          message: "অভিনন্দন! আপনার অ্যাকাউন্টটি সফলভাবে অনুমোদিত হয়েছে। এখন আপনি সব ফিচার ব্যবহার করতে পারবেন।",
+          title: AppTranslations.currentLanguage == 'bn' ? "অ্যাকাউন্ট অনুমোদিত হয়েছে" : "Account Approved",
+          message: AppTranslations.currentLanguage == 'bn' 
+            ? "অভিনন্দন! আপনার অ্যাকাউন্টটি সফলভাবে অনুমোদিত হয়েছে। এখন আপনি সব ফিচার ব্যবহার করতে পারবেন।" 
+            : "Congratulations! Your account has been approved. Now you can use all features.",
           targetUid: uid,
           type: 'approval',
         );
@@ -218,7 +219,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Subscription confirmed successfully!"), backgroundColor: Colors.green),
+          SnackBar(content: Text(AppTranslations.get('sub_confirmed_success')), backgroundColor: Colors.green),
         );
 
         await ReceiptUtils.shareSubscriptionCard(
@@ -231,10 +232,15 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
           isActivation: true,
         );
 
-        String planName = plan == '3_months' ? '৩ মাস' : (plan == '6_months' ? '৬ মাস' : '১২ মাস');
+        String planName = plan == '3_months' 
+          ? (AppTranslations.currentLanguage == 'bn' ? '৩ মাস' : '3 Months') 
+          : (plan == '6_months' 
+            ? (AppTranslations.currentLanguage == 'bn' ? '৬ মাস' : '6 Months') 
+            : (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months'));
+            
         await NotificationUtils.sendNotification(
-          title: "প্রিমিয়াম সাবস্ক্রিপশন চালু হয়েছে",
-          message: "অভিনন্দন! আপনার $planName মেয়াদী প্রিমিয়াম সাবস্ক্রিপশনটি সফলভাবে চালু হয়েছে।",
+          title: AppTranslations.currentLanguage == 'bn' ? "প্রিমিয়াম সাবস্ক্রিপশন চালু হয়েছে" : "Premium Subscription Activated",
+          message: "${AppTranslations.currentLanguage == 'bn' ? 'অভিনন্দন! আপনার ' : 'Congratulations! Your '}$planName ${AppTranslations.currentLanguage == 'bn' ? 'মেয়াদী প্রিমিয়াম সাবস্ক্রিপশনটি সফলভাবে চালু হয়েছে।' : 'premium subscription has been activated.'}",
           targetUid: uid,
           type: 'subscription',
         );
@@ -248,7 +254,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
 
   void _showErrorSnackBar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $msg'), backgroundColor: Colors.red),
+      SnackBar(content: Text('${AppTranslations.get('error_occurred')} $msg'), backgroundColor: Colors.red),
     );
   }
 
@@ -262,7 +268,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
           children: [
             const Icon(Icons.person_pin_rounded, color: Colors.blueAccent),
             const SizedBox(width: 10),
-            Expanded(child: Text(data['name'] ?? 'User Details', style: const TextStyle(color: Colors.white, fontSize: 18))),
+            Expanded(child: Text(data['name'] ?? AppTranslations.get('user_details'), style: const TextStyle(color: Colors.white, fontSize: 18))),
           ],
         ),
         content: SizedBox(
@@ -272,25 +278,25 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _detailItem("Shop ID", uid, isCopyable: true),
-                _detailItem("Shop Name", data['shopName']),
-                _detailItem("Owner Name", data['name']),
-                _detailItem("Mobile", data['phone'], isCopyable: true),
-                _detailItem("Email", data['email']),
-                _detailItem("Address", data['address'] ?? 'N/A'),
-                _detailItem("PIN", data['pin'] ?? 'N/A'),
-                _detailItem("Temp Password", data['tempPassword'] ?? 'N/A'),
-                _detailItem("Status", (data['isApproved'] ?? false) ? "Approved" : "Pending", color: (data['isApproved'] ?? false) ? Colors.green : Colors.orange),
-                _detailItem("Trial Start", _formatTimestamp(data['trialStartDate'])),
-                _detailItem("Subscription Expiry", _formatTimestamp(data['subscriptionExpiryDate']), color: Colors.amber),
-                _detailItem("Created At", _formatTimestamp(data['createdAt'])),
-                _detailItem("Authorized Devices", (data['authorizedDevices'] as List?)?.join(", ") ?? "None"),
+                _detailItem(AppTranslations.get('shop_id_label'), uid, isCopyable: true),
+                _detailItem(AppTranslations.get('shop_name'), data['shopName']),
+                _detailItem(AppTranslations.get('owner_name'), data['name']),
+                _detailItem(AppTranslations.get('mobile'), data['phone'], isCopyable: true),
+                _detailItem(AppTranslations.get('email'), data['email']),
+                _detailItem(AppTranslations.get('address'), data['address'] ?? 'N/A'),
+                _detailItem(AppTranslations.get('login_pin'), data['pin'] ?? 'N/A'),
+                _detailItem(AppTranslations.get('password'), data['tempPassword'] ?? 'N/A'),
+                _detailItem(AppTranslations.get('status'), (data['isApproved'] ?? false) ? AppTranslations.get('approved') : AppTranslations.get('pending'), color: (data['isApproved'] ?? false) ? Colors.green : Colors.orange),
+                _detailItem(AppTranslations.get('trial_start'), _formatTimestamp(data['trialStartDate'])),
+                _detailItem(AppTranslations.get('subscription_expiry'), _formatTimestamp(data['subscriptionExpiryDate']), color: Colors.amber),
+                _detailItem(AppTranslations.get('created_at'), _formatTimestamp(data['createdAt'])),
+                _detailItem(AppTranslations.get('authorized_devices'), (data['authorizedDevices'] as List?)?.join(", ") ?? "None"),
               ],
             ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel'))),
         ],
       ),
     );
@@ -326,7 +332,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                   icon: const Icon(Icons.copy, size: 16, color: Colors.blueAccent),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: value));
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$label copied!"), duration: const Duration(seconds: 1)));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('copy_id_msg')), duration: const Duration(seconds: 1)));
                   },
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -344,7 +350,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text("Super Admin Panel", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(AppTranslations.get('super_admin_panel'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1F1F1F),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -394,7 +400,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                 Icon(isApproved ? Icons.people_rounded : Icons.group_off_rounded, size: 64, color: Colors.white12),
                 const SizedBox(height: 16),
                 Text(
-                      isApproved ? 'No approved users.' : AppTranslations.get('no_pending_users'),
+                      isApproved ? AppTranslations.get('no_approved_users') : AppTranslations.get('no_pending_users'),
                       style: const TextStyle(color: Colors.white30),
                     ),
               ],
@@ -437,7 +443,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                           border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
                         ),
                         child: SelectableText(
-                          "Shop ID: $uid",
+                          "${AppTranslations.get('shop_id_label')}: $uid",
                           style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -459,7 +465,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                           GestureDetector(
                             onTap: () {
                               Clipboard.setData(ClipboardData(text: phone));
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('number_copied'))));
                             },
                             child: const Icon(Icons.copy, size: 14, color: Colors.blueAccent),
                           ),
@@ -501,19 +507,19 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+          return Center(child: Text("${AppTranslations.get('error_occurred')} ${snapshot.error}", style: const TextStyle(color: Colors.red)));
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Colors.white));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.receipt_long_rounded, size: 64, color: Colors.white12),
-                SizedBox(height: 16),
-                Text('No subscription requests.', style: TextStyle(color: Colors.white30)),
+                const Icon(Icons.receipt_long_rounded, size: 64, color: Colors.white12),
+                const SizedBox(height: 16),
+                Text(AppTranslations.get('no_subscription_requests'), style: const TextStyle(color: Colors.white30)),
               ],
             ),
           );
@@ -551,7 +557,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                       _showUserDetailsDialog(userDoc.data() as Map<String, dynamic>, uid);
                     } else {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User data not found.")));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('user_data_not_found'))));
                     }
                   } catch (e) {
                     if (context.mounted) _showErrorSnackBar(e.toString());
@@ -575,7 +581,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                           border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
                         ),
                         child: SelectableText(
-                          "Shop ID: $uid",
+                          "${AppTranslations.get('shop_id_label')}: $uid",
                           style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -584,14 +590,14 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                       GestureDetector(
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: phone));
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নাম্বারটি কপি করা হয়েছে।")));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('number_copied'))));
                         },
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.copy, size: 12, color: Colors.blueAccent),
-                            SizedBox(width: 4),
-                            Text("নাম্বার কপি করুন", style: TextStyle(color: Colors.blueAccent, fontSize: 11)),
+                            const Icon(Icons.copy, size: 12, color: Colors.blueAccent),
+                            const SizedBox(width: 4),
+                            Text(AppTranslations.get('copy_number'), style: const TextStyle(color: Colors.blueAccent, fontSize: 11)),
                           ],
                         ),
                       ),
@@ -602,14 +608,14 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("Plan:", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text("${AppTranslations.get('plan')}:", style: const TextStyle(color: Colors.grey, fontSize: 12)),
                               Text(plan.replaceAll('_', ' ').toUpperCase(), style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
                             ],
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              const Text("Transaction ID:", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text("${AppTranslations.get('transaction_id')}:", style: const TextStyle(color: Colors.grey, fontSize: 12)),
                               Text(txId, style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
                             ],
                           ),
@@ -666,7 +672,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               ),
-                              child: const Text("Cancel"),
+                              child: Text(AppTranslations.get('cancel')),
                             ),
                           ),
                         ],
@@ -694,13 +700,13 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
           return const Center(child: CircularProgressIndicator(color: Colors.white));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.star_border_rounded, size: 64, color: Colors.white12),
+                const Icon(Icons.star_border_rounded, size: 64, color: Colors.white12),
                 const SizedBox(height: 16),
-                Text('No premium subscribers.', style: TextStyle(color: Colors.white30)),
+                Text(AppTranslations.get('no_premium_subscribers'), style: const TextStyle(color: Colors.white30)),
               ],
             ),
           );
@@ -747,7 +753,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                           border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
                         ),
                         child: SelectableText(
-                          "Shop ID: $uid",
+                          "${AppTranslations.get('shop_id_label')}: $uid",
                           style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -761,7 +767,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                           border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                         ),
                         child: Text(
-                          "Expires in: $daysRemaining days",
+                          AppTranslations.get('expires_in_days').replaceAll('@days', daysRemaining.toString()),
                           style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -785,19 +791,19 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "সবার জন্য নোটিফিকেশন পাঠান",
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            AppTranslations.get('broadcast_notification'),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           TextField(
             controller: titleController,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: "টাইটেল",
-              labelStyle: TextStyle(color: Colors.grey),
-              border: OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            decoration: InputDecoration(
+              labelText: AppTranslations.get('title'),
+              labelStyle: const TextStyle(color: Colors.grey),
+              border: const OutlineInputBorder(),
+              enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
             ),
           ),
           const SizedBox(height: 16),
@@ -805,11 +811,11 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
             controller: messageController,
             style: const TextStyle(color: Colors.white),
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: "মেসেজ",
-              labelStyle: TextStyle(color: Colors.grey),
-              border: OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            decoration: InputDecoration(
+              labelText: AppTranslations.get('message'),
+              labelStyle: const TextStyle(color: Colors.grey),
+              border: const OutlineInputBorder(),
+              enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
             ),
           ),
           const SizedBox(height: 24),
@@ -823,7 +829,7 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
 
                 if (title.isEmpty || message.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("টাইটেল এবং মেসেজ উভয়ই দিন।"), backgroundColor: Colors.red),
+                    SnackBar(content: Text(AppTranslations.get('enter_title_msg')), backgroundColor: Colors.red),
                   );
                   return;
                 }
@@ -834,13 +840,13 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
 
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("নোটিফিকেশন পাঠানো হয়েছে।"), backgroundColor: Colors.green),
+                  SnackBar(content: Text(AppTranslations.get('notification_sent')), backgroundColor: Colors.green),
                 );
                 titleController.clear();
                 messageController.clear();
               },
               icon: const Icon(Icons.send_rounded),
-              label: const Text("সেন্ড করুন"),
+              label: Text(AppTranslations.get('send_btn')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.greenAccent.shade700,
                 foregroundColor: Colors.black,

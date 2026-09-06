@@ -18,6 +18,9 @@ android {
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
+    // এই লাইনটি যোগ করা হলো যাতে ফ্লাটার টুল APK খুঁজে পায়
+    layout.buildDirectory.set(file("../../build/app"))
+
     buildFeatures {
         buildConfig = true
     }

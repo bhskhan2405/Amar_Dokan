@@ -69,7 +69,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       return;
     }
     if (_senderPhoneController.text.trim().length < 4) {
-      _showSnackBar("পেমেন্ট করা নাম্বারের শেষ ৪ ডিজিট দিন।");
+      _showSnackBar(AppTranslations.get('sender_digits_required'));
       return;
     }
 
@@ -100,10 +100,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       });
 
       // এডমিনকে নতুন পেমেন্ট রিকোয়েস্ট জানানো
-      String planName = _selectedPlan == '3_months' ? '৩ মাস' : (_selectedPlan == '6_months' ? '৬ মাস' : '১২ মাস');
+      String planName = _selectedPlan == '3_months' 
+        ? (AppTranslations.currentLanguage == 'bn' ? '৩ মাস' : '3 Months') 
+        : (_selectedPlan == '6_months' 
+          ? (AppTranslations.currentLanguage == 'bn' ? '৬ মাস' : '6 Months') 
+          : (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months'));
+          
       await NotificationUtils.notifyAdmin(
-        title: "নতুন সাবস্ক্রিপশন রিকোয়েস্ট",
-        message: "${userData['name'] ?? 'ইউজার'} ($planName) পেমেন্ট সাবমিট করেছেন।\nTxID: $txId\nSender Last 4: $senderDigits",
+        title: AppTranslations.currentLanguage == 'bn' ? "নতুন সাবস্ক্রিপশন রিকোয়েস্ট" : "New Subscription Request",
+        message: "${userData['name'] ?? 'ইউজার'} ($planName) ${AppTranslations.currentLanguage == 'bn' ? 'পেমেন্ট সাবমিট করেছেন।' : 'submitted payment.'}\nTxID: $txId\nSender Last 4: $senderDigits",
       );
 
       _showSnackBar(AppTranslations.get('payment_submitted_msg'));
@@ -127,10 +132,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
 
     } catch (e) {
-      _showSnackBar("Error: $e");
+      _showErrorSnackBar(e.toString());
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _showErrorSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppTranslations.get('error_occurred')} $msg')));
   }
 
   void _showSnackBar(String msg) {
@@ -198,10 +207,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Text('Payment Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D47A1))),
+                    Text(AppTranslations.get('payment_instructions'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D47A1))),
                     const SizedBox(height: 12),
                     Text(
-                      'নিচের এই নাম্বারে Bkash/Nagad থেকে Send Money করুন।',
+                      AppTranslations.get('send_money_instruction'),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
                     ),
@@ -219,15 +228,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           icon: const Icon(Icons.copy_all_rounded, color: Colors.blueAccent),
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: _paymentPhone));
-                            _showSnackBar("পেমেন্ট নাম্বার কপি করা হয়েছে।");
+                            _showSnackBar(AppTranslations.get('number_copied'));
                           },
-                          tooltip: "পেমেন্ট নাম্বার কপি করুন",
+                          tooltip: AppTranslations.get('copy_payment_number'),
                         ),
                       ],
                     ),
                     const Divider(height: 24),
                     Text(
-                      'পেমেন্ট করার পর রিসিট বা এপ্লিকেশন কার্ডটি নিচের হোয়াটসঅ্যাপ নাম্বারে পাঠিয়ে দিন।',
+                      AppTranslations.get('whatsapp_instruction'),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                     ),
@@ -246,19 +255,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           icon: const Icon(Icons.copy, size: 18, color: Colors.green),
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: "+$_whatsappPhone"));
-                            _showSnackBar("হোয়াটসঅ্যাপ নাম্বার কপি করা হয়েছে।");
+                            _showSnackBar(AppTranslations.get('number_copied'));
                           },
                         ),
                       ],
                     ),
                     Text(
-                      '(সাবধান: এই হোয়াটসঅ্যাপ নাম্বারে কোনো প্রকার লেনদেন করবেন না)',
+                      AppTranslations.get('whatsapp_warning'),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: Colors.red.shade600, fontStyle: FontStyle.italic),
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'টাকা পাঠানোর পর নিচের ১ নম্বর বক্সে TxID দিন এবং ২ নম্বর বক্সে যে নাম্বার থেকে টাকা পাঠিয়েছেন তার শেষ ৪ ডিজিট দিন।',
+                      AppTranslations.get('txid_digits_instruction'),
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade800, fontWeight: FontWeight.w500),
                     ),
@@ -279,7 +288,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       keyboardType: TextInputType.number,
                       maxLength: 4,
                       decoration: InputDecoration(
-                        labelText: '২. সেন্ডার নাম্বারের শেষ ৪ ডিজিট',
+                        labelText: AppTranslations.get('sender_last_4'),
                         counterText: '',
                         border: const OutlineInputBorder(),
                         isDense: true,
@@ -350,8 +359,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildPendingUI() {
     String plan = _pendingRequestData?['plan'] ?? 'Unknown';
-    String planName = plan == '3_months' ? '৩ মাস' : (plan == '6_months' ? '৬ মাস' : '১২ মাস');
-    
+    String planName = plan == '3_months' 
+      ? (AppTranslations.currentLanguage == 'bn' ? '৩ মাস' : '3 Months') 
+      : (plan == '6_months' 
+        ? (AppTranslations.currentLanguage == 'bn' ? '৬ মাস' : '6 Months') 
+        : (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months'));
+        
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -360,14 +373,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           children: [
             const Icon(Icons.pending_actions_rounded, size: 100, color: Colors.orange),
             const SizedBox(height: 24),
-            const Text(
-              "আপনার প্রিমিয়াম প্ল্যান রিকোয়েস্টটি পেন্ডিং আছে।",
+            Text(
+              AppTranslations.get('pending_request_msg'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
             ),
             const SizedBox(height: 12),
             Text(
-              "আপনার $planName মেয়াদী প্ল্যানটি ২৪ ঘণ্টার মধ্যে সচল হয়ে যাবে। দয়া করে অপেক্ষা করুন।",
+              AppTranslations.get('activation_time_msg').replaceAll('@plan', planName),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
             ),
@@ -378,7 +391,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 if (await canLaunchUrl(url)) await launchUrl(url);
               },
               icon: const Icon(Icons.chat),
-              label: const Text("হোয়াটসঅ্যাপে যোগাযোগ করুন"),
+              label: Text(AppTranslations.get('contact_whatsapp')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade700,
                 foregroundColor: Colors.white,
@@ -388,7 +401,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("ফিরে যান"),
+              child: Text(AppTranslations.get('go_back')),
             ),
           ],
         ),

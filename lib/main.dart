@@ -15,10 +15,11 @@ Future<String> getEffectiveShopId() async {
   if (user == null) return '';
 
   try {
+    // অফলাইন সাোর্টের জন্য আগে লোকাল ক্যাশ থেকে ট্রাই করা
     DocumentSnapshot userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .get();
+        .get(const GetOptions(source: Source.serverAndCache));
 
     if (userDoc.exists) {
       var data = userDoc.data() as Map<String, dynamic>?;

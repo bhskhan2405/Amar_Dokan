@@ -581,7 +581,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text('সুপার এডমিন প্যানেলে প্রবেশ করতে পিন দিন:'),
+                                      Text(AppTranslations.get('super_admin_pin_msg')),
                                       const SizedBox(height: 10),
                                       TextField(
                                         controller: pinController,

@@ -277,7 +277,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 }
               } catch (e) {
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppTranslations.get('error_occurred')} $e')));
               }
             },
             child: Text(AppTranslations.get('update')),
@@ -366,7 +366,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 }
               } catch (e) {
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppTranslations.get('error_occurred')} $e')));
               }
             },
             child: Text(AppTranslations.get('delete')),
@@ -1163,10 +1163,12 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
   void _sendDueReminder(String phoneNumber, String customerName, double dueAmount) async {
     if (phoneNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('কাস্টমারের মোবাইল নম্বর পাওয়া যায়নি!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('customer_phone_missing'))));
       return;
     }
-    String message = 'প্রিয় $customerName, আপনার নিকট আমাদের দোকানের বকেয়া মোট ৳$dueAmount টাকা। দয়া করে বকেয়া পরিশোধ করার সুব্যবস্থা করুন। ধন্যবাদ।';
+    String message = AppTranslations.currentLanguage == 'bn' 
+      ? 'প্রিয় $customerName, আপনার নিকট আমাদের দোকানের বকেয়া মোট ৳$dueAmount টাকা। দয়া করে বকেয়া পরিশোধ করার সুব্যবস্থা করুন। ধন্যবাদ।'
+      : 'Dear $customerName, your total due in our shop is ৳$dueAmount. Please arrange to clear the due. Thank you.';
     final Uri whatsappUri = Uri.parse('https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}');
 
     if (await canLaunchUrl(whatsappUri)) {
@@ -1177,17 +1179,19 @@ class _CustomerScreenState extends State<CustomerScreen> {
         await launchUrl(smsUri);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('রিমাইন্ডার পাঠানোর মতো কোনো অ্যাপ পাওয়া যায়নি!')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('no_due_to_remind'))));
       }
     }
   }
 
   void _sendInvitation(String phoneNumber, String customerName) async {
     if (phoneNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('কাস্টমারের মোবাইল নম্বর পাওয়া যায়নি!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('customer_phone_missing'))));
       return;
     }
-    String message = 'প্রিয় $customerName, আমাদের দোকানে আপনাকে স্বাগতম! আমাদের নতুন অফার এবং সেবাসমূহ উপভোগ করতে আমাদের দোকানে আসার আমন্ত্রণ রইল।';
+    String message = AppTranslations.currentLanguage == 'bn' 
+      ? 'প্রিয় $customerName, আমাদের দোকানে আপনাকে স্বাগতম! আমাদের নতুন অফার এবং সেবাসমূহ উপভোগ করতে আমাদের দোকানে আসার আমন্ত্রণ রইল।'
+      : 'Dear $customerName, welcome to our shop! We invite you to visit our shop to enjoy our new offers and services.';
     final Uri whatsappUri = Uri.parse('https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}');
 
     if (await canLaunchUrl(whatsappUri)) {
@@ -1198,7 +1202,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
         await launchUrl(smsUri);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('আমন্ত্রণ পাঠানোর মতো কোনো অ্যাপ পাওয়া যায়নি!')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('no_invitation_needed'))));
       }
     }
   }

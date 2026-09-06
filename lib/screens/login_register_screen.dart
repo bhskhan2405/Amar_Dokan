@@ -6,10 +6,10 @@ import 'package:local_auth/local_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dashboard_screen.dart';
 import '../main.dart';
-import 'staff_login_screen.dart'; // স্টাফ লগইন স্ক্রিন ইমপোর্ট করা হলো[cite: 6]
+import 'staff_login_screen.dart';
 import '../utils/translations.dart';
 import '../utils/notification_utils.dart';
-import '../utils/device_utils.dart'; // ডিভাইস ইউটিলিটি ইমপোর্ট করা হলো
+import '../utils/device_utils.dart';
 import '../widgets/custom_banner_ad.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
@@ -20,7 +20,6 @@ class LoginRegisterScreen extends StatefulWidget {
 }
 
 class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
-  // কন্ট্রোলারসমূহ
   final _shopNameController = TextEditingController();
   final _ownerNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -30,16 +29,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   final _loginPhoneController = TextEditingController();
   final _loginPinController = TextEditingController();
 
-  static const String ADMIN_PHONE = "8801875787997"; // কান্ট্রি কোডসহ হোয়াটসঅ্যাপ নম্বর
+  static const String ADMIN_PHONE = "8801875787997";
 
   bool isLogin = true;
   bool isLoading = false;
   bool _rememberPhone = false;
   final LocalAuthentication auth = LocalAuthentication();
-
-  // OTP ভেরিফিকেশন ভেরিয়েবল
-  String _verificationId = "";
-  int? _resendToken;
 
   @override
   void initState() {
@@ -47,7 +42,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     _loadSavedPhone();
   }
 
-  // ফোন নম্বর নরমালাইজ করা (যেমন: +88018... থেকে শুধু 018... করা)
   String _normalizePhone(String phone) {
     phone = phone.trim();
     if (phone.startsWith('+88')) {
@@ -59,29 +53,19 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     return phone;
   }
 
-  // ইমেইল মাস্ক করা (যেমন: bh****an@gmail.com)
   String _maskEmail(String email) {
     if (email.isEmpty || !email.contains('@')) return email;
-    
     final parts = email.split('@');
     final name = parts[0];
     final domain = parts[1];
-
-    if (name.length <= 4) {
-      return '${name[0]}**@$domain';
-    }
-
-    final firstTwo = name.substring(0, 2);
-    final lastTwo = name.substring(name.length - 2);
-    return '$firstTwo****$lastTwo@$domain';
+    if (name.length <= 4) return '${name[0]}**@$domain';
+    return '${name.substring(0, 2)}****${name.substring(name.length - 2)}@$domain';
   }
 
-  // সংরক্ষিত মোবাইল নম্বর লোড করা
   Future<void> _loadSavedPhone() async {
     final prefs = await SharedPreferences.getInstance();
     String? savedPhone = prefs.getString('saved_phone');
     bool remember = prefs.getBool('remember_phone') ?? false;
-
     if (remember && savedPhone != null) {
       setState(() {
         _loginPhoneController.text = _normalizePhone(savedPhone);
@@ -90,112 +74,42 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     }
   }
 
-  // ফিঙ্গারপ্রিন্ট বা বায়োমেট্রিক অথেন্টিকেশন
   Future<void> _authenticateWithFingerprint() async {
     try {
       bool canCheckBiometrics = await auth.canCheckBiometrics;
       bool isDeviceSupported = await auth.isDeviceSupported();
-
       if (!canCheckBiometrics && !isDeviceSupported) {
-        _showSnackBar(AppTranslations.get('biometric_not_supported') ?? 'Biometric not supported');
+        _showSnackBar(AppTranslations.get('biometric_not_supported'));
         return;
       }
-
       bool didAuthenticate = await auth.authenticate(
-        localizedReason: AppTranslations.get('biometric_reason') ?? 'Scan your fingerprint to enter Dashboard',
+        localizedReason: AppTranslations.get('biometric_reason'),
         biometricOnly: true,
-        persistAcrossBackgrounding: true,
       );
-
       if (didAuthenticate) {
         final prefs = await SharedPreferences.getInstance();
         String? savedPhone = prefs.getString('saved_phone');
-
-        if (savedPhone == null || savedPhone.isEmpty) {
-          savedPhone = _loginPhoneController.text.trim();
-        }
-
         if (savedPhone != null && savedPhone.isNotEmpty) {
-          String normalized = _normalizePhone(savedPhone);
-          
-          setState(() => isLoading = true);
-
-          // প্রথমে এই নম্বর দিয়ে ইউজার খোঁজা
-          final querySnapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .where('phone', isEqualTo: normalized)
-              .get();
-
-          if (querySnapshot.docs.isNotEmpty) {
-            final userData = querySnapshot.docs.first.data();
-            String email = userData['email'];
-            String password = userData['tempPassword'];
-            bool isApproved = userData['isApproved'] ?? true; // পুরোনো ইউজারদের জন্য true
-
-            // Note: Now we allow the user to go to the Dashboard even if not approved,
-            // as the Dashboard handles the 'PENDING' overlay.
-            /*
-            if (!isApproved) {
-              _showPendingApprovalDialog(normalized);
-              setState(() => isLoading = false);
-              return;
-            }
-            */
-
-            // নতুন ডিভাইস ভেরিফিকেশন চেক (ফিঙ্গারপ্রিন্টের জন্যও)
-            String currentDeviceId = await DeviceUtils.getUniqueId();
-            List<dynamic> authorizedDevices = userData['authorizedDevices'] ?? [];
-
-            if (authorizedDevices.isNotEmpty && !authorizedDevices.contains(currentDeviceId)) {
-              if (!mounted) return;
-              _showNewDeviceVerificationDialog(normalized, email, currentDeviceId, querySnapshot.docs.first.id);
-              setState(() => isLoading = false);
-              return;
-            }
-
-            try {
-              await FirebaseAuth.instance.signInWithEmailAndPassword(
-                email: email,
-                password: password,
-              );
-
-              if (!mounted) return;
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const DashboardScreen()),
-              );
-            } catch (e) {
-              _showSnackBar('লগইন ত্রুটি: আপনার পাসওয়ার্ড বা পিন রিসেট করা প্রয়োজন।');
-            }
-          } else {
-            _showSnackBar('ইউজার ডেটা পাওয়া যায়নি, একবার পিন দিয়ে লগইন করুন।');
+          if (mounted) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
           }
         } else {
-          _showSnackBar('সংরক্ষিত নম্বর পাওয়া যায়নি, একবার পিন দিয়ে লগইন করুন।');
+          _showSnackBar(AppTranslations.get('phone_not_saved'));
         }
       }
     } catch (e) {
-      _showSnackBar('ফিঙ্গারপ্রিন্ট ত্রুটি: $e');
-    } finally {
-      if (mounted) setState(() => isLoading = false);
+      _showSnackBar(AppTranslations.get('biometric_error').replaceAll('@error', e.toString()));
     }
   }
 
-  // OTP পাঠানো (পুরোনো - এখন আর ব্যবহৃত হচ্ছে না)
-  Future<void> _sendOTP() async {
-    _showSnackBar("পুরোনো ফোন ওটিপি মেথড বন্ধ রাখা হয়েছে।");
-  }
-
-  // ইমেইল ভেরিফিকেশন ডায়ালগ
   void _showVerificationDialog(User user) {
     String maskedEmail = _maskEmail(_emailController.text.trim());
-    
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(AppTranslations.get('verify_email_title'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppTranslations.get('verify_email_title'), textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -205,20 +119,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             Text(maskedEmail, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
             const SizedBox(height: 16),
             Text(AppTranslations.get('verify_email_msg'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Text(
-                AppTranslations.get('spam_instruction'),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Colors.amber.shade900, fontWeight: FontWeight.w500),
-              ),
-            ),
           ],
         ),
         actions: [
@@ -235,26 +135,16 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               await user.reload();
               final updatedUser = FirebaseAuth.instance.currentUser;
               if (updatedUser != null && updatedUser.emailVerified) {
-                // ১. আগে ডায়ালগটি বন্ধ করা হচ্ছে (সঠিক Context ব্যবহার করে)
-                if (mounted) Navigator.pop(context); 
-                
-                // ২. ইউজারের ডাটা সেভ করা হচ্ছে
                 await _saveUserDataAfterVerification(updatedUser);
-                
-                // ৩. এখন সরাসরি ড্যাশবোর্ডে পাঠানো হচ্ছে (স্ক্রিনের Context ব্যবহার করে)
                 if (mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                    (route) => false, // পেছনের সব রুট ক্লিয়ার করে দেওয়া হলো
-                  );
+                  Navigator.of(context, rootNavigator: true).pop();
+                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const DashboardScreen()), (route) => false);
                 }
               } else {
                 setState(() => isLoading = false);
                 _showSnackBar(AppTranslations.get('email_not_verified'));
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
             child: Text(AppTranslations.get('verified_btn')),
           ),
         ],
@@ -262,7 +152,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 
-  // পিন ভুলে গেলে ইমেইল রিকভারি লজিক
   void _showForgotPinDialog() {
     final phoneController = TextEditingController();
     showDialog(
@@ -274,14 +163,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           children: [
             Text(AppTranslations.get('enter_phone_recovery')),
             const SizedBox(height: 12),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: AppTranslations.get('mobile'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
+            TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: AppTranslations.get('mobile'), border: const OutlineInputBorder())),
           ],
         ),
         actions: [
@@ -290,23 +172,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             onPressed: () async {
               String phone = _normalizePhone(phoneController.text.trim());
               if (phone.isEmpty) return;
-
               Navigator.pop(context);
               setState(() => isLoading = true);
-
               try {
-                final query = await FirebaseFirestore.instance
-                    .collection('users')
-                    .where('phone', isEqualTo: phone)
-                    .get();
-
-              if (query.docs.isNotEmpty) {
+                final query = await FirebaseFirestore.instance.collection('users').where('phone', isEqualTo: phone).get();
+                if (query.docs.isNotEmpty) {
                   String email = query.docs.first.data()['email'];
-                  String maskedEmail = _maskEmail(email);
                   await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-                  
-                  if (!mounted) return;
-                  _showRecoveryInstructionDialog(phone, email, maskedEmail);
+                  if (mounted) _showRecoveryInstructionDialog(phone, email, _maskEmail(email));
                 } else {
                   _showSnackBar(AppTranslations.get('user_not_found'));
                 }
@@ -329,28 +202,15 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(AppTranslations.get('forgot_pin'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppTranslations.get('forgot_pin')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.mark_email_read_rounded, size: 64, color: Color(0xFF0D47A1)),
             const SizedBox(height: 16),
-            Text(
-              'আপনার ইমেইলে একটি পিন রিসেট লিঙ্ক পাঠানো হয়েছে:',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14),
-            ),
+            Text(AppTranslations.get('verify_email_msg'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 8),
-            Text(
-              maskedEmail,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-            _buildInstructionItem(Icons.mail_outline, 'ইমেইল ইনবক্স বা স্প্যাম ফোল্ডার চেক করুন।'),
-            _buildInstructionItem(Icons.link, 'লিঙ্কে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।'),
-            _buildInstructionItem(Icons.login, 'পাসওয়ার্ড সেট করা হলে আবার অ্যাপে ফিরে আসুন।'),
+            Text(maskedEmail, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 16)),
           ],
         ),
         actions: [
@@ -360,27 +220,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               Navigator.pop(context);
               _showPasswordLoginDialog(phone, email);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0D47A1), 
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
             child: Text(AppTranslations.get('password_set_done')),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstructionItem(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: Colors.grey.shade600),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade700))),
         ],
       ),
     );
@@ -390,36 +231,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final passwordController = TextEditingController();
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text(AppTranslations.get('login_with_password')),
-        content: TextField(
-          controller: passwordController,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: AppTranslations.get('enter_password'),
-            border: const OutlineInputBorder(),
-          ),
-        ),
+        content: TextField(controller: passwordController, obscureText: true, decoration: InputDecoration(labelText: AppTranslations.get('enter_password'), border: const OutlineInputBorder())),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel'))),
           ElevatedButton(
             onPressed: () async {
-              String password = passwordController.text.trim();
-              if (password.isEmpty) return;
-
-              Navigator.pop(context);
               setState(() => isLoading = true);
-
               try {
-                UserCredential cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                  email: email,
-                  password: password,
-                );
-                
-                if (cred.user != null) {
-                  _showSetNewPinDialog(phone);
-                }
+                await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: passwordController.text.trim());
+                Navigator.pop(context);
+                _showSetNewPinDialog(phone);
               } catch (e) {
                 _showSnackBar(AppTranslations.get('login_failed_msg'));
               } finally {
@@ -438,135 +261,34 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final pin2 = TextEditingController();
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text(AppTranslations.get('set_new_pin_title')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: pin1,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              obscureText: true,
-              decoration: InputDecoration(labelText: AppTranslations.get('new_pin'), counterText: ''),
-            ),
-            TextField(
-              controller: pin2,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              obscureText: true,
-              decoration: InputDecoration(labelText: AppTranslations.get('confirm_new_pin'), counterText: ''),
-            ),
+            TextField(controller: pin1, keyboardType: TextInputType.number, maxLength: 4, obscureText: true, decoration: InputDecoration(labelText: AppTranslations.get('new_pin'))),
+            TextField(controller: pin2, keyboardType: TextInputType.number, maxLength: 4, obscureText: true, decoration: InputDecoration(labelText: AppTranslations.get('confirm_new_pin'))),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () async {
               if (pin1.text.length == 4 && pin1.text == pin2.text) {
-                String newPin = pin1.text;
-                Navigator.pop(context);
                 setState(() => isLoading = true);
-
                 try {
-                  String newTempPass = 'Pass_${phone}_$newPin';
-                  User? user = FirebaseAuth.instance.currentUser;
-                  
-                  if (user != null) {
-                    // ১. ফায়ারবেস পাসওয়ার্ড আপডেট
-                    await user.updatePassword(newTempPass);
-                    
-                    // ২. ফায়ারস্টোর আপডেট
-                    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                      'pin': newPin,
-                      'tempPassword': newTempPass,
-                    });
-
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('app_pin', newPin);
-                    await prefs.setString('saved_phone', phone);
-
-                    _showSnackBar(AppTranslations.get('pin_changed_success'));
-                    if (!mounted) return;
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
-                  }
+                  String newPass = 'Pass_${phone}_${pin1.text}';
+                  await FirebaseAuth.instance.currentUser!.updatePassword(newPass);
+                  await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).update({'pin': pin1.text, 'tempPassword': newPass});
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
                 } catch (e) {
-                  _showSnackBar(AppTranslations.get('pin_set_error').replaceAll('@error', e.toString()));
+                  _showSnackBar('ত্রুটি: $e');
                 } finally {
                   setState(() => isLoading = false);
                 }
-              } else {
-                _showSnackBar(AppTranslations.get('pin_mismatch_msg'));
               }
             },
             child: Text(AppTranslations.get('save')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showPendingApprovalDialog(String userPhone) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(AppTranslations.get('pending_approval_title'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lock_clock_rounded, size: 56, color: Colors.orange),
-            const SizedBox(height: 16),
-            Text(AppTranslations.get('pending_approval_msg'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13)),
-            const SizedBox(height: 12),
-            const Text('Admin WhatsApp:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            InkWell(
-              onTap: () async {
-                final Uri url = Uri.parse('https://wa.me/$ADMIN_PHONE?text=${Uri.encodeComponent("আমার অ্যাকাউন্টটি ভেরিফাই করুন।")}');
-                if (await canLaunchUrl(url)) await launchUrl(url);
-              },
-              child: Text(
-                '+$ADMIN_PHONE',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 18, decoration: TextDecoration.underline),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text('${AppTranslations.get('mobile')}: $userPhone', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton.icon(
-                  onPressed: () async {
-                    final Uri url = Uri.parse('tel:+$ADMIN_PHONE');
-                    if (await canLaunchUrl(url)) await launchUrl(url);
-                  },
-                  icon: const Icon(Icons.phone),
-                  label: Text(AppTranslations.get('call_admin'), style: const TextStyle(fontSize: 12)),
-                ),
-              ),
-              Expanded(
-                child: TextButton.icon(
-                  onPressed: () async {
-                    String message = AppTranslations.get('admin_verify_request_msg').replaceAll('@phone', userPhone);
-                    final Uri url = Uri.parse('https://wa.me/$ADMIN_PHONE?text=${Uri.encodeComponent(message)}');
-                    if (await canLaunchUrl(url)) await launchUrl(url);
-                  },
-                  icon: const Icon(Icons.chat),
-                  label: Text(AppTranslations.get('whatsapp_admin'), style: const TextStyle(fontSize: 11)),
-                ),
-              ),
-            ],
-          ),
-          const Divider(),
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(AppTranslations.get('cancel')),
-            ),
           ),
         ],
       ),
@@ -577,48 +299,29 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(AppTranslations.get('help_support_title'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppTranslations.get('help_support_title')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.email_rounded, color: Color(0xFF0D47A1)),
-              title: Text(AppTranslations.get('email_us')),
-              subtitle: const Text("sup.amar.dokan@gmail.com"),
+              leading: const Icon(Icons.email),
+              title: const Text('Email Us'),
               onTap: () async {
-                final Uri url = Uri.parse('mailto:sup.amar.dokan@gmail.com?subject=Support%20Request&body=Hello%20Team,');
-                try {
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } else {
-                    // যদি canLaunchUrl ব্যর্থ হয়, তবুও সরাসরি লঞ্চ করার চেষ্টা করা
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  }
-                } catch (e) {
-                  debugPrint("Email error: $e");
-                }
-                if (context.mounted) Navigator.pop(context);
+                final url = Uri.parse('mailto:sup.amar.dokan@gmail.com');
+                if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
               },
             ),
-            const Divider(),
             ListTile(
-              leading: const Icon(Icons.chat_rounded, color: Colors.green),
-              title: Text(AppTranslations.get('whatsapp_label')),
-              subtitle: const Text("+8801875787997"),
+              leading: const Icon(Icons.chat),
+              title: const Text('WhatsApp'),
               onTap: () async {
-                final Uri url = Uri.parse('https://wa.me/8801875787997');
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-                if (context.mounted) Navigator.pop(context);
+                final url = Uri.parse('https://wa.me/8801875787997');
+                if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
               },
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel'))),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel')))],
       ),
     );
   }
@@ -628,68 +331,25 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(AppTranslations.get('new_device_title'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.phonelink_lock_rounded, size: 56, color: Colors.redAccent),
-            const SizedBox(height: 16),
-            Text(
-              AppTranslations.get('new_device_msg'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            Text("${AppTranslations.get('email_label')}: ${_maskEmail(email)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
-            const SizedBox(height: 16),
-            Text(
-              AppTranslations.get('verification_instruction'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
+        title: Text(AppTranslations.get('new_device_title')),
+        content: Text(AppTranslations.get('new_device_msg')),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppTranslations.get('cancel')),
-          ),
           ElevatedButton(
             onPressed: () async {
-              try {
-                User? user = FirebaseAuth.instance.currentUser;
-                if (user != null) {
-                  await user.sendEmailVerification();
-                  _showSnackBar("ভেরিফিকেশন লিংক আপনার ইমেইলে পাঠানো হয়েছে।");
-                }
-              } catch (e) {
-                _showSnackBar("লিংক পাঠাতে ত্রুটি: $e");
-              }
+              await FirebaseAuth.instance.currentUser!.sendEmailVerification();
+              _showSnackBar(AppTranslations.get('link_sent'));
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
             child: Text(AppTranslations.get('send_link_btn')),
           ),
           ElevatedButton(
             onPressed: () async {
-              User? user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                await user.reload();
-                if (FirebaseAuth.instance.currentUser!.emailVerified) {
-                  // ডিভাইস অথোরাইজ করা
-                  await FirebaseFirestore.instance.collection('users').doc(uid).update({
-                    'authorizedDevices': FieldValue.arrayUnion([deviceId])
-                  });
-                  
-                  if (!mounted) return;
-                  Navigator.pop(context);
-                  _submit(); // আবার সাবমিট করলে এবার সফলভাবে লগইন হবে
-                } else {
-                  _showSnackBar(AppTranslations.get('email_not_verified_msg'));
-                }
+              await FirebaseAuth.instance.currentUser!.reload();
+              if (FirebaseAuth.instance.currentUser!.emailVerified) {
+                await FirebaseFirestore.instance.collection('users').doc(uid).update({'authorizedDevices': FieldValue.arrayUnion([deviceId])});
+                Navigator.pop(context);
+                _submit();
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
             child: Text(AppTranslations.get('verified_label')),
           ),
         ],
@@ -699,284 +359,129 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
   Future<void> _saveUserDataAfterVerification(User user) async {
     try {
-      String shopName = _shopNameController.text.trim();
-      String ownerName = _ownerNameController.text.trim();
       String phone = _normalizePhone(_phoneController.text.trim());
-      String email = _emailController.text.trim();
       String pin = _pinController.text.trim();
-      String tempPassword = 'Pass_${phone}_$pin';
-      DateTime now = DateTime.now();
-      String currentDeviceId = await DeviceUtils.getUniqueId();
-
+      String deviceId = await DeviceUtils.getUniqueId();
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'shopName': shopName,
-        'name': ownerName,
+        'shopName': _shopNameController.text.trim(),
+        'name': _ownerNameController.text.trim(),
         'phone': phone,
-        'email': email,
+        'email': _emailController.text.trim(),
         'pin': pin,
-        'tempPassword': tempPassword,
-        'isApproved': true, // নতুন রেজিস্ট্রেশন এখন অটো-অ্যাপ্রুভ হবে
-        'authorizedDevices': [currentDeviceId], // রেজিস্ট্রেশন করা ডিভাইসটি অটো-অ্যাপ্রুভ হবে
-        'trialStartDate': FieldValue.serverTimestamp(),
-        'subscriptionExpiryDate': FieldValue.serverTimestamp(),
+        'tempPassword': 'Pass_${phone}_$pin',
+        'isApproved': true,
+        'authorizedDevices': [deviceId],
         'createdAt': FieldValue.serverTimestamp(),
       });
-
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('app_pin', pin);
       await prefs.setString('saved_phone', phone);
-      await prefs.setBool('remember_phone', true);
-      await prefs.setString('role', 'admin'); // রোল সেট করা হলো
-      await prefs.setString('trial_start_date', now.toIso8601String());
-      await prefs.setString('subscription_expiry_date', now.toIso8601String());
-
-      // রেজিস্ট্রেশনের পর সাইন আউট করা বন্ধ করা হলো যাতে সরাসরি ড্যাশবোর্ডে যাওয়া যায়
-      // await FirebaseAuth.instance.signOut();
-
-      // এডমিনকে নতুন রেজিস্ট্রেশন রিকোয়েস্ট জানানো (তথ্য হিসেবে)
-      await NotificationUtils.notifyAdmin(
-        title: "নতুন ইউজার রেজিস্ট্রেশন (অটো-অ্যাপ্রুভ)",
-        message: "$ownerName ($shopName) অ্যাকাউন্ট খুলেছেন। নম্বর: $phone",
-      );
-
-      _showSnackBar(AppTranslations.get('account_created_msg'));
-      // Note: Navigation to Dashboard is now handled in the verification dialog
-      // so we don't show the pending dialog here anymore.
-      // _showPendingApprovalDialog(phone);
+      await prefs.setString('app_pin', pin);
+      await prefs.setString('role', 'admin');
     } catch (e) {
-      _showSnackBar('ডেটা সেভ করতে ত্রুটি: $e');
-    } finally {
-      if (mounted) setState(() => isLoading = false);
+      _showSnackBar('ডাটা সেভ ত্রুটি: $e');
     }
   }
 
-  // ইমেইল OTP পাঠানো (বাতিল করা হয়েছে)
-  Future<void> _sendEmailOTP() async {
-    // এটি আর ব্যবহৃত হচ্ছে না
-  }
-
-  // OTP ইনপুট ডায়ালগ (বাতিল করা হয়েছে)
-  void _showOTPDialog({bool isEmail = false}) {
-    // এটি আর ব্যবহৃত হচ্ছে না
-  }
-
-  // রেজিস্ট্রেশন সম্পন্ন করা (লিংক পাঠানোর জন্য আপডেট করা হয়েছে)
-  Future<void> _completeRegistration(PhoneAuthCredential? credential) async {
-    try {
-      String shopName = _shopNameController.text.trim();
-      String ownerName = _ownerNameController.text.trim();
-      String phone = _normalizePhone(_phoneController.text.trim());
-      String email = _emailController.text.trim();
-      String pin = _pinController.text.trim();
-      String tempPassword = 'Pass_${phone}_$pin';
-
-      // ১. ইমেইল পাসওয়ার্ড দিয়ে ইউজার তৈরি
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: tempPassword,
-      );
-
-      // ২. ভেরিফিকেশন লিংক পাঠানো
-      await userCredential.user!.sendEmailVerification();
-
-      // ৩. ডায়ালগ দেখানো
-      if (!mounted) return;
-      _showVerificationDialog(userCredential.user!);
-
-    } catch (e) {
-      _showSnackBar(AppTranslations.get('registration_error_msg').replaceAll('@error', e.toString()));
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
-  }
-
-  // লগইন বা রেজিস্ট্রেশন সাবমিট ফাংশন
   Future<void> _submit() async {
     setState(() => isLoading = true);
     try {
       if (isLogin) {
         String phone = _normalizePhone(_loginPhoneController.text.trim());
         String pin = _loginPinController.text.trim();
-
-        if (phone.isEmpty || pin.length != 4) {
-          _showSnackBar(AppTranslations.get('invalid_login_msg'));
-          setState(() => isLoading = false);
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getString('saved_phone') == phone && prefs.getString('app_pin') == pin) {
+          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
           return;
         }
-
-        // লগইনের জন্য ইউজার খোঁজা
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('phone', isEqualTo: phone)
-            .get();
-
-        if (querySnapshot.docs.isEmpty) {
+        final query = await FirebaseFirestore.instance.collection('users').where('phone', isEqualTo: phone).get(const GetOptions(source: Source.serverAndCache));
+        if (query.docs.isEmpty) {
           _showSnackBar(AppTranslations.get('phone_not_registered_msg'));
-          setState(() => isLoading = false);
           return;
         }
-
-        final userDoc = querySnapshot.docs.first;
-        final userData = userDoc.data();
-        final savedPin = userData['pin'];
-        final email = userData['email'];
-        final password = userData['tempPassword'];
-        final bool isApproved = userData['isApproved'] ?? true;
-
-        if (pin == savedPin) {
+        final userData = query.docs.first.data();
+        if (pin == userData['pin']) {
           try {
-            // ১. ফায়ারবেসে লগইন (সাইন-ইন) করা হচ্ছে, যাতে পেন্ডিং থাকলেও UID পাওয়া যায়
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-              email: email,
-              password: password,
-            );
-
-            // নতুন ডিভাইস ভেরিফিকেশন চেক
-            String currentDeviceId = await DeviceUtils.getUniqueId();
-            List<dynamic> authorizedDevices = userData['authorizedDevices'] ?? [];
-
-            if (authorizedDevices.isEmpty) {
-              // প্রথমবার লগইন করলে এই ডিভাইসটি অটোমেটিক অথোরাইজ হবে
-              await FirebaseFirestore.instance.collection('users').doc(userDoc.id).update({
-                'authorizedDevices': FieldValue.arrayUnion([currentDeviceId])
-              });
-            } else if (!authorizedDevices.contains(currentDeviceId)) {
-              // নতুন ডিভাইস হলে ভেরিফিকেশন ডায়ালগ দেখানো হবে
-              if (!mounted) return;
-              _showNewDeviceVerificationDialog(phone, email, currentDeviceId, userDoc.id);
-              setState(() => isLoading = false);
-              return;
-            }
-
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('saved_phone', phone);
-            await prefs.setString('role', 'admin'); // এডমিন রোল সেট করা হলো
-            
-            if (_rememberPhone) {
-              await prefs.setBool('remember_phone', true);
-            } else {
-              await prefs.setBool('remember_phone', false);
-            }
-            await prefs.setString('app_pin', pin);
-
-            if (!mounted) return;
-
-            // এখন ড্যাশবোর্ডে পাঠানো হবে, সেখানে _isApproved চেক করে ওভারলে দেখানো হবে
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            );
+            await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: userData['tempPassword']);
+            _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
           } catch (e) {
-            _showSnackBar(AppTranslations.get('login_failed_msg'));
+            try {
+              await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: 'Pass_${phone}_$pin');
+              _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
+            } catch (inner) {
+              _showSnackBar(AppTranslations.get('login_failed_msg'));
+            }
           }
         } else {
           _showSnackBar(AppTranslations.get('wrong_pin_msg'));
         }
       } else {
-        String shopName = _shopNameController.text.trim();
-        String ownerName = _ownerNameController.text.trim();
-        String phone = _normalizePhone(_phoneController.text.trim());
-        String email = _emailController.text.trim();
-        String pin = _pinController.text.trim();
-        String confirmPin = _confirmPinController.text.trim();
-
-        if (shopName.isEmpty || ownerName.isEmpty || phone.isEmpty || email.isEmpty) {
-          _showSnackBar(email.isEmpty ? AppTranslations.get('email_required_msg') : AppTranslations.get('required_fields_msg'));
-          setState(() => isLoading = false);
-          return;
-        }
-
-        if (pin.length != 4 || pin != confirmPin) {
-          _showSnackBar(AppTranslations.get('pin_mismatch_msg'));
-          setState(() => isLoading = false);
-          return;
-        }
-
-        final phoneCheck = await FirebaseFirestore.instance
-            .collection('users')
-            .where('phone', isEqualTo: phone)
-            .get();
-
-        if (phoneCheck.docs.isNotEmpty) {
-          _showSnackBar(AppTranslations.get('phone_exists_msg'));
-          setState(() => isLoading = false);
-          return;
-        }
-
-        // সব ঠিক থাকলে এখন ভেরিফিকেশন লিংক পাঠানো হবে
-        await _completeRegistration(null);
+        await _completeRegistration();
       }
     } catch (e) {
-      _showSnackBar(AppTranslations.get('error_msg').replaceAll('@error', e.toString()));
+      _showSnackBar('ত্রুটি: $e');
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      setState(() => isLoading = false);
+    }
+  }
+
+  void _proceedToDashboard(String phone, String pin, Map<String, dynamic> userData, String docId, String email) async {
+    String deviceId = await DeviceUtils.getUniqueId();
+    List authorized = userData['authorizedDevices'] ?? [];
+    if (authorized.isEmpty) {
+      await FirebaseFirestore.instance.collection('users').doc(docId).update({'authorizedDevices': [deviceId]});
+    } else if (!authorized.contains(deviceId)) {
+      _showNewDeviceVerificationDialog(phone, email, deviceId, docId);
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_phone', phone);
+    await prefs.setString('app_pin', pin);
+    await prefs.setString('role', 'admin');
+    if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+  }
+
+  Future<void> _completeRegistration() async {
+    try {
+      String phone = _normalizePhone(_phoneController.text.trim());
+      String pin = _pinController.text.trim();
+      UserCredential cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: _emailController.text.trim(), password: 'Pass_${phone}_$pin');
+      await cred.user!.sendEmailVerification();
+      _showVerificationDialog(cred.user!);
+    } catch (e) {
+      _showSnackBar('রেজিস্ট্রেশন ত্রুটি: $e');
     }
   }
 
   void _showSnackBar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _shopNameController.dispose();
-    _ownerNameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _pinController.dispose();
-    _confirmPinController.dispose();
-    _loginPhoneController.dispose();
-    _loginPinController.dispose();
-    super.dispose();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/login_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
+        decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/images/login_bg.png'), fit: BoxFit.cover)),
         child: SafeArea(
           child: Stack(
             children: [
-              // ভাষা পরিবর্তন বাটন
               Positioned(
                 top: 10,
                 right: 16,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: AppTranslations.currentLanguage,
                       icon: const Icon(Icons.language, color: Colors.white, size: 18),
                       dropdownColor: const Color(0xFF1565C0),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                      items: const [
-                        DropdownMenuItem(value: 'en', child: Text('English')),
-                        DropdownMenuItem(value: 'bn', child: Text('বাংলা')),
-                      ],
+                      items: const [DropdownMenuItem(value: 'en', child: Text('English')), DropdownMenuItem(value: 'bn', child: Text('বাংলা'))],
                       onChanged: (val) async {
                         if (val != null) {
                           await AppTranslations.saveLanguage(val);
-                          if (mounted) {
-                            MyApp.setLocale(context, Locale(val));
-                            setState(() {}); // লোকাল স্টেট আপডেট
-                          }
+                          MyApp.setLocale(context, Locale(val));
+                          setState(() {});
                         }
                       },
                     ),
@@ -991,342 +496,93 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     children: [
                       const CustomBannerAd(),
                       const SizedBox(height: 10),
-                      // পুরোনো আইকন ও টেক্সট সরিয়ে নতুন পিকচার বসানো হলো
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Image.asset(
-                      'assets/images/ic_launcher.png',
-                      height: 280,
-                      width: 280,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    isLogin ? AppTranslations.get('login_title') : AppTranslations.get('register_title'),
-                    style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.85)),
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(24.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 25,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (!isLogin) ...[
-                          _buildTextField(
-                            controller: _shopNameController,
-                            label: AppTranslations.get('shop_name'),
-                            icon: Icons.store_rounded,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildTextField(
-                            controller: _ownerNameController,
-                            label: AppTranslations.get('owner_name'),
-                            icon: Icons.person_rounded,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildTextField(
-                            controller: _phoneController,
-                            label: AppTranslations.get('mobile'),
-                            icon: Icons.phone_rounded,
-                            keyboardType: TextInputType.phone,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildTextField(
-                            controller: _emailController,
-                            label: AppTranslations.get('email'),
-                            icon: Icons.email_rounded,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildTextField(
-                            controller: _pinController,
-                            label: AppTranslations.get('enter_4_digit_pin'),
-                            icon: Icons.lock_rounded,
-                            isPassword: true,
-                            maxLength: 4,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildTextField(
-                            controller: _confirmPinController,
-                            label: AppTranslations.get('confirm_pin'),
-                            icon: Icons.lock_outline_rounded,
-                            isPassword: true,
-                            maxLength: 4,
-                          ),
-                        ] else ...[
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  controller: _loginPhoneController,
-                                  label: AppTranslations.get('mobile'),
-                                  icon: Icons.phone_rounded,
-                                  keyboardType: TextInputType.phone,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                children: [
-                                  Checkbox(
-                                    value: _rememberPhone,
-                                    activeColor: const Color(0xFF0D47A1),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _rememberPhone = val ?? false;
-                                      });
-                                    },
-                                  ),
-                                  Text(
-                                    AppTranslations.get('remember_phone'),
-                                    style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
+                      ClipRRect(borderRadius: BorderRadius.circular(22), child: Image.asset('assets/images/ic_launcher.png', height: 280, width: 280, fit: BoxFit.cover)),
+                      const SizedBox(height: 16),
+                      Text(isLogin ? AppTranslations.get('login_title') : AppTranslations.get('register_title'), style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(24.0),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 25, offset: const Offset(0, 10))]),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (!isLogin) ...[
+                              _buildTextField(controller: _shopNameController, label: AppTranslations.get('shop_name'), icon: Icons.store),
+                              const SizedBox(height: 14),
+                              _buildTextField(controller: _ownerNameController, label: AppTranslations.get('owner_name'), icon: Icons.person),
+                              const SizedBox(height: 14),
+                              _buildTextField(controller: _phoneController, label: AppTranslations.get('mobile'), icon: Icons.phone, keyboardType: TextInputType.phone),
+                              const SizedBox(height: 14),
+                              _buildTextField(controller: _emailController, label: AppTranslations.get('email'), icon: Icons.email, keyboardType: TextInputType.emailAddress),
+                              const SizedBox(height: 14),
+                              _buildTextField(controller: _pinController, label: AppTranslations.get('enter_4_digit_pin'), icon: Icons.lock, isPassword: true, maxLength: 4),
+                              const SizedBox(height: 14),
+                              _buildTextField(controller: _confirmPinController, label: AppTranslations.get('confirm_pin'), icon: Icons.lock_outline, isPassword: true, maxLength: 4),
+                            ] else ...[
+                              Row(children: [
+                                Expanded(child: _buildTextField(controller: _loginPhoneController, label: AppTranslations.get('mobile'), icon: Icons.phone, keyboardType: TextInputType.phone)),
+                                const SizedBox(width: 8),
+                                Column(children: [
+                                  Checkbox(value: _rememberPhone, activeColor: const Color(0xFF0D47A1), onChanged: (val) => setState(() => _rememberPhone = val ?? false)),
+                                  Text(AppTranslations.get('remember_phone'), style: const TextStyle(fontSize: 10, color: Colors.black54)),
+                                ]),
+                              ]),
+                              const SizedBox(height: 10),
+                              Row(children: [
+                                Expanded(child: _buildTextField(controller: _loginPinController, label: AppTranslations.get('enter_4_digit_pin'), icon: Icons.lock, isPassword: true, maxLength: 4)),
+                                const SizedBox(width: 8),
+                                IconButton(onPressed: _authenticateWithFingerprint, icon: const Icon(Icons.fingerprint, size: 32, color: Color(0xFF0D47A1))),
+                              ]),
+                              Align(alignment: Alignment.centerRight, child: TextButton(onPressed: _showForgotPinDialog, child: Text(AppTranslations.get('forgot_pin'), style: const TextStyle(fontSize: 13, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)))),
                             ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  controller: _loginPinController,
-                                  label: AppTranslations.get('enter_4_digit_pin'),
-                                  icon: Icons.lock_rounded,
-                                  isPassword: true,
-                                  maxLength: 4,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: _authenticateWithFingerprint,
-                                icon: const Icon(Icons.fingerprint_rounded, size: 32, color: Color(0xFF0D47A1)),
-                                tooltip: AppTranslations.get('biometric'),
-                              ),
-                            ],
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: _showForgotPinDialog,
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
-                              child: Text(
-                                AppTranslations.get('forgot_pin'),
-                                style: const TextStyle(fontSize: 13, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        isLoading
-                            ? const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)))
-                            : ElevatedButton(
-                          onPressed: _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D47A1),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 4,
-                            shadowColor: const Color(0xFF0D47A1).withValues(alpha: 0.4),
-                          ),
-                          child: Text(
-                            isLogin ? AppTranslations.get('login') : AppTranslations.get('register'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                          ),
+                            const SizedBox(height: 24),
+                            isLoading ? const Center(child: CircularProgressIndicator()) : ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isLogin ? AppTranslations.get('login') : AppTranslations.get('register'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () => setState(() => isLogin = !isLogin),
-                    child: Text(
-                      isLogin ? AppTranslations.get('register') : AppTranslations.get('login'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        letterSpacing: 0.5,
-                        decoration: TextDecoration.underline,
                       ),
-                    ),
-                  ),
-                  // স্টাফ লগইন বাটন
-                  const SizedBox(height: 5),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const StaffLoginScreen()),
-                      );
-                    },
-                    icon: const Icon(Icons.badge_rounded, color: Colors.white, size: 20),
-                    label: Text(
-                      AppTranslations.get('staff_login_btn'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: _showHelpDialog,
-                        icon: const Icon(Icons.help_outline_rounded, color: Colors.white70),
-                        tooltip: AppTranslations.get('help_support'),
-                      ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        onPressed: () {
-                          final Uri url = Uri.parse('https://bhskhan2405.github.io/Amar_Dokan/');
-                          launchUrl(url, mode: LaunchMode.externalApplication);
-                        },
-                        icon: const Icon(Icons.privacy_tip_outlined, color: Colors.white70),
-                        tooltip: AppTranslations.get('privacy_policy'),
-                      ),
+                      const SizedBox(height: 20),
+                      TextButton(onPressed: () => setState(() => isLogin = !isLogin), child: Text(isLogin ? AppTranslations.get('register') : AppTranslations.get('login'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.underline))),
+                      const SizedBox(height: 5),
+                      TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StaffLoginScreen())), icon: const Icon(Icons.badge, color: Colors.white, size: 20), label: Text(AppTranslations.get('staff_login_btn'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, decoration: TextDecoration.underline))),
+                      const SizedBox(height: 30),
+                      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        IconButton(onPressed: _showHelpDialog, icon: const Icon(Icons.help_outline, color: Colors.white70)),
+                        const SizedBox(width: 20),
+                        IconButton(onPressed: () => launchUrl(Uri.parse('https://bhskhan2405.github.io/Amar_Dokan/'), mode: LaunchMode.externalApplication), icon: const Icon(Icons.privacy_tip_outlined, color: Colors.white70)),
+                      ]),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    bool isPassword = false,
-    int? maxLength,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, bool isPassword = false, int? maxLength}) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: isPassword,
       maxLength: maxLength,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-        prefixIcon: Icon(icon, color: const Color(0xFF0D47A1), size: 22),
+        prefixIcon: Icon(icon, color: const Color(0xFF0D47A1)),
         counterText: '',
         filled: true,
         fillColor: const Color(0xFFF8FAFC),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF0D47A1), width: 1.5),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
       ),
     );
   }
 }
 
-// রেজিস্ট্রেশন পরবর্তী পেন্ডিং মেসেজ পেজ
 class RegistrationSuccessPage extends StatelessWidget {
   const RegistrationSuccessPage({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              elevation: 8,
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.pending_actions_rounded, size: 80, color: Colors.orange),
-                    const SizedBox(height: 24),
-                    Text(
-                      AppTranslations.get('account_pending_msg'),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      AppTranslations.get('please_login_msg'),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginRegisterScreen()),
-                            (route) => false,
-                          );
-                        },
-                        child: Text(
-                          AppTranslations.get('login_now'),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return Scaffold(body: Center(child: Text("Success")));
   }
 }

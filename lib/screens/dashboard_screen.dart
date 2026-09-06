@@ -99,7 +99,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (user != null) {
       if (mounted) setState(() => email = user.email ?? '');
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get(const GetOptions(source: Source.serverAndCache));
         if (doc.exists && mounted) {
           final data = doc.data();
           if (data != null) {
@@ -298,10 +301,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           const Icon(Icons.hourglass_empty_rounded, size: 80, color: Colors.amber),
           const SizedBox(height: 24),
-          const Text(
-            'অ্যাকাউন্ট অনুমোদনের অপেক্ষায়',
+          Text(
+            AppTranslations.get('account_pending_approval'),
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -309,16 +312,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: TextStyle(color: Colors.amber, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'আপনার অ্যাকাউন্টটি বর্তমানে আমাদের টিমের পর্যালোচনার অধীনে রয়েছে। ১ ঘণ্টার বেশি হয়ে গেলে নিচের WhatsApp বাটনে ক্লিক করে আমাদের জানান।',
+          Text(
+            AppTranslations.get('pending_msg'),
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: _launchWhatsApp,
             icon: const Icon(Icons.message_rounded),
-            label: const Text('WhatsApp-এ যোগাযোগ করুন'),
+            label: Text(AppTranslations.get('contact_whatsapp')),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
@@ -329,7 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => FirebaseAuth.instance.signOut(),
-            child: const Text('লগ আউট করুন', style: TextStyle(color: Colors.white60)),
+            child: Text(AppTranslations.get('logout'), style: const TextStyle(color: Colors.white60)),
           ),
         ],
       ),
@@ -337,10 +340,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _launchWhatsApp() async {
-    final message = "আসসালামু আলাইকুম। আমার দোকান অ্যাপে আমি রেজিস্ট্রেশন করেছি, দয়া করে আমার অ্যাকাউন্টটি এপ্রুভ করে দিন।\n\n"
-        "দোকানের নাম: $_shopName\n"
-        "মালিকের নাম: $_userName\n"
-        "মোবাইল নম্বর: $_userPhone";
+    final message = "${AppTranslations.currentLanguage == 'bn' ? 'আসসালামু আলাইকুম। আমার দোকান অ্যাপে আমি রেজিস্ট্রেশন করেছি, দয়া করে আমার অ্যাকাউন্টটি এপ্রুভ করে দিন।' : 'Assalamu Alaikum. I have registered on the Amar Dokan app, please approve my account.'}\n\n"
+        "${AppTranslations.get('shop_name')}: $_shopName\n"
+        "${AppTranslations.get('owner_name')}: $_userName\n"
+        "${AppTranslations.get('mobile')}: $_userPhone";
     
     final encodedMsg = Uri.encodeComponent(message);
     final url = "https://wa.me/${SubscriptionUtils.WHATSAPP_CONTACT}?text=$encodedMsg";
@@ -390,7 +393,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   context, 
                   MaterialPageRoute(builder: (context) => const ProductsScreen(showLowStockOnly: true))
                 ), 
-                child: const Text('দেখুন')
+                child: Text(AppTranslations.get('view'))
               ),
             ],
           ),

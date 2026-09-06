@@ -900,7 +900,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                   _generateDateRangePdf(filteredSales, filteredExpenses, totalSale, totalProfit, totalExpense, totalSalary, startDate!, endDate!, userId);
                 },
                 icon: const Icon(Icons.picture_as_pdf),
-                label: const Text('Download Date Range PDF Report'),
+                label: Text(AppTranslations.get('download_pdf_range')),
               ),
             ),
           ),

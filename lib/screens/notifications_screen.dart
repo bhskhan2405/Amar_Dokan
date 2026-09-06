@@ -43,13 +43,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('মুছে ফেলুন?'),
-        content: Text('আপনি কি নির্বাচিত ${_selectedIds.length}টি নোটিফিকেশন মুছে ফেলতে চান?'),
+        title: Text(AppTranslations.get('delete_confirm')),
+        content: Text(AppTranslations.get('delete_selected_q').replaceAll('@count', _selectedIds.length.toString())),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('না')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppTranslations.get('no'))),
           TextButton(
             onPressed: () => Navigator.pop(context, true), 
-            child: const Text('হ্যাঁ, মুছুন', style: TextStyle(color: Colors.red)),
+            child: Text(AppTranslations.get('yes_delete'), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -65,13 +65,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('সব মুছে ফেলুন?'),
-        content: const Text('আপনি কি সব নোটিফিকেশন মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।'),
+        title: Text(AppTranslations.get('delete_all_confirm')),
+        content: Text('${AppTranslations.get('delete_all_q')} ${AppTranslations.get('delete_all_warning')}'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('বাতিল')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppTranslations.get('cancel'))),
           TextButton(
             onPressed: () => Navigator.pop(context, true), 
-            child: const Text('হ্যাঁ, সব মুছুন', style: TextStyle(color: Colors.red)),
+            child: Text(AppTranslations.get('yes_delete'), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -90,8 +90,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: AppBar(
         title: Text(
           _isSelectionMode 
-            ? '${_selectedIds.length} নির্বাচিত' 
-            : (AppTranslations.get('notifications') ?? 'নোটিফিকেশন'),
+            ? '${_selectedIds.length} ${AppTranslations.get('selected')}' 
+            : (AppTranslations.get('notifications')),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         leading: _isSelectionMode 
@@ -103,13 +103,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (_isSelectionMode)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'নির্বাচিত গুলো মুছুন',
+              tooltip: AppTranslations.get('delete_selected'),
               onPressed: _deleteSelected,
             )
           else ...[
             IconButton(
               icon: const Icon(Icons.done_all),
-              tooltip: 'সব পড়া হয়েছে মার্ক করুন',
+              tooltip: AppTranslations.get('mark_all_read'),
               onPressed: () => NotificationUtils.markAllAsRead(widget.isAdmin),
             ),
             PopupMenuButton<String>(
@@ -118,13 +118,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               },
               icon: const Icon(Icons.more_vert, color: Colors.white),
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete_all',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_sweep, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
-                      Text('সব মুছে ফেলুন'),
+                      const Icon(Icons.delete_sweep, color: Colors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Text(AppTranslations.get('delete_all_confirm')),
                     ],
                   ),
                 ),
@@ -147,7 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(20.0),
                       child: Text(
-                        'নোটিফিকেশন লোড করতে সমস্যা হয়েছে।',
+                        AppTranslations.get('error_loading_notifications'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.red.shade700),
                       ),
@@ -166,7 +166,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
                         Text(
-                          'কোনো নোটিফিকেশন নেই',
+                          AppTranslations.get('no_notifications'),
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
                       ],
@@ -205,7 +205,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       onDismissed: (direction) {
                         NotificationUtils.deleteNotification(id);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('নোটিফিকেশন মুছে ফেলা হয়েছে'), duration: Duration(seconds: 2)),
+                          SnackBar(content: Text(AppTranslations.get('notifications_deleted')), duration: const Duration(seconds: 2)),
                         );
                       },
                       child: Card(

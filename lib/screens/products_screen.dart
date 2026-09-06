@@ -640,7 +640,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
                     if (doc == null) {
                       // নতুন প্রোডাক্ট অ্যাড করার সময় অ্যাড চেক
-                      AdManager.checkAndShowProductAd(() async {
+                      await AdManager.checkAndShowProductAd(() async {
                         productData['createdAt'] = FieldValue.serverTimestamp();
                         await productsRef.add(productData);
                         if (dialogContext.mounted) {
