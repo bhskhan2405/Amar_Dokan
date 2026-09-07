@@ -176,8 +176,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   'createdAt': FieldValue.serverTimestamp(),
                 });
 
-                if (!mounted) return;
-                Navigator.pop(dialogContext);
+                if (!context.mounted) return;
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('customer_added_msg'))));
               }
             },
@@ -266,8 +266,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       'address': addressController.text.trim(),
                     });
 
-                    if (!mounted) return;
-                    Navigator.pop(dialogContext);
+                    if (!context.mounted) return;
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('customer_updated_msg'))));
                   } else {
                     if (!mounted) return;
@@ -334,7 +334,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   String savedPin = data?['pin'] ?? '';
 
                   if (savedPin == enteredPin) {
-                    Navigator.pop(dialogContext);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
 
                     var transQuery = await FirebaseFirestore.instance
                         .collection('users')
@@ -355,8 +355,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         .doc(customerId)
                         .delete();
 
-                    if (!mounted) return;
-                    Navigator.pop(context);
+                    if (!context.mounted) return;
+                    if (context.mounted) Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('customer_deleted_success'))));
                   } else {
                     if (!mounted) return;
@@ -478,8 +478,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     'date': FieldValue.serverTimestamp(),
                   });
 
-                  if (!mounted) return;
-                  Navigator.pop(dialogContext);
+                  if (!context.mounted) return;
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('transaction_saved_msg'))));
                 } finally {
                   if (mounted) {
@@ -639,7 +639,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -669,7 +669,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       pw.Text(descriptionText.isNotEmpty ? descriptionText : 'Cash Payment', style: pw.TextStyle(font: banglaFont, fontSize: 12)),
                       pw.Divider(height: 20),
                       pw.Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Previous Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
                           pw.Text('Tk $prevDue', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
@@ -677,7 +677,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       ),
                       pw.SizedBox(height: 4),
                       pw.Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Payment Given:', style: pw.TextStyle(font: banglaFont)),
                           pw.Text('Tk $amount', style: pw.TextStyle(font: banglaFont)),
@@ -685,7 +685,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       ),
                       pw.SizedBox(height: 4),
                       pw.Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Current Balance Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
                           pw.Text('Tk $dbBalance', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
@@ -737,7 +737,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -767,7 +767,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       pw.Text(descriptionText.isNotEmpty ? descriptionText : 'N/A', style: pw.TextStyle(font: banglaFont, fontSize: 12)),
                       pw.Divider(height: 20),
                       pw.Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Total Price:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
                           pw.Text('Tk $totalProductPrice', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
@@ -775,7 +775,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       ),
                       pw.SizedBox(height: 4),
                       pw.Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Payment:', style: pw.TextStyle(font: banglaFont)),
                           pw.Text('Tk $paymentReceived', style: pw.TextStyle(font: banglaFont)),
@@ -783,7 +783,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       ),
                       pw.SizedBox(height: 4),
                       pw.Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Balance Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
                           pw.Text('Tk $balanceDue', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
@@ -848,7 +848,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
     Map<String, Map<String, double>> dailySummary = {};
 
     for (var doc in querySnapshot.docs) {
-      var t = doc.data() as Map<String, dynamic>;
+      var t = doc.data();
       Timestamp? ts = _parseDate(t['date']);
       if (ts != null) {
         DateTime tDate = ts.toDate();
@@ -923,7 +923,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             pw.SizedBox(height: 10),
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1232,15 +1232,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
     );
   }
 
-  Widget _buildSummaryItem(String title, String value, Color color) {
-    return Column(
-      children: [
-        Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1364,7 +1355,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         margin: const EdgeInsets.all(12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.blue.shade200),
                         ),
@@ -1417,7 +1408,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade400),
                             borderRadius: BorderRadius.circular(8),
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1491,14 +1482,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.amber.shade300),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Text(AppTranslations.get('baki_of_date').replaceAll('@date', DateFormat('dd MMM').format(_selectedReportDate!)) + ': ${AppTranslations.get('currency_symbol')} $customBaki',
+                          Text('${AppTranslations.get('baki_of_date').replaceAll('@date', DateFormat('dd MMM').format(_selectedReportDate!))}: ${AppTranslations.get('currency_symbol')} $customBaki',
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
                           Text('${AppTranslations.get('jama')}: ${AppTranslations.get('currency_symbol')} $customJama',
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
@@ -1519,7 +1510,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     prefixIcon: const Icon(Icons.search, color: Color(0xFF0D47A1)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.9),
+                    fillColor: Colors.white.withValues(alpha: 0.9),
                     isDense: true,
                   ),
                 ),
@@ -1559,7 +1550,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          color: _selectedCustomerIds.contains(doc.id) ? Colors.blue.shade50 : Colors.white.withOpacity(0.9),
+                          color: _selectedCustomerIds.contains(doc.id) ? Colors.blue.shade50 : Colors.white.withValues(alpha: 0.9),
                           child: ListTile(
                             onLongPress: () {
                               setState(() {
@@ -1589,7 +1580,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                     onChanged: (val) => _toggleSelection(doc.id, data['phone'] ?? ''),
                                   )
                                 : CircleAvatar(
-                                    backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
+                                    backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
                                     child: Text(data['name'] != null ? data['name'][0].toUpperCase() : 'C', style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
                                   ),
                             title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -1690,7 +1681,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             child: Column(
               children: [
                 Container(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Column(
                     children: [
@@ -1716,7 +1707,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                               if (phoneNum.isNotEmpty) {
                                 _makePhoneCall(phoneNum);
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('phone_not_found') ?? 'Phone not found!')));
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('phone_not_found'))));
                               }
                             },
                             child: _buildTopActionIcon(Icons.phone, AppTranslations.get('call')),
@@ -1726,7 +1717,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                               if (phoneNum.isNotEmpty) {
                                 _sendSms(phoneNum);
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('phone_not_found') ?? 'Phone not found!')));
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('phone_not_found'))));
                               }
                             },
                             child: _buildTopActionIcon(Icons.chat_bubble_outline, AppTranslations.get('message')),
@@ -1760,7 +1751,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: TextField(
                     onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
@@ -1818,7 +1809,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           bool isJama = rawType == 'জমা' || rawType == 'jama';
 
                           return Card(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
