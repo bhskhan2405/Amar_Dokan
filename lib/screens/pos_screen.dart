@@ -979,525 +979,547 @@ class _POSScreenState extends State<POSScreen> {
           ),
         ],
       ),
-      body: _shopId.isEmpty 
-        ? const Center(child: CircularProgressIndicator())
-        : StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(_shopId)
-            .collection('products')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final allProducts = snapshot.data!.docs;
-
-          Set<String> categories = {AppTranslations.get('all')};
-          for (var doc in allProducts) {
-            final data = doc.data() as Map<String, dynamic>;
-            final cat = (data['category'] ?? '').toString().trim();
-            if (cat.isNotEmpty) {
-              categories.add(cat);
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/feature_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: _shopId.isEmpty 
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(_shopId)
+              .collection('products')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)));
             }
-          }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final filteredProducts = allProducts.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final name = (data['name'] ?? '').toString().toLowerCase();
-            final barcode = (data['barcode'] ?? '').toString().toLowerCase();
-            final category = (data['category'] ?? '').toString().trim();
+            final allProducts = snapshot.data!.docs;
 
-            final matchesSearch = name.contains(searchQuery) || barcode.contains(searchQuery);
-            final matchesCategory = selectedCategory == AppTranslations.get('all') || category == selectedCategory;
+            Set<String> categories = {AppTranslations.get('all')};
+            for (var doc in allProducts) {
+              final data = doc.data() as Map<String, dynamic>;
+              final cat = (data['category'] ?? '').toString().trim();
+              if (cat.isNotEmpty) {
+                categories.add(cat);
+              }
+            }
 
-            return matchesSearch && matchesCategory;
-          }).toList();
+            final filteredProducts = allProducts.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final name = (data['name'] ?? '').toString().toLowerCase();
+              final barcode = (data['barcode'] ?? '').toString().toLowerCase();
+              final category = (data['category'] ?? '').toString().trim();
 
-          return Column(
-            children: [
-              const CustomBannerAd(),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
-                                decoration: InputDecoration(
-                                  hintText: AppTranslations.get('search_product'),
-                                  prefixIcon: const Icon(Icons.search, color: Color(0xFF0D47A1)),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                  isDense: true,
+              final matchesSearch = name.contains(searchQuery) || barcode.contains(searchQuery);
+              final matchesCategory = selectedCategory == AppTranslations.get('all') || category == selectedCategory;
+
+              return matchesSearch && matchesCategory;
+            }).toList();
+
+            return Column(
+              children: [
+                const CustomBannerAd(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
+                                  decoration: InputDecoration(
+                                    hintText: AppTranslations.get('search_product'),
+                                    prefixIcon: const Icon(Icons.search, color: Color(0xFF0D47A1)),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    isDense: true,
+                                    filled: true,
+                                    fillColor: Colors.white.withOpacity(0.9),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () async {
-                                if (await SubscriptionUtils.isPremium()) {
-                                  _openScanner(allProducts);
-                                } else {
-                                  if (!mounted) return;
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
-                                }
-                              },
-                              icon: Stack(
-                                children: [
-                                  const Icon(Icons.camera_alt, color: Colors.white),
-                                  SubscriptionUtils.premiumIcon(),
-                                ],
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: const Color(0xFF0D47A1),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: const EdgeInsets.all(12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      SizedBox(
-                        height: 45,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          children: categories.map((category) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: ChoiceChip(
-                                label: Text(category),
-                                selected: selectedCategory == category,
-                                selectedColor: const Color(0xFF0D47A1),
-                                labelStyle: TextStyle(
-                                  color: selectedCategory == category ? Colors.white : Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                onSelected: (bool selected) {
-                                  setState(() {
-                                    selectedCategory = category;
-                                  });
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () async {
+                                  if (await SubscriptionUtils.isPremium()) {
+                                    _openScanner(allProducts);
+                                  } else {
+                                    if (!mounted) return;
+                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                                  }
                                 },
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      SizedBox(
-                        height: 180,
-                        child: filteredProducts.isEmpty
-                            ? Center(child: Text(AppTranslations.get('no_product_found')))
-                            : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            var doc = filteredProducts[index];
-                            var data = doc.data() as Map<String, dynamic>;
-
-                            final double price = (data['price'] ?? 0.0).toDouble();
-                            final double discountVal = (data['discount'] ?? 0.0).toDouble();
-                            final String discountType = data['discountType'] ?? '%';
-                            
-                            double discountPercent = 0.0;
-                            double effectivePrice = price;
-
-                            if (discountVal > 0) {
-                              if (discountType == '%') {
-                                discountPercent = discountVal;
-                                effectivePrice = price - ((price * discountVal) / 100);
-                              } else {
-                                discountPercent = (discountVal / price) * 100;
-                                effectivePrice = price - discountVal;
-                              }
-                            }
-                            final stock = data['stock'] ?? 0;
-                            final String unit = data['unit'] ?? 'Pcs';
-                            final String productSize = (data['size'] ?? '').toString().trim();
-                            final String? imageBase64 = data['imageBase64'] ?? data['image'];
-
-                            return GestureDetector(
-                              onTap: () => _addToCart(doc.id, data),
-                              child: Container(
-                                width: 140,
-                                margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.blue.shade200),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                icon: Stack(
                                   children: [
-                                    Stack(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: imageBase64 != null && imageBase64.isNotEmpty
-                                              ? Image.memory(
-                                            base64Decode(imageBase64),
-                                            width: 70,
-                                            height: 70,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, size: 70, color: Colors.grey),
-                                          )
-                                              : Container(
-                                            width: 70,
-                                            height: 70,
-                                            color: Colors.grey.shade200,
-                                            child: const Icon(Icons.shopping_bag, size: 40, color: Color(0xFF0D47A1)),
-                                          ),
-                                        ),
-                                        if (discountPercent > 0)
-                                          Positioned(
-                                            top: 0,
-                                            right: 0,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                '${discountPercent.toStringAsFixed(0)}% ${AppTranslations.get('discount')}',
-                                                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      data['name'] ?? '',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Wrap(
-                                      alignment: WrapAlignment.center,
-                                      crossAxisAlignment: WrapCrossAlignment.center,
-                                      children: [
-                                        if (discountPercent > 0)
-                                          Text(
-                                            '${AppTranslations.get('currency_symbol')}${price.toStringAsFixed(0)} ',
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                              fontSize: 9,
-                                              decoration: TextDecoration.lineThrough,
-                                            ),
-                                          ),
-                                        Text(
-                                          '${AppTranslations.get('currency_symbol')} ${effectivePrice.toStringAsFixed(0)} / $unit',
-                                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11),
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${AppTranslations.get('stock')}: $stock',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: stock > 0 ? Colors.grey.shade700 : Colors.red,
-                                      ),
-                                    ),
-                                    if (productSize.isNotEmpty) ...[
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        '${AppTranslations.get('size')}: $productSize',
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blueAccent,
-                                        ),
-                                      ),
-                                    ],
+                                    const Icon(Icons.camera_alt, color: Colors.white),
+                                    SubscriptionUtils.premiumIcon(),
                                   ],
                                 ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0D47A1),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.all(12),
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      const Divider(height: 1),
-
-                      ExpansionTile(
-                        title: Text(AppTranslations.get('customer_info'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                            child: Column(
-                              children: [
-                                TextField(
-                                  controller: _customerNameController,
-                                  decoration: InputDecoration(
-                                    labelText: AppTranslations.get('customer_name'),
-                                    border: const OutlineInputBorder(),
-                                    isDense: true,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-
-                                StreamBuilder<QuerySnapshot>(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(user?.uid)
-                                      .collection('customers')
-                                      .snapshots(),
-                                  builder: (context, customerSnapshot) {
-                                    List<QueryDocumentSnapshot> matchedCustomers = [];
-                                    String queryText = _customerPhoneController.text.trim();
-
-                                    if (customerSnapshot.hasData && queryText.isNotEmpty) {
-                                      matchedCustomers = customerSnapshot.data!.docs.where((doc) {
-                                        final data = doc.data() as Map<String, dynamic>;
-                                        final phone = (data['phone'] ?? '').toString().trim();
-
-                                        if (phone == queryText) return true;
-                                        if (phone.length >= 4 && phone.endsWith(queryText)) return true;
-                                        if (phone.contains(queryText)) return true;
-
-                                        return false;
-                                      }).toList();
-                                    }
-
-                                    return Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        TextField(
-                                          controller: _customerPhoneController,
-                                          keyboardType: TextInputType.phone,
-                                          decoration: InputDecoration(
-                                            labelText: '${AppTranslations.get('customer')} ${AppTranslations.get('mobile')} (${AppTranslations.get('all')} ${AppTranslations.get('or')} ${AppTranslations.get('last')} 4 ${AppTranslations.get('digit')})',
-                                            border: const OutlineInputBorder(),
-                                            isDense: true,
-                                            prefixIcon: const Icon(Icons.phone),
-                                          ),
-                                          onChanged: (val) {
-                                            setState(() {});
-                                          },
-                                        ),
-                                        if (matchedCustomers.isNotEmpty)
-                                          Container(
-                                            margin: const EdgeInsets.only(top: 4),
-                                            constraints: const BoxConstraints(maxHeight: 150),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              border: Border.all(color: Colors.blue.shade300),
-                                              borderRadius: BorderRadius.circular(6),
-                                              boxShadow: [const BoxShadow(color: Colors.black12, blurRadius: 4)],
-                                            ),
-                                            child: ListView.builder(
-                                              shrinkWrap: true,
-                                              physics: const NeverScrollableScrollPhysics(),
-                                              itemCount: matchedCustomers.length,
-                                              itemBuilder: (context, index) {
-                                                final cData = matchedCustomers[index].data() as Map<String, dynamic>;
-                                                final name = cData['name'] ?? '';
-                                                final phone = cData['phone'] ?? '';
-                                                final address = cData['address'] ?? '';
-
-                                                return ListTile(
-                                                  dense: true,
-                                                  title: Text('$name ($phone)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                                  subtitle: Text(address.isNotEmpty ? address : AppTranslations.get('no_record_found')),
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _customerNameController.text = name;
-                                                      _customerPhoneController.text = phone;
-                                                      _customerAddressController.text = address;
-                                                    });
-                                                    FocusManager.instance.primaryFocus?.unfocus();
-                                                  },
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 6),
-
-                                TextField(
-                                  controller: _customerAddressController,
-                                  decoration: InputDecoration(
-                                    labelText: '${AppTranslations.get('customer')} ${AppTranslations.get('address')} (Address)',
-                                    border: const OutlineInputBorder(),
-                                    isDense: true,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                              ],
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
 
-                      Container(
-                        color: Colors.grey.shade300,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(AppTranslations.get('cart'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Row(
-                              children: [
-                                SubscriptionUtils.premiumIcon(),
-                                Text(_showProfitInfo ? AppTranslations.get('hide_profit') : AppTranslations.get('show_profit'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                                Switch(
-                                  value: _showProfitInfo,
-                                  onChanged: (val) async {
-                                    if (await SubscriptionUtils.isPremium()) {
-                                      setState(() {
-                                        _showProfitInfo = val;
-                                      });
-                                    } else {
-                                      if (!mounted) return;
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
-                                    }
+                        SizedBox(
+                          height: 45,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            children: categories.map((category) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: ChoiceChip(
+                                  label: Text(category),
+                                  selected: selectedCategory == category,
+                                  selectedColor: const Color(0xFF0D47A1),
+                                  labelStyle: TextStyle(
+                                    color: selectedCategory == category ? Colors.white : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      selectedCategory = category;
+                                    });
                                   },
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(AppTranslations.get('qty_price_header'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                              ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        SizedBox(
+                          height: 180,
+                          child: filteredProducts.isEmpty
+                              ? Center(child: Text(AppTranslations.get('no_product_found'), style: const TextStyle(color: Colors.white)))
+                              : ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              var doc = filteredProducts[index];
+                              var data = doc.data() as Map<String, dynamic>;
+
+                              final double price = (data['price'] ?? 0.0).toDouble();
+                              final double discountVal = (data['discount'] ?? 0.0).toDouble();
+                              final String discountType = data['discountType'] ?? '%';
+                              
+                              double discountPercent = 0.0;
+                              double effectivePrice = price;
+
+                              if (discountVal > 0) {
+                                if (discountType == '%') {
+                                  discountPercent = discountVal;
+                                  effectivePrice = price - ((price * discountVal) / 100);
+                                } else {
+                                  discountPercent = (discountVal / price) * 100;
+                                  effectivePrice = price - discountVal;
+                                }
+                              }
+                              final stock = data['stock'] ?? 0;
+                              final String unit = data['unit'] ?? 'Pcs';
+                              final String productSize = (data['size'] ?? '').toString().trim();
+                              final String? imageBase64 = data['imageBase64'] ?? data['image'];
+
+                              return GestureDetector(
+                                onTap: () => _addToCart(doc.id, data),
+                                child: Container(
+                                  width: 140,
+                                  margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.blue.shade200),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: imageBase64 != null && imageBase64.isNotEmpty
+                                                ? Image.memory(
+                                              base64Decode(imageBase64),
+                                              width: 70,
+                                              height: 70,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, size: 70, color: Colors.grey),
+                                            )
+                                                : Container(
+                                              width: 70,
+                                              height: 70,
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(Icons.shopping_bag, size: 40, color: Color(0xFF0D47A1)),
+                                            ),
+                                          ),
+                                          if (discountPercent > 0)
+                                            Positioned(
+                                              top: 0,
+                                              right: 0,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  '${discountPercent.toStringAsFixed(0)}% ${AppTranslations.get('discount')}',
+                                                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        data['name'] ?? '',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Wrap(
+                                        alignment: WrapAlignment.center,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          if (discountPercent > 0)
+                                            Text(
+                                              '${AppTranslations.get('currency_symbol')}${price.toStringAsFixed(0)} ',
+                                              style: const TextStyle(
+                                                color: Colors.red,
+                                                fontSize: 9,
+                                                decoration: TextDecoration.lineThrough,
+                                              ),
+                                            ),
+                                          Text(
+                                            '${AppTranslations.get('currency_symbol')} ${effectivePrice.toStringAsFixed(0)} / $unit',
+                                            style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${AppTranslations.get('stock')}: $stock',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: stock > 0 ? Colors.grey.shade700 : Colors.red,
+                                        ),
+                                      ),
+                                      if (productSize.isNotEmpty) ...[
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          '${AppTranslations.get('size')}: $productSize',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blueAccent,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        const Divider(height: 1),
+
+                        ExpansionTile(
+                          backgroundColor: Colors.white.withOpacity(0.85),
+                          collapsedBackgroundColor: Colors.white.withOpacity(0.85),
+                          title: Text(AppTranslations.get('customer_info'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: _customerNameController,
+                                    decoration: InputDecoration(
+                                      labelText: AppTranslations.get('customer_name'),
+                                      border: const OutlineInputBorder(),
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+
+                                  StreamBuilder<QuerySnapshot>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(user?.uid)
+                                        .collection('customers')
+                                        .snapshots(),
+                                    builder: (context, customerSnapshot) {
+                                      List<QueryDocumentSnapshot> matchedCustomers = [];
+                                      String queryText = _customerPhoneController.text.trim();
+
+                                      if (customerSnapshot.hasData && queryText.isNotEmpty) {
+                                        matchedCustomers = customerSnapshot.data!.docs.where((doc) {
+                                          final data = doc.data() as Map<String, dynamic>;
+                                          final phone = (data['phone'] ?? '').toString().trim();
+
+                                          if (phone == queryText) return true;
+                                          if (phone.length >= 4 && phone.endsWith(queryText)) return true;
+                                          if (phone.contains(queryText)) return true;
+
+                                          return false;
+                                        }).toList();
+                                      }
+
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          TextField(
+                                            controller: _customerPhoneController,
+                                            keyboardType: TextInputType.phone,
+                                            decoration: InputDecoration(
+                                              labelText: '${AppTranslations.get('customer')} ${AppTranslations.get('mobile')} (${AppTranslations.get('all')} ${AppTranslations.get('or')} ${AppTranslations.get('last')} 4 ${AppTranslations.get('digit')})',
+                                              border: const OutlineInputBorder(),
+                                              isDense: true,
+                                              prefixIcon: const Icon(Icons.phone),
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                            ),
+                                            onChanged: (val) {
+                                              setState(() {});
+                                            },
+                                          ),
+                                          if (matchedCustomers.isNotEmpty)
+                                            Container(
+                                              margin: const EdgeInsets.only(top: 4),
+                                              constraints: const BoxConstraints(maxHeight: 150),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                border: Border.all(color: Colors.blue.shade300),
+                                                borderRadius: BorderRadius.circular(6),
+                                                boxShadow: [const BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                              ),
+                                              child: ListView.builder(
+                                                shrinkWrap: true,
+                                                physics: const NeverScrollableScrollPhysics(),
+                                                itemCount: matchedCustomers.length,
+                                                itemBuilder: (context, index) {
+                                                  final cData = matchedCustomers[index].data() as Map<String, dynamic>;
+                                                  final name = cData['name'] ?? '';
+                                                  final phone = cData['phone'] ?? '';
+                                                  final address = cData['address'] ?? '';
+
+                                                  return ListTile(
+                                                    dense: true,
+                                                    title: Text('$name ($phone)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                                    subtitle: Text(address.isNotEmpty ? address : AppTranslations.get('no_record_found')),
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _customerNameController.text = name;
+                                                        _customerPhoneController.text = phone;
+                                                        _customerAddressController.text = address;
+                                                      });
+                                                      FocusManager.instance.primaryFocus?.unfocus();
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 6),
+
+                                  TextField(
+                                    controller: _customerAddressController,
+                                    decoration: InputDecoration(
+                                      labelText: '${AppTranslations.get('customer')} ${AppTranslations.get('address')} (Address)',
+                                      border: const OutlineInputBorder(),
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
 
-                      _cart.isEmpty
-                          ? Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Center(child: Text(AppTranslations.get('no_product_in_cart'))),
-                      )
-                          : Column(
-                        children: _cart.keys.map((productId) {
-                          var item = _cart[productId]!;
-                          final double originalPrice = item['originalPrice'] ?? item['price'];
-                          final double singlePrice = item['price'] ?? 0.0;
-                          final double costPrice = item['costPrice'] ?? 0.0;
-                          final double discount = item['discount'] ?? 0.0;
-                          final double discountTk = discount > 0 ? (originalPrice * discount) / 100 : 0.0;
-                          final double qty = (item['qty'] ?? 1.0).toDouble();
-                          final double stock = (item['stock'] ?? 0.0).toDouble();
-                          final String unit = item['unit'] ?? 'Pcs';
-                          final String size = item['size'] ?? '';
-                          final double itemTotalPrice = singlePrice * qty;
-
-                          final double itemTotalCost = costPrice * qty;
-                          final double itemProfit = itemTotalPrice - itemTotalCost;
-
-                          return ListTile(
-                            title: Text(
-                              size.isNotEmpty ? '${item['name']} (${AppTranslations.get('size')}: $size)' : item['name'],
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${AppTranslations.get('price')}: ${AppTranslations.get('currency_symbol')} ${itemTotalPrice.toStringAsFixed(1)} ($qty $unit)'),
-                                if (_showProfitInfo)
-                                  Text(
-                                    '${AppTranslations.get('profit')}: ${AppTranslations.get('currency_symbol')} ${itemProfit.toStringAsFixed(1)}',
-                                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                        Container(
+                          color: Colors.white.withOpacity(0.8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(AppTranslations.get('cart'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Row(
+                                children: [
+                                  SubscriptionUtils.premiumIcon(),
+                                  Text(_showProfitInfo ? AppTranslations.get('hide_profit') : AppTranslations.get('show_profit'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                                  Switch(
+                                    value: _showProfitInfo,
+                                    onChanged: (val) async {
+                                      if (await SubscriptionUtils.isPremium()) {
+                                        setState(() {
+                                          _showProfitInfo = val;
+                                        });
+                                      } else {
+                                        if (!mounted) return;
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                                      }
+                                    },
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                InkWell(
-                                  onTap: () => _editDiscountDialog(productId),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                    child: Text(
-                                      discount > 0
-                                          ? '${AppTranslations.get('discount')}: ${discount.toStringAsFixed(0)}% (${AppTranslations.get('currency_symbol')} ${discountTk.toStringAsFixed(1)} ${AppTranslations.get('cancel') == 'Cancel' ? 'Off' : 'ছাড়'}) [${AppTranslations.get('edit')}]'
-                                          : '${AppTranslations.get('add_discount')} [+]',
-                                      style: TextStyle(color: Colors.blue.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                                  const SizedBox(width: 4),
+                                  Text(AppTranslations.get('qty_price_header'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        _cart.isEmpty
+                            ? Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Center(child: Text(AppTranslations.get('no_product_in_cart'), style: const TextStyle(color: Colors.white))),
+                        )
+                            : Container(
+                          color: Colors.white.withOpacity(0.85),
+                          child: Column(
+                            children: _cart.keys.map((productId) {
+                              var item = _cart[productId]!;
+                              final double originalPrice = item['originalPrice'] ?? item['price'];
+                              final double singlePrice = item['price'] ?? 0.0;
+                              final double costPrice = item['costPrice'] ?? 0.0;
+                              final double discount = item['discount'] ?? 0.0;
+                              final double discountTk = discount > 0 ? (originalPrice * discount) / 100 : 0.0;
+                              final double qty = (item['qty'] ?? 1.0).toDouble();
+                              final double stock = (item['stock'] ?? 0.0).toDouble();
+                              final String unit = item['unit'] ?? 'Pcs';
+                              final String size = item['size'] ?? '';
+                              final double itemTotalPrice = singlePrice * qty;
+
+                              final double itemTotalCost = costPrice * qty;
+                              final double itemProfit = itemTotalPrice - itemTotalCost;
+
+                              return ListTile(
+                                title: Text(
+                                  size.isNotEmpty ? '${item['name']} (${AppTranslations.get('size')}: $size)' : item['name'],
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${AppTranslations.get('price')}: ${AppTranslations.get('currency_symbol')} ${itemTotalPrice.toStringAsFixed(1)} ($qty $unit)'),
+                                    if (_showProfitInfo)
+                                      Text(
+                                        '${AppTranslations.get('profit')}: ${AppTranslations.get('currency_symbol')} ${itemProfit.toStringAsFixed(1)}',
+                                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                                      ),
+                                    InkWell(
+                                      onTap: () => _editDiscountDialog(productId),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                        child: Text(
+                                          discount > 0
+                                              ? '${AppTranslations.get('discount')}: ${discount.toStringAsFixed(0)}% (${AppTranslations.get('currency_symbol')} ${discountTk.toStringAsFixed(1)} ${AppTranslations.get('cancel') == 'Cancel' ? 'Off' : 'ছাড়'}) [${AppTranslations.get('edit')}]'
+                                              : '${AppTranslations.get('add_discount')} [+]',
+                                          style: TextStyle(color: Colors.blue.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                                  onPressed: () => _updateQty(productId, unit == 'Kg' || unit == 'Gram' ? -0.5 : -1.0),
-                                ),
-                                GestureDetector(
-                                  onTap: () => _editQuantityDialog(productId, qty, stock),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey.shade400),
-                                      borderRadius: BorderRadius.circular(4),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                                      onPressed: () => _updateQty(productId, unit == 'Kg' || unit == 'Gram' ? -0.5 : -1.0),
                                     ),
-                                    child: Text('$qty $unit', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                  ),
+                                    GestureDetector(
+                                      onTap: () => _editQuantityDialog(productId, qty, stock),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey.shade400),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text('$qty $unit', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                                      onPressed: () => _updateQty(productId, unit == 'Kg' || unit == 'Gram' ? 0.5 : 1.0),
+                                    ),
+                                  ],
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-                                  onPressed: () => _updateQty(productId, unit == 'Kg' || unit == 'Gram' ? 0.5 : 1.0),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              // সম্পূর্ণ পেমেন্ট সেকশন টগল সিস্টেম (হেডারে ক্লিক করলে সম্পূর্ণ বক্সটি নিচে চলে যাবে বা হাইড হবে)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _isPaymentBoxExpanded = !_isPaymentBoxExpanded;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        color: Colors.grey.shade200,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              AppTranslations.get('payment_info'),
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                            ),
-                            Icon(
-                              _isPaymentBoxExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-                              color: Colors.black87,
-                            ),
-                          ],
+                // সম্পূর্ণ পেমেন্ট সেকশন টগল সিস্টেম (হেডারে ক্লিক করলে সম্পূর্ণ বক্সটি নিচে চলে যাবে বা হাইড হবে)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isPaymentBoxExpanded = !_isPaymentBoxExpanded;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          color: Colors.grey.shade200,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                AppTranslations.get('payment_info'),
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                              ),
+                              Icon(
+                                _isPaymentBoxExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                                color: Colors.black87,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
                     AnimatedCrossFade(
                       firstChild: Container(),
@@ -1704,11 +1726,11 @@ class _POSScreenState extends State<POSScreen> {
               ),
             ],
           );
-
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class SalesHistoryScreen extends StatefulWidget {

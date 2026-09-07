@@ -49,6 +49,8 @@ flutter:
   assets:
     - assets/images/ic_launcher.png
     - assets/images/login_bg.png
+    - assets/images/dashboard_bg.png
+    - assets/images/feature_bg.png
 
   fonts:
     - family: SolaimanLipi

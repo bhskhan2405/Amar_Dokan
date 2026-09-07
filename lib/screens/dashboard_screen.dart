@@ -129,7 +129,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
         title: Text('${AppTranslations.get('app_name')} ${AppTranslations.get('dashboard')}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF0D47A1),
@@ -196,96 +195,111 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                const CustomBannerAd(),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTrialBanner(),
-                      _buildLowStockAlert(),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.shade200, width: 1.5),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 32,
-                              backgroundColor: Colors.blue.shade100,
-                              backgroundImage: profileImage,
-                              child: profileImage == null
-                                  ? Text(
-                                ownerName.isNotEmpty ? ownerName[0].toUpperCase() : 'B',
-                                style: const TextStyle(fontSize: 28, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
-                              )
-                                  : null,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(shopName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
-                                  const SizedBox(height: 4),
-                                  Text('${AppTranslations.get('owner')}: $ownerName', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                  Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                ],
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/dashboard_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTrialBanner(),
+                        _buildLowStockAlert(),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 32,
+                                backgroundColor: Colors.blue.shade100,
+                                backgroundImage: profileImage,
+                                child: profileImage == null
+                                    ? Text(
+                                  ownerName.isNotEmpty ? ownerName[0].toUpperCase() : 'B',
+                                  style: const TextStyle(fontSize: 28, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
+                                )
+                                    : null,
                               ),
-                            ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(shopName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                                    const SizedBox(height: 4),
+                                    Text('${AppTranslations.get('owner')}: $ownerName', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                    Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(AppTranslations.get('menu_choose'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                            const Expanded(child: Align(alignment: Alignment.centerRight, child: CustomBannerAd())),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(AppTranslations.get('menu_choose'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        childAspectRatio: 1.1,
-                        children: [
-                          _buildDashboardCard(context, title: AppTranslations.get('products'), icon: Icons.inventory_2_outlined, iconColor: Colors.orange, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsScreen()))),
-                          _buildDashboardCard(context, title: AppTranslations.get('pos'), icon: Icons.point_of_sale, iconColor: Colors.green, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const POSScreen()))),
-                          _buildDashboardCard(context, title: AppTranslations.get('hisab'), icon: Icons.bar_chart, iconColor: Colors.purple, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HisabKitabPage()))),
-                          _buildDashboardCard(context, title: AppTranslations.get('customers'), icon: Icons.people_outline, iconColor: Colors.teal, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CustomerScreen()))),
-                          _buildDashboardCard(
-                            context, 
-                            title: AppTranslations.get('staff'), 
-                            icon: Icons.badge_outlined, 
-                            iconColor: Colors.indigo, 
-                            isPremium: true,
-                            onTap: () async {
-                              if (await SubscriptionUtils.isPremium()) {
-                                if (!context.mounted) return;
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageStaffsScreen()));
-                              } else {
-                                if (!context.mounted) return;
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                        const SizedBox(height: 12),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          childAspectRatio: 1.1,
+                          children: [
+                            _buildDashboardCard(context, title: AppTranslations.get('products'), icon: Icons.inventory_2_outlined, iconColor: Colors.orange, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsScreen()))),
+                            _buildDashboardCard(context, title: AppTranslations.get('pos'), icon: Icons.point_of_sale, iconColor: Colors.green, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const POSScreen()))),
+                            _buildDashboardCard(context, title: AppTranslations.get('hisab'), icon: Icons.bar_chart, iconColor: Colors.purple, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HisabKitabPage()))),
+                            _buildDashboardCard(context, title: AppTranslations.get('customers'), icon: Icons.people_outline, iconColor: Colors.teal, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CustomerScreen()))),
+                            _buildDashboardCard(
+                              context, 
+                              title: AppTranslations.get('staff'), 
+                              icon: Icons.badge_outlined, 
+                              iconColor: Colors.indigo, 
+                              isPremium: true,
+                              onTap: () async {
+                                if (await SubscriptionUtils.isPremium()) {
+                                  if (!context.mounted) return;
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageStaffsScreen()));
+                                } else {
+                                  if (!context.mounted) return;
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                                }
                               }
-                            }
-                          ),
-                          _buildDashboardCard(context, title: AppTranslations.get('settings'), icon: Icons.settings_outlined, iconColor: Colors.blueGrey, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()))),
-                        ],
-                      ),
-                    ],
+                            ),
+                            _buildDashboardCard(context, title: AppTranslations.get('settings'), icon: Icons.settings_outlined, iconColor: Colors.blueGrey, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()))),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          if (!_isApproved) _buildPendingOverlay(),
-        ],
+            if (!_isApproved) _buildPendingOverlay(),
+          ],
+        ),
       ),
     );
   }
@@ -405,6 +419,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildDashboardCard(BuildContext context, {required String title, required IconData icon, required Color iconColor, required VoidCallback onTap, bool isPremium = false}) {
     return Card(
       elevation: 2,
+      color: Colors.white.withOpacity(0.9), // কিছুটা স্বচ্ছ সাদা যাতে ব্যাকগ্রাউন্ডের সাথে মিলে যায়
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
@@ -415,15 +430,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Stack(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8), // প্যাডিং কমিয়ে বর্ডার ছোট করা হলো
                   decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: Icon(icon, size: 40, color: iconColor),
+                  child: Icon(icon, size: 52, color: iconColor), // আইকন বড় করা হলো (৪০ থেকে ৫২)
                 ),
-                if (isPremium) Positioned(top: 0, right: 0, child: SubscriptionUtils.premiumIcon()),
+                if (isPremium) Positioned(top: -2, right: -2, child: SubscriptionUtils.premiumIcon(size: 24)),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

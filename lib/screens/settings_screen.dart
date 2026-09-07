@@ -391,91 +391,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-            children: [
-              const CustomBannerAd(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.blue.shade100,
-                                backgroundImage: profileImage,
-                                child: profileImage == null
-                                    ? const Icon(Icons.store, size: 50, color: Color(0xFF0D47A1))
-                                    : null,
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: InkWell(
-                                  onTap: _pickImage,
-                                  child: const CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: Color(0xFF0D47A1),
-                                    child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
-                                  ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/feature_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+          children: [
+            const CustomBannerAd(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.blue.shade100,
+                              backgroundImage: profileImage,
+                              child: profileImage == null
+                                  ? const Icon(Icons.store, size: 50, color: Color(0xFF0D47A1))
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: InkWell(
+                                onTap: _pickImage,
+                                child: const CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Color(0xFF0D47A1),
+                                  child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 20),
+                      ),
+                      const SizedBox(height: 20),
 
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppTranslations.get('shop_id_label'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 13),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      adminUid,
-                                      style: const TextStyle(fontSize: 12, color: Colors.black87),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.copy, color: Color(0xFF0D47A1), size: 20),
-                                    tooltip: AppTranslations.get('copy_id_tooltip'),
-                                    onPressed: () {
-                                      Clipboard.setData(ClipboardData(text: adminUid));
-                                      _showSnackBar(AppTranslations.get('copy_id_msg'));
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9), // স্বচ্ছ করা হলো
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
                         ),
-                        const SizedBox(height: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppTranslations.get('shop_id_label'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 13),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    adminUid,
+                                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.copy, color: Color(0xFF0D47A1), size: 20),
+                                  tooltip: AppTranslations.get('copy_id_tooltip'),
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(text: adminUid));
+                                    _showSnackBar(AppTranslations.get('copy_id_msg'));
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
-                        Text('👤 ${AppTranslations.get('account_shop_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                      Text('👤 ${AppTranslations.get('account_shop_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                      const SizedBox(height: 10),
+                      
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
                           leading: const Icon(Icons.account_circle_outlined, color: Color(0xFF0D47A1)),
                           title: Text(AppTranslations.get('account_settings')),
                           subtitle: Text(_nameController.text.isEmpty ? AppTranslations.get('manage_account_hint') : _nameController.text),
@@ -487,61 +497,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ).then((_) => _loadUserData());
                           },
                         ),
-                        const SizedBox(height: 20),
+                      ),
+                      const SizedBox(height: 20),
 
-                        Text('📋 ${AppTranslations.get('shop_info_label') ?? 'Shop Info'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
+                      Text('📋 ${AppTranslations.get('shop_info_label') ?? 'Shop Info'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                      const SizedBox(height: 10),
 
-                        TextFormField(
-                          controller: _addressController,
-                          readOnly: !_isAddressEditable,
-                          decoration: InputDecoration(
-                            labelText: AppTranslations.get('address'),
-                            prefixIcon: const Icon(Icons.location_on_outlined),
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isAddressEditable ? Icons.lock_open : Icons.edit,
-                                color: _isAddressEditable ? Colors.green : Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _isAddressEditable = !_isAddressEditable;
-                                });
-                              },
+                      TextFormField(
+                        controller: _addressController,
+                        readOnly: !_isAddressEditable,
+                        decoration: InputDecoration(
+                          labelText: AppTranslations.get('address'),
+                          prefixIcon: const Icon(Icons.location_on_outlined),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.9),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isAddressEditable ? Icons.lock_open : Icons.edit,
+                              color: _isAddressEditable ? Colors.green : Colors.grey,
                             ),
+                            onPressed: () {
+                              setState(() {
+                                _isAddressEditable = !_isAddressEditable;
+                              });
+                            },
                           ),
                         ),
-                        const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 12),
 
-                        TextFormField(
-                          controller: _footerNoteController,
-                          readOnly: !_isNoteEditable,
-                          decoration: InputDecoration(
-                            labelText: AppTranslations.get('footer_note'),
-                            prefixIcon: const Icon(Icons.note_alt_outlined),
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isNoteEditable ? Icons.lock_open : Icons.edit,
-                                color: _isNoteEditable ? Colors.green : Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _isNoteEditable = !_isNoteEditable;
-                                });
-                              },
+                      TextFormField(
+                        controller: _footerNoteController,
+                        readOnly: !_isNoteEditable,
+                        decoration: InputDecoration(
+                          labelText: AppTranslations.get('footer_note'),
+                          prefixIcon: const Icon(Icons.note_alt_outlined),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.9),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isNoteEditable ? Icons.lock_open : Icons.edit,
+                              color: _isNoteEditable ? Colors.green : Colors.grey,
                             ),
+                            onPressed: () {
+                              setState(() {
+                                _isNoteEditable = !_isNoteEditable;
+                              });
+                            },
                           ),
                         ),
-                        const SizedBox(height: 20),
+                      ),
+                      const SizedBox(height: 20),
 
-                        const Divider(),
-                        Text('💎 ${AppTranslations.get('subscriptions')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                      const Divider(),
+                      Text('💎 ${AppTranslations.get('subscriptions')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                      const SizedBox(height: 10),
+                      
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
                           leading: const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
                           title: Text(AppTranslations.get('buy_premium')),
                           subtitle: FutureBuilder<bool>(
@@ -561,14 +577,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             );
                           },
                         ),
+                      ),
 
-                        const Divider(),
-                        Text('🔐 ${AppTranslations.get('security_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
+                      const Divider(),
+                      Text('🔐 ${AppTranslations.get('security_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                      const SizedBox(height: 10),
 
-                        if (_phoneController.text == "01828424364") ...[
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
+                      if (_phoneController.text == "01828424364") ...[
+                        Card(
+                          color: Colors.white.withOpacity(0.9),
+                          child: ListTile(
                             leading: const Icon(Icons.admin_panel_settings, color: Colors.orange),
                             title: Text(AppTranslations.get('user_approval')),
                             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -619,18 +637,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             },
                           ),
-                        ],
+                        ),
+                      ],
 
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
                           leading: const Icon(Icons.lock_reset, color: Color(0xFF0D47A1)),
                           title: Text(AppTranslations.get('change_pin')),
                           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: _showChangePinDialog,
                         ),
+                      ),
 
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: SwitchListTile(
                           secondary: const Icon(Icons.fingerprint, color: Color(0xFF0D47A1)),
                           title: Text(AppTranslations.get('fingerprint')),
                           value: _isFingerprintEnabled,
@@ -640,14 +662,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             setState(() => _isFingerprintEnabled = val);
                           },
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                        const Divider(),
-                        Text('🌐 ${AppTranslations.get('language')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                      const Divider(),
+                      Text('🌐 ${AppTranslations.get('language')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                      const SizedBox(height: 10),
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
                           leading: const Icon(Icons.language, color: Color(0xFF0D47A1)),
                           title: Text(AppTranslations.get('select_language')),
                           trailing: DropdownButton<String>(
@@ -666,68 +690,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D47A1),
-                            minimumSize: const Size(double.infinity, 50),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D47A1),
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        onPressed: _showPinVerificationDialog,
+                        icon: const Icon(Icons.save, color: Colors.white),
+                        label: Text(AppTranslations.get('save_settings'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          backgroundColor: Colors.white.withOpacity(0.8),
+                          minimumSize: const Size(double.infinity, 50),
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                        onPressed: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          String? currentLang = prefs.getString('language_code');
+                          await prefs.clear();
+                          if (currentLang != null) {
+                            await prefs.setString('language_code', currentLang);
+                          }
+                          await FirebaseAuth.instance.signOut();
+                          if (context.mounted) {
+                            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                          }
+                        },
+                        icon: const Icon(Icons.logout),
+                        label: Text(AppTranslations.get('logout'), style: const TextStyle(fontSize: 16)),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _showAccountDeleteDialog,
+                          icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 18),
+                          label: Text(
+                            AppTranslations.get('delete_account'),
+                            style: const TextStyle(color: Colors.red, fontSize: 13, decoration: TextDecoration.underline),
                           ),
-                          onPressed: _showPinVerificationDialog,
-                          icon: const Icon(Icons.save, color: Colors.white),
-                          label: Text(AppTranslations.get('save_settings'), style: const TextStyle(color: Colors.white, fontSize: 16)),
                         ),
+                      ),
 
-                        const SizedBox(height: 12),
-
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            minimumSize: const Size(double.infinity, 50),
-                            side: const BorderSide(color: Colors.red),
-                          ),
-                          onPressed: () async {
-                            final prefs = await SharedPreferences.getInstance();
-                            String? currentLang = prefs.getString('language_code');
-                            await prefs.clear();
-                            if (currentLang != null) {
-                              await prefs.setString('language_code', currentLang);
-                            }
-                            await FirebaseAuth.instance.signOut();
-                            if (context.mounted) {
-                              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-                            }
-                          },
-                          icon: const Icon(Icons.logout),
-                          label: Text(AppTranslations.get('logout'), style: const TextStyle(fontSize: 16)),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: _showAccountDeleteDialog,
-                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 18),
-                            label: Text(
-                              AppTranslations.get('delete_account'),
-                              style: const TextStyle(color: Colors.red, fontSize: 13, decoration: TextDecoration.underline),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-                        const Center(
-                          child: Text('App Version: 1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        ),
-                      ],
-                    ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Text('App Version: 1.0.0', style: TextStyle(color: Colors.blueGrey.shade900, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

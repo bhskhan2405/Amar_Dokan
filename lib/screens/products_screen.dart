@@ -836,248 +836,259 @@ class _ProductsScreenState extends State<ProductsScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _shopId.isEmpty 
-        ? const Center(child: CircularProgressIndicator())
-        : StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(_shopId)
-            .collection('products')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final allProducts = snapshot.data!.docs;
-
-          final Map<String, int> categoryCounts = {};
-          for (var cat in _categoryList) {
-            categoryCounts[cat] = 0;
-          }
-
-          for (var doc in allProducts) {
-            final data = doc.data() as Map<String, dynamic>;
-            final cat = data['category'];
-            if (cat != null && cat.toString().trim().isNotEmpty) {
-              final catStr = cat.toString().trim();
-              categoryCounts[catStr] = (categoryCounts[catStr] ?? 0) + 1;
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/feature_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: _shopId.isEmpty 
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(_shopId)
+              .collection('products')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)));
             }
-          }
-
-          final Set<String> dynamicCategories = {};
-          final sortedCategoriesByUsage = categoryCounts.keys.toList()
-            ..sort((a, b) => (categoryCounts[b] ?? 0).compareTo(categoryCounts[a] ?? 0));
-
-          for (var cat in sortedCategoriesByUsage) {
-            dynamicCategories.add(cat);
-          }
-          for (var doc in allProducts) {
-            final data = doc.data() as Map<String, dynamic>;
-            final cat = data['category'];
-            if (cat != null && cat.toString().trim().isNotEmpty) {
-              dynamicCategories.add(cat.toString().trim());
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
             }
-          }
-          _allAvailableCategories = dynamicCategories.toList();
 
-          double totalCostPrice = 0.0;
-          double totalSaleValue = 0.0;
+            final allProducts = snapshot.data!.docs;
 
-          for (var doc in allProducts) {
-            final data = doc.data() as Map<String, dynamic>;
-            final stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
-            final costPrice = double.tryParse((data['costPrice'] ?? 0).toString()) ?? 0.0;
-            final price = double.tryParse((data['price'] ?? 0).toString()) ?? 0.0;
-            final discount = double.tryParse((data['discount'] ?? 0).toString()) ?? 0.0;
-            final discountType = data['discountType'] ?? '%';
+            final Map<String, int> categoryCounts = {};
+            for (var cat in _categoryList) {
+              categoryCounts[cat] = 0;
+            }
 
-            double effectivePrice = price;
-            if (discount > 0) {
-              if (discountType == '%') {
-                effectivePrice = price - ((price * discount) / 100);
-              } else {
-                effectivePrice = price - discount;
+            for (var doc in allProducts) {
+              final data = doc.data() as Map<String, dynamic>;
+              final cat = data['category'];
+              if (cat != null && cat.toString().trim().isNotEmpty) {
+                final catStr = cat.toString().trim();
+                categoryCounts[catStr] = (categoryCounts[catStr] ?? 0) + 1;
               }
-              if (effectivePrice < 0) effectivePrice = 0;
             }
 
-            totalCostPrice += (costPrice * stock);
-            totalSaleValue += (effectivePrice * stock);
-          }
+            final Set<String> dynamicCategories = {};
+            final sortedCategoriesByUsage = categoryCounts.keys.toList()
+              ..sort((a, b) => (categoryCounts[b] ?? 0).compareTo(categoryCounts[a] ?? 0));
 
-          double totalProfit = totalSaleValue - totalCostPrice;
-
-          final products = allProducts.where((doc) {
-            if (_selectedCategoryFilter == AppTranslations.get('all')) return true;
-            final data = doc.data() as Map<String, dynamic>;
-            if (_selectedCategoryFilter == 'Low Stock') {
-              double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
-              double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
-              return stock <= limit;
+            for (var cat in sortedCategoriesByUsage) {
+              dynamicCategories.add(cat);
             }
-            return data['category'] == _selectedCategoryFilter;
-          }).toList();
+            for (var doc in allProducts) {
+              final data = doc.data() as Map<String, dynamic>;
+              final cat = data['category'];
+              if (cat != null && cat.toString().trim().isNotEmpty) {
+                dynamicCategories.add(cat.toString().trim());
+              }
+            }
+            _allAvailableCategories = dynamicCategories.toList();
 
-          return Column(
-            children: [
-              const CustomBannerAd(),
-              Container(
-                height: 50,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                color: Colors.grey.shade100,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ChoiceChip(
-                        label: Text(AppTranslations.get('all')),
-                        selected: _selectedCategoryFilter == AppTranslations.get('all'),
-                        onSelected: (selected) {
-                          setState(() => _selectedCategoryFilter = AppTranslations.get('all'));
-                        },
-                      ),
-                    ),
-                    ..._allAvailableCategories.map((cat) {
-                      return Padding(
+            double totalCostPrice = 0.0;
+            double totalSaleValue = 0.0;
+
+            for (var doc in allProducts) {
+              final data = doc.data() as Map<String, dynamic>;
+              final stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
+              final costPrice = double.tryParse((data['costPrice'] ?? 0).toString()) ?? 0.0;
+              final price = double.tryParse((data['price'] ?? 0).toString()) ?? 0.0;
+              final discount = double.tryParse((data['discount'] ?? 0).toString()) ?? 0.0;
+              final discountType = data['discountType'] ?? '%';
+
+              double effectivePrice = price;
+              if (discount > 0) {
+                if (discountType == '%') {
+                  effectivePrice = price - ((price * discount) / 100);
+                } else {
+                  effectivePrice = price - discount;
+                }
+                if (effectivePrice < 0) effectivePrice = 0;
+              }
+
+              totalCostPrice += (costPrice * stock);
+              totalSaleValue += (effectivePrice * stock);
+            }
+
+            double totalProfit = totalSaleValue - totalCostPrice;
+
+            final products = allProducts.where((doc) {
+              if (_selectedCategoryFilter == AppTranslations.get('all')) return true;
+              final data = doc.data() as Map<String, dynamic>;
+              if (_selectedCategoryFilter == 'Low Stock') {
+                double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
+                double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
+                return stock <= limit;
+              }
+              return data['category'] == _selectedCategoryFilter;
+            }).toList();
+
+            return Column(
+              children: [
+                const CustomBannerAd(),
+                Container(
+                  height: 50,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  color: Colors.transparent, // স্বচ্ছ করা হলো যাতে ব্যাকগ্রাউন্ড দেখা যায়
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    children: [
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: GestureDetector(
-                          onLongPress: () {
-                            _verifyPinAndCategoryDelete(cat);
+                        child: ChoiceChip(
+                          label: Text(AppTranslations.get('all')),
+                          selected: _selectedCategoryFilter == AppTranslations.get('all'),
+                          onSelected: (selected) {
+                            setState(() => _selectedCategoryFilter = AppTranslations.get('all'));
                           },
-                          child: ChoiceChip(
-                            label: Text(cat),
-                            selected: _selectedCategoryFilter == cat,
-                            onSelected: (selected) {
-                              setState(() => _selectedCategoryFilter = cat);
+                        ),
+                      ),
+                      ..._allAvailableCategories.map((cat) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GestureDetector(
+                            onLongPress: () {
+                              _verifyPinAndCategoryDelete(cat);
                             },
+                            child: ChoiceChip(
+                              label: Text(cat),
+                              selected: _selectedCategoryFilter == cat,
+                              onSelected: (selected) {
+                                setState(() => _selectedCategoryFilter = cat);
+                              },
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D47A1).withOpacity(0.85), // কিছুটা স্বচ্ছ করা হলো
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildSummaryItem(AppTranslations.get('total_purchase'), '৳${totalCostPrice.toStringAsFixed(0)}', Colors.white),
+                      Container(height: 30, width: 1, color: Colors.white54),
+                      _buildSummaryItem(AppTranslations.get('will_be_sold'), '৳${totalSaleValue.toStringAsFixed(0)}', Colors.white),
+                      Container(height: 30, width: 1, color: Colors.white54),
+                      _buildSummaryItem(AppTranslations.get('will_be_profit'), '৳${totalProfit.toStringAsFixed(0)}', Colors.greenAccent),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: products.isEmpty
+                      ? Center(child: Text(AppTranslations.get('no_product_found_cat')))
+                      : ListView.builder(
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final doc = products[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final discountVal = double.tryParse((data['discount'] ?? 0).toString()) ?? 0.0;
+                      final discountType = data['discountType'] ?? '%';
+                      final price = double.tryParse((data['price'] ?? 0).toString()) ?? 0.0;
+                      final unit = data['unit'] ?? 'Pcs';
+                      final category = data['category'] ?? AppTranslations.get('others');
+                      final size = data['size'] ?? '';
+                      final imageBase64 = data['imageBase64'] ?? '';
+
+                      String discountDisplay = '';
+                      if (discountVal > 0) {
+                        if (discountType == '%') {
+                          final amt = (price * discountVal) / 100;
+                          discountDisplay = '| ${AppTranslations.get('discount')}: $discountVal% (${amt.toStringAsFixed(0)}tk)';
+                        } else {
+                          final pct = price > 0 ? (discountVal / price) * 100 : 0.0;
+                          discountDisplay = '| ${AppTranslations.get('discount')}: ${pct.toStringAsFixed(1)}% (${discountVal.toStringAsFixed(0)}tk)';
+                        }
+                      }
+
+                      String sizeDisplay = size.isNotEmpty ? ' | ${AppTranslations.get('size') ?? 'Size'}: $size' : '';
+
+                      final double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
+                      final double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
+                      bool isLowStock = stock <= limit;
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        color: Colors.white.withOpacity(0.85), // কার্ড স্বচ্ছ করা হলো
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: isLowStock ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
+                        ),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: imageBase64.isNotEmpty
+                                ? Image.memory(
+                              base64Decode(imageBase64),
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                                );
+                              },
+                            )
+                                : Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey.shade300,
+                              child: const Icon(Icons.image, color: Colors.grey),
+                            ),
+                          ),
+                          title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                            '${AppTranslations.get('category')}: $category$sizeDisplay\n${AppTranslations.get('price')}: ৳$price / $unit $discountDisplay\n${AppTranslations.get('stock')}: ${data['stock']} $unit | ${AppTranslations.get('barcode')}: ${data['barcode'] ?? AppTranslations.get('none')}',
+                          ),
+                          isThreeLine: true,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _showProductDialog(doc: doc),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _verifyPinAndDelete(doc.id),
+                              ),
+                            ],
                           ),
                         ),
                       );
-                    }),
-                  ],
+                    },
+                  ),
                 ),
-              ),
-              Container(
-                margin: const EdgeInsets.all(10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D47A1),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildSummaryItem(AppTranslations.get('total_purchase'), '৳${totalCostPrice.toStringAsFixed(0)}', Colors.white),
-                    Container(height: 30, width: 1, color: Colors.white54),
-                    _buildSummaryItem(AppTranslations.get('will_be_sold'), '৳${totalSaleValue.toStringAsFixed(0)}', Colors.white),
-                    Container(height: 30, width: 1, color: Colors.white54),
-                    _buildSummaryItem(AppTranslations.get('will_be_profit'), '৳${totalProfit.toStringAsFixed(0)}', Colors.greenAccent),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: products.isEmpty
-                    ? Center(child: Text(AppTranslations.get('no_product_found_cat')))
-                    : ListView.builder(
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final doc = products[index];
-                    final data = doc.data() as Map<String, dynamic>;
-                    final discountVal = double.tryParse((data['discount'] ?? 0).toString()) ?? 0.0;
-                    final discountType = data['discountType'] ?? '%';
-                    final price = double.tryParse((data['price'] ?? 0).toString()) ?? 0.0;
-                    final unit = data['unit'] ?? 'Pcs';
-                    final category = data['category'] ?? AppTranslations.get('others');
-                    final size = data['size'] ?? '';
-                    final imageBase64 = data['imageBase64'] ?? '';
-
-                    String discountDisplay = '';
-                    if (discountVal > 0) {
-                      if (discountType == '%') {
-                        final amt = (price * discountVal) / 100;
-                        discountDisplay = '| ${AppTranslations.get('discount')}: $discountVal% (${amt.toStringAsFixed(0)}tk)';
-                      } else {
-                        final pct = price > 0 ? (discountVal / price) * 100 : 0.0;
-                        discountDisplay = '| ${AppTranslations.get('discount')}: ${pct.toStringAsFixed(1)}% (${discountVal.toStringAsFixed(0)}tk)';
-                      }
-                    }
-
-                    String sizeDisplay = size.isNotEmpty ? ' | ${AppTranslations.get('size') ?? 'Size'}: $size' : '';
-
-                    final double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
-                    final double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
-                    bool isLowStock = stock <= limit;
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: isLowStock ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
-                      ),
-                      child: ListTile(
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: imageBase64.isNotEmpty
-                              ? Image.memory(
-                            base64Decode(imageBase64),
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 80,
-                                height: 80,
-                                color: Colors.grey.shade300,
-                                child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                              );
-                            },
-                          )
-                              : Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey.shade300,
-                            child: const Icon(Icons.image, color: Colors.grey),
-                          ),
-                        ),
-                        title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          '${AppTranslations.get('category')}: $category$sizeDisplay\n${AppTranslations.get('price')}: ৳$price / $unit $discountDisplay\n${AppTranslations.get('stock')}: ${data['stock']} $unit | ${AppTranslations.get('barcode')}: ${data['barcode'] ?? AppTranslations.get('none')}',
-                        ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showProductDialog(doc: doc),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _verifyPinAndDelete(doc.id),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0D47A1),

@@ -373,88 +373,99 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
         icon: const Icon(Icons.person_add),
         label: Text(AppTranslations.get('add_new_staff')),
       ),
-      body: Column(
-        children: [
-          const CustomBannerAd(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .collection('staffs')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/feature_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Column(
+          children: [
+            const CustomBannerAd(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .collection('staffs')
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      AppTranslations.get('no_staff_added'),
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                var staffDocs = snapshot.data!.docs;
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: staffDocs.length,
-                  itemBuilder: (context, index) {
-                    var staffData = staffDocs[index].data() as Map<String, dynamic>;
-                    String staffId = staffDocs[index].id;
-                    String name = staffData['name'] ?? '';
-                    String phone = staffData['phone'] ?? '';
-                    String username = staffData['username'] ?? '';
-                    String? profileImage = staffData['profileImage'];
-
-                    var permissions = staffData['permissions'] ?? {};
-                    List<String> allowedFeatures = [];
-                    if (permissions['product_list'] == true) allowedFeatures.add(AppTranslations.get('product_list_perm'));
-                    if (permissions['pos_sale'] == true) allowedFeatures.add(AppTranslations.get('pos_sale_label'));
-                    if (permissions['accounts'] == true) allowedFeatures.add(AppTranslations.get('hisab'));
-                    if (permissions['customer'] == true || permissions['can_customer'] == true) allowedFeatures.add(AppTranslations.get('customer'));
-
-                    return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blue.shade100,
-                          backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
-                          child: profileImage == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
-                        ),
-                        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${AppTranslations.get('username_label')} $username\n${AppTranslations.get('mobile_short')}: $phone\n${AppTranslations.get('access_label')} ${allowedFeatures.join(', ')}'),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // এডিট বাটন
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: AppTranslations.get('edit'),
-                              onPressed: () => _showStaffDialog(context, user.uid, staffData: staffData, staffId: staffId),
-                            ),
-                            // ডিলিট বাটন
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: AppTranslations.get('delete'),
-                              onPressed: () => _deleteStaff(context, user.uid, staffId),
-                            ),
-                          ],
-                        ),
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        AppTranslations.get('no_staff_added'),
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     );
-                  },
-                );
-              },
+                  }
+
+                  var staffDocs = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: staffDocs.length,
+                    itemBuilder: (context, index) {
+                      var staffData = staffDocs[index].data() as Map<String, dynamic>;
+                      String staffId = staffDocs[index].id;
+                      String name = staffData['name'] ?? '';
+                      String phone = staffData['phone'] ?? '';
+                      String username = staffData['username'] ?? '';
+                      String? profileImage = staffData['profileImage'];
+
+                      var permissions = staffData['permissions'] ?? {};
+                      List<String> allowedFeatures = [];
+                      if (permissions['product_list'] == true) allowedFeatures.add(AppTranslations.get('product_list_perm'));
+                      if (permissions['pos_sale'] == true) allowedFeatures.add(AppTranslations.get('pos_sale_label'));
+                      if (permissions['accounts'] == true) allowedFeatures.add(AppTranslations.get('hisab'));
+                      if (permissions['customer'] == true || permissions['can_customer'] == true) allowedFeatures.add(AppTranslations.get('customer'));
+
+                      return Card(
+                        elevation: 3,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blue.shade100,
+                            backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
+                            child: profileImage == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
+                          ),
+                          title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${AppTranslations.get('username_label')} $username\n${AppTranslations.get('mobile_short') ?? 'Mobile'}: $phone\n${AppTranslations.get('access_label')} ${allowedFeatures.join(', ')}'),
+                          isThreeLine: true,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // এডিট বাটন
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                tooltip: AppTranslations.get('edit'),
+                                onPressed: () => _showStaffDialog(context, user.uid, staffData: staffData, staffId: staffId),
+                              ),
+                              // ডিলিট বাটন
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                tooltip: AppTranslations.get('delete'),
+                                onPressed: () => _deleteStaff(context, user.uid, staffId),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

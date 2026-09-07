@@ -692,12 +692,21 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
         icon: Icon(_tabController.index == 2 ? Icons.person_add : Icons.money_off),
         label: Text(_tabController.index == 2 ? AppTranslations.get('add_employee') : AppTranslations.get('add_expense')),
       ),
-      body: _shopId.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(_shopId)
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/feature_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: _shopId.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(_shopId)
             .collection('sales')
             .orderBy('createdAt', descending: true)
             .snapshots(),
@@ -756,8 +765,9 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDatePickerHeader() {
     String dateLabel = startDate != null && endDate != null
