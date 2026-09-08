@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/translations.dart';
 import '../widgets/custom_banner_ad.dart';
+import '../utils/receipt_utils.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
 import 'subscription_screen.dart';
@@ -709,19 +706,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
         _selectedCustomerPhones.clear();
       });
     }
-  }
-
-  pw.Widget _pdfSummaryRow(String title, String value, pw.Font font, {bool isBold = false}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 2),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(title, style: pw.TextStyle(font: font, fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          pw.Text(value, style: pw.TextStyle(font: font, fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-        ],
-      ),
-    );
   }
 
   void _makePhoneCall(String phoneNumber) async {

@@ -11,6 +11,7 @@ import 'package:printing/printing.dart';
 import '../utils/translations.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
+import '../utils/receipt_utils.dart';
 import '../utils/ad_manager.dart'; // অ্যাড ম্যানেজার ইমপোর্ট
 import '../widgets/custom_banner_ad.dart'; // ব্যানার অ্যাড উইজেট ইমপোর্ট
 import 'subscription_screen.dart';
@@ -775,7 +776,7 @@ class _POSScreenState extends State<POSScreen> {
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                     isDense: true,
                                     filled: true,
-                                    fillColor: Colors.white.withOpacity(0.9),
+                                    fillColor: Colors.white.withValues(alpha: 0.9),
                                   ),
                                 ),
                               ),
@@ -872,7 +873,7 @@ class _POSScreenState extends State<POSScreen> {
                                   margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: Colors.blue.shade200),
                                   ),
@@ -977,8 +978,8 @@ class _POSScreenState extends State<POSScreen> {
                         const Divider(height: 1),
 
                         ExpansionTile(
-                          backgroundColor: Colors.white.withOpacity(0.85),
-                          collapsedBackgroundColor: Colors.white.withOpacity(0.85),
+                          backgroundColor: Colors.white.withValues(alpha: 0.85),
+                          collapsedBackgroundColor: Colors.white.withValues(alpha: 0.85),
                           title: Text(AppTranslations.get('customer_info'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                           children: [
                             Padding(
@@ -1098,7 +1099,7 @@ class _POSScreenState extends State<POSScreen> {
                         ),
 
                         Container(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1136,7 +1137,7 @@ class _POSScreenState extends State<POSScreen> {
                           child: Center(child: Text(AppTranslations.get('no_product_in_cart'), style: const TextStyle(color: Colors.white))),
                         )
                             : Container(
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                           child: Column(
                             children: _cart.keys.map((productId) {
                               var item = _cart[productId]!;
@@ -1218,7 +1219,7 @@ class _POSScreenState extends State<POSScreen> {
                 // সম্পূর্ণ পেমেন্ট সেকশন টগল সিস্টেম (হেডারে ক্লিক করলে সম্পূর্ণ বক্সটি নিচে চলে যাবে বা হাইড হবে)
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.95),
+                    color: Colors.white.withValues(alpha: 0.95),
                     boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
                   ),
                   child: Column(
