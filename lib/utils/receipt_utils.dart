@@ -8,7 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'translations.dart';
 
 class ReceiptUtils {
-  // --- Helper Methods ---
+  // --- ফন্ট ও শপ ইনফো ---
 
   static Future<pw.Font> loadBengaliFont() async {
     try {
@@ -46,7 +46,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- Main PDF Generators ---
+  // --- POS বিল রিসিট (Image 1 এর মতো নিখুঁত ডিজাইন) ---
 
   static Future<void> generatePosReceipt({required Map<String, dynamic> saleData}) async {
     final pdf = pw.Document();
@@ -54,6 +54,7 @@ class ReceiptUtils {
     final fontBold = await loadBengaliFontBold();
     final shopInfo = await getShopInfo();
 
+    // অনুবাদিত টেক্সট
     final labelTelp = AppTranslations.currentLanguage == 'bn' ? 'মোবাইল' : 'Telp.';
     final labelCashReceipt = AppTranslations.get('cash_receipt');
     final labelPaymentType = AppTranslations.get('payment_type');
@@ -65,7 +66,9 @@ class ReceiptUtils {
     final labelTotalAmount = AppTranslations.get('total_revenue');
     final labelPaid = AppTranslations.get('paid_amount');
     final labelDue = AppTranslations.get('due');
+    final labelQty = AppTranslations.get('qty') ?? 'Qty';
     final labelThankYou = AppTranslations.get('thank_you_msg');
+    final currency = AppTranslations.get('currency_symbol');
 
     String formattedDateTime = '';
     if (saleData['createdAt'] != null && saleData['createdAt'] is Timestamp) {
@@ -75,7 +78,7 @@ class ReceiptUtils {
     }
 
     final items = saleData['items'] as Map<String, dynamic>? ?? {};
-    const divider = '****************************************';
+    const stars = '****************************************';
 
     pdf.addPage(
       pw.Page(
@@ -85,18 +88,29 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              // দোকান নাম ও ফোন
               pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               pw.Text('$labelTelp: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
-              pw.SizedBox(height: 4),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-              pw.Text(labelCashReceipt.toUpperCase(), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              
+              pw.SizedBox(height: 5),
+              pw.Text(stars, style: const pw.TextStyle(fontSize: 8)),
+              
+              // টাইটেল (Upper Case শুধুমাত্র ইংরেজির জন্য)
+              pw.Text(
+                AppTranslations.currentLanguage == 'en' ? labelCashReceipt.toUpperCase() : labelCashReceipt, 
+                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)
+              ),
               pw.Text(formattedDateTime, style: const pw.TextStyle(fontSize: 7)),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              
+              pw.Text(stars, style: const pw.TextStyle(fontSize: 8)),
 
+              // পেমেন্ট ও বিক্রেতা তথ্য
               _buildKeyValueRow('$labelPaymentType:', saleData['paymentType'] ?? 'Cash'),
               _buildKeyValueRow('$labelSellBy:', saleData['staffName'] ?? 'Admin'),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              
+              pw.Text(stars, style: const pw.TextStyle(fontSize: 8)),
 
+              // টেবিল হেডার
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -105,15 +119,17 @@ class ReceiptUtils {
                   pw.Expanded(flex: 2, child: pw.Text(labelPrice, textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                 ],
               ),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              
+              pw.Text(stars, style: const pw.TextStyle(fontSize: 8)),
 
+              // আইটেম লিস্ট
               ...items.entries.map((entry) {
                 final item = entry.value;
                 final double qty = (item['qty'] ?? 1.0).toDouble();
                 final unit = item['unit'] ?? 'Pcs';
-                final discount = item['discount'] ?? 0.0;
-                final price = item['price'] ?? 0.0;
-                final originalPrice = item['originalPrice'] ?? price;
+                final discount = (item['discount'] ?? 0.0).toDouble();
+                final price = (item['price'] ?? 0.0).toDouble();
+                final originalPrice = (item['originalPrice'] ?? price).toDouble();
                 final itemDiscountTk = (originalPrice * discount) / 100;
 
                 return pw.Padding(
@@ -129,24 +145,30 @@ class ReceiptUtils {
                           pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                         ],
                       ),
-                      pw.Text('Qty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                      pw.Text('$labelQty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
                     ],
                   ),
                 );
               }),
 
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.Text(stars, style: const pw.TextStyle(fontSize: 8)),
+
+              // হিসাব নিকাশ
               _buildSummaryRow(labelTotal, (saleData['subTotal'] ?? 0.0).toStringAsFixed(2)),
               _buildSummaryRow(labelTotalAmount, (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), isBold: true, fontSize: 10),
               _buildSummaryRow(labelPaid, (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2)),
               _buildSummaryRow(labelDue, (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
+              pw.Text(stars, style: const pw.TextStyle(fontSize: 8)),
+              
               pw.SizedBox(height: 5),
-              pw.Text(labelThankYou.toUpperCase(), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                AppTranslations.currentLanguage == 'en' ? labelThankYou.toUpperCase() : labelThankYou, 
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)
+              ),
               pw.SizedBox(height: 10),
               
-              // Barcode logic matching Image 1
+              // বারকোড (Image 1 এর মতো)
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: List.generate(24, (index) => pw.Container(
@@ -156,6 +178,7 @@ class ReceiptUtils {
                   margin: const pw.EdgeInsets.symmetric(horizontal: 0.5),
                 )),
               ),
+              
               pw.SizedBox(height: 5),
               pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
@@ -166,6 +189,8 @@ class ReceiptUtils {
 
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
+
+  // --- হেল্পার উইজেটস (রিসিটের জন্য) ---
 
   static pw.Widget _buildKeyValueRow(String key, String value) {
     return pw.Padding(
@@ -193,7 +218,7 @@ class ReceiptUtils {
     );
   }
 
-  // --- Other Methods (Statement, Accounts) ---
+  // --- অন্যান্য রিপোর্ট (Statement, Accounts) ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -340,7 +365,7 @@ class ReceiptUtils {
       theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
       build: (context) => pw.Column(children: [
         pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-        pw.Text(title.toUpperCase(), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+        pw.Text(title, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
         pw.Text(timeString, style: const pw.TextStyle(fontSize: 7)),
         pw.Divider(),
         if (!isExpense) ...[
