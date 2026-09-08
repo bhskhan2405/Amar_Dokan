@@ -40,7 +40,27 @@ class ReceiptUtils {
     return byteData!.buffer.asUint8List();
   }
 
-  // --- ২. POS রিসিট উইজেট ডিজাইন (Image 1 এর স্টাইল) ---
+  // --- ২. দোকান বা ইউজারের ডিটেইলস নিয়ে আসার মেথড ---
+
+  static Future<Map<String, String>> getShopInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'name': data['shopName'] ?? data['storeName'] ?? data['name'] ?? 'Amar Dokan',
+          'address': data['shopAddress'] ?? data['address'] ?? '',
+          'phone': data['phone'] ?? data['mobile'] ?? '',
+        };
+      }
+    } catch (_) {}
+    return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
+  }
+
+  // --- ৩. POS রিসিট উইজেট ডিজাইন (Image 1 এর স্টাইল) ---
 
   static Widget buildPosReceiptWidget(Map<String, dynamic> saleData, Map<String, String> shopInfo) {
     final items = saleData['items'] as Map<String, dynamic>? ?? {};
@@ -165,23 +185,10 @@ class ReceiptUtils {
     );
   }
 
-  // --- ৩. ইমেজ জেনারেশন ও পিডিএফ এক্সপোর্ট ---
+  // --- ৪. ইমেজ জেনারেশন ও পিডিএফ এক্সপোর্ট ---
 
   static Future<void> generatePosReceipt({required Map<String, dynamic> saleData}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    Map<String, String> shopInfo = {'name': 'Amar Dokan', 'address': '', 'phone': ''};
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        shopInfo = {
-          'name': data['shopName'] ?? data['storeName'] ?? data['name'] ?? 'Amar Dokan',
-          'address': data['shopAddress'] ?? data['address'] ?? '',
-          'phone': data['phone'] ?? data['mobile'] ?? '',
-        };
-      }
-    }
-
+    final shopInfo = await getShopInfo();
     final receiptWidget = buildPosReceiptWidget(saleData, shopInfo);
     final Uint8List imageBytes = await captureWidget(receiptWidget);
 
@@ -202,10 +209,6 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // কাস্টমার স্টেটমেন্ট এবং একাউন্টস রিপোর্টের জন্য আমরা আপাতত টেক্সট-বেজড সিস্টেমটিই ফিক্স করে দিচ্ছি
-  // কারণ স্টেটমেন্ট অনেক বড় হতে পারে যা ইমেজ মেথডে মেমোরি ইস্যু তৈরি করতে পারে।
-  // তবে POS এর জন্য ইমেজ মেথডটিই সেরা।
-
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
     required List<QueryDocumentSnapshot> transactions,
@@ -214,7 +217,6 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     
-    // বাংলা ফন্ট সরাসরি লোড করা
     final fontData = await rootBundle.load("assets/fonts/SolaimanLipi-Normal.ttf");
     final banglaFont = pw.Font.ttf(fontData);
     final fontBoldData = await rootBundle.load("assets/fonts/SolaimanLipi-Bold.ttf");
@@ -228,13 +230,13 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: banglaFont, bold: banglaFontBold),
         header: (context) => pw.Column(children: [
-          pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+          pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
           pw.Divider(),
         ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
             pw.Text('${AppTranslations.get('customer')}: ${customerData['name']}'),
-            pw.Text(AppTranslations.get('statement'), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            pw.Text(AppTranslations.get('statement'), style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
           ]),
           pw.SizedBox(height: 20),
           pw.TableHelper.fromTextArray(
@@ -285,11 +287,10 @@ class ReceiptUtils {
   }
 
   static Future<void> generateSingleAccountPdf({required Map<String, dynamic> data, required String timeString, bool isExpense = false}) async {
-     // POS এর মতো ইমেজ মেথড এখানেও কল করা যেতে পারে
      await generatePosReceipt(saleData: data); 
   }
 
   static Future<void> shareSubscriptionCard({required String name, required String shopName, required String phone, String? plan, String? txId, String? senderDigits, String? rejectionReason, bool isActivation = false, bool isApproval = false, bool isRejection = false}) async {
-    // সাবস্ক্রিপশন কার্ড জেনারেশন (আগের কোড)
+    // সাবস্ক্রিপশন কার্ড কোড এখানে দিতে পারেন
   }
 }
