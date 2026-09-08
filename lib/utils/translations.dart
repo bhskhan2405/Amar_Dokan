@@ -526,6 +526,17 @@ class AppTranslations {
     'no_due_to_remind': {'en': 'No due amount to remind.', 'bn': 'রিমাইন্ডার পাঠানোর মতো কোনো বাকি নেই।'},
     'no_invitation_needed': {'en': 'No invitation needed for this customer.', 'bn': 'আমন্ত্রণ পাঠানোর মতো কোনো অপশন নেই।'},
     'customer_phone_missing': {'en': 'Customer phone number missing.', 'bn': 'কাস্টমারের মোবাইল নম্বর পাওয়া যায়নি।'},
+    'thank_you_msg': {'en': 'Thank you for shopping!', 'bn': 'কেনাকাটার জন্য আপনাকে ধন্যবাদ!'},
+    'sell_by': {'en': 'Sell By', 'bn': 'বিক্রেতা'},
+    'cash_receipt': {'en': 'Cash Receipt', 'bn': 'নগদ রিসিট'},
+    'payment_type': {'en': 'Payment Type', 'bn': 'পেমেন্ট মাধ্যম'},
+    'statement': {'en': 'Statement', 'bn': 'হিসাব বিবরণী'},
+    'report': {'en': 'Report', 'bn': 'রিপোর্ট'},
+    'recent_sales': {'en': 'Recent Sales', 'bn': 'সাম্প্রতিক বিক্রয়'},
+    'recent_expenses': {'en': 'Recent Expenses', 'bn': 'সাম্প্রতিক খরচ'},
+    'total_revenue': {'en': 'Total Amount', 'bn': 'মোট টাকা'},
+    'paid_amount': {'en': 'Paid Amount', 'bn': 'পরিশোধিত টাকা'},
+    'sub_total': {'en': 'Sub Total', 'bn': 'উপ-মোট'},
   };
 
   static String get(String key) {

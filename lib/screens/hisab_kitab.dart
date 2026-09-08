@@ -1308,77 +1308,11 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
   }
 
   Future<void> _generateAndPrintPdf(Map<String, dynamic> data, String timeString, String userId) async {
-    final pdf = pw.Document();
-    final banglaFont = await _loadBanglaFont();
-    String shopName = await _getShopName(userId);
-
-    double saleAmt = _convertToDouble(data['totalAmount']);
-    double profitAmt = _convertToDouble(data['profit']);
-    String paymentType = data['paymentType'] ?? 'Cash';
-    String addedBy = data['staffName'] ?? data['addedBy'] ?? data['seller'] ?? 'N/A';
-
-    pdf.addPage(
-      pw.Page(
-        theme: pw.ThemeData.withFont(base: banglaFont, bold: banglaFont),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(shopName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-              pw.SizedBox(height: 4),
-              pw.Text('Sales Memo', style: const pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
-              pw.SizedBox(height: 10),
-              pw.Text('Time: $timeString'),
-              pw.Text(addedBy == 'Admin' ? 'Sell By: Admin' : 'Sell By Staff: $addedBy', style: pw.TextStyle(font: banglaFont)),
-              pw.Text('Payment Type: $paymentType'),
-              pw.Divider(),
-              pw.Text('Total Amount: BDT ${saleAmt.toStringAsFixed(2)}'),
-              pw.Text('Profit: BDT ${profitAmt.toStringAsFixed(2)}'),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+    await ReceiptUtils.generateSingleAccountPdf(data: data, timeString: timeString, isExpense: false);
   }
 
   Future<void> _generateAndPrintExpensePdf(Map<String, dynamic> data, String timeString, String userId) async {
-    final pdf = pw.Document();
-    final banglaFont = await _loadBanglaFont();
-    String shopName = await _getShopName(userId);
-
-    double expenseAmt = _convertToDouble(data['amount']);
-    String note = data['note'] ?? 'General Expense';
-    String addedBy = data['addedBy'] ?? 'N/A';
-    bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
-
-    String memoTitle = isSalary ? 'Salary Memo' : 'Expense Memo';
-    String amountLabel = isSalary ? 'Salary Amount' : 'Expense Amount';
-
-    pdf.addPage(
-      pw.Page(
-        theme: pw.ThemeData.withFont(base: banglaFont, bold: banglaFont),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(shopName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-              pw.SizedBox(height: 4),
-              pw.Text(memoTitle, style: const pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
-              pw.SizedBox(height: 10),
-              pw.Text('Time: $timeString'),
-              pw.Text('Added By: $addedBy', style: pw.TextStyle(font: banglaFont)),
-              pw.Text('Reason / Note: $note', style: pw.TextStyle(font: banglaFont)),
-              pw.Divider(),
-              pw.Text('$amountLabel: BDT ${expenseAmt.toStringAsFixed(2)}'),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+    await ReceiptUtils.generateSingleAccountPdf(data: data, timeString: timeString, isExpense: true);
   }
 
   Future<void> _generateDateRangePdf(
@@ -1391,97 +1325,15 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       DateTime start,
       DateTime end,
       String userId) async {
-    final pdf = pw.Document();
-    final banglaFont = await _loadBanglaFont();
-    String shopName = await _getShopName(userId);
-
-    Map<String, Map<String, double>> dailySummary = {};
-
-    for (var doc in salesDocs) {
-      var data = doc.data() as Map<String, dynamic>;
-      Timestamp? t = data['createdAt'];
-      if (t != null) {
-        String dayKey = DateFormat('yyyy-MM-dd', 'en_US').format(t.toDate());
-        double sale = _convertToDouble(data['totalAmount']);
-        double profit = _convertToDouble(data['profit']);
-
-        if (!dailySummary.containsKey(dayKey)) {
-          dailySummary[dayKey] = {'sale': 0.0, 'profit': 0.0, 'expense': 0.0, 'salary': 0.0};
-        }
-        dailySummary[dayKey]!['sale'] = dailySummary[dayKey]!['sale']! + sale;
-        dailySummary[dayKey]!['profit'] = dailySummary[dayKey]!['profit']! + profit;
-      }
-    }
-
-    for (var doc in expenseDocs) {
-      var data = doc.data() as Map<String, dynamic>;
-      Timestamp? t = data['createdAt'];
-      if (t != null) {
-        String dayKey = DateFormat('yyyy-MM-dd', 'en_US').format(t.toDate());
-        double amount = _convertToDouble(data['amount']);
-        String note = data['note'] ?? '';
-
-        if (!dailySummary.containsKey(dayKey)) {
-          dailySummary[dayKey] = {'sale': 0.0, 'profit': 0.0, 'expense': 0.0, 'salary': 0.0};
-        }
-
-        if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
-          dailySummary[dayKey]!['salary'] = dailySummary[dayKey]!['salary']! + amount;
-        } else {
-          dailySummary[dayKey]!['expense'] = dailySummary[dayKey]!['expense']! + amount;
-        }
-      }
-    }
-
-    pdf.addPage(
-      pw.MultiPage(
-        theme: pw.ThemeData.withFont(base: banglaFont, bold: banglaFont),
-        build: (pw.Context context) {
-          return [
-            pw.Text(shopName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-            pw.SizedBox(height: 4),
-            pw.Text('Sales, Expense & Salary Report', style: const pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
-            pw.SizedBox(height: 10),
-            pw.Text('From: ${DateFormat('yyyy-MM-dd', 'en_US').format(start)} To: ${DateFormat('yyyy-MM-dd', 'en_US').format(end)}',
-                style: const pw.TextStyle(fontSize: 14)),
-            pw.SizedBox(height: 15),
-            pw.Divider(),
-            pw.SizedBox(height: 10),
-            pw.Text('DAILY BREAKDOWN:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-            pw.SizedBox(height: 8),
-            ...dailySummary.entries.map((entry) {
-              return pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 6),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Date: ${entry.key}', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Sale: ${entry.value['sale']!.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Profit: ${entry.value['profit']!.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Exp: ${entry.value['expense']!.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Sal: ${entry.value['salary']!.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-              );
-            }),
-            pw.SizedBox(height: 15),
-            pw.Divider(),
-            pw.SizedBox(height: 10),
-            pw.Text('SUMMARY REPORT', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: banglaFont)),
-            pw.SizedBox(height: 8),
-            pw.Text('Total Sale: BDT ${totalSale.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, font: banglaFont)),
-            pw.Text('Total Profit: BDT ${totalProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, font: banglaFont, color: PdfColors.green900)),
-            pw.SizedBox(height: 4),
-            pw.Text('Total Expense (General): BDT ${totalExpense.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, font: banglaFont, color: PdfColors.red900)),
-            pw.Text('Total Salary Paid: BDT ${totalSalary.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, font: banglaFont, color: PdfColors.orange900)),
-            pw.Divider(height: 20),
-            pw.Text('Net Profit: BDT ${(totalProfit - (totalExpense + totalSalary)).toStringAsFixed(2)}',
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, font: banglaFont, color: (totalProfit - (totalExpense + totalSalary)) >= 0 ? PdfColors.blue900 : PdfColors.red900)),
-          ];
-        },
-      ),
+    
+    await ReceiptUtils.generateAccountsReport(
+      sales: salesDocs,
+      expenses: expenseDocs,
+      totalSale: totalSale,
+      totalProfit: totalProfit,
+      totalExpense: totalExpense + totalSalary, // ReceiptUtils এ expense label এর আন্ডারে দেখাচ্ছি
+      start: start,
+      end: end,
     );
-
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 }

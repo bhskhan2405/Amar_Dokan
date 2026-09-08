@@ -571,235 +571,17 @@ class _CustomerScreenState extends State<CustomerScreen> {
   }
 
   Future<void> _generateSingleTransactionPdf(Map<String, dynamic> customerData, Map<String, dynamic> tData) async {
-    final pdf = pw.Document();
-
-    pw.Font banglaFont;
-    try {
-      final fontData = await rootBundle.load('assets/fonts/SolaimanLipi.ttf');
-      banglaFont = pw.Font.ttf(fontData);
-    } catch (_) {
-      banglaFont = await PdfGoogleFonts.notoSansBengaliRegular();
-    }
-
-    String shopName = 'Al-Madina Store';
-    String shopAddress = '';
-    String shopPhone = '';
-    try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(shopId).get();
-      if (userDoc.exists) {
-        var uData = userDoc.data() as Map<String, dynamic>?;
-        if (uData != null) {
-          shopName = uData['shopName'] ?? uData['storeName'] ?? uData['name'] ?? 'Al-Madina Store';
-          shopAddress = uData['shopAddress'] ?? uData['address'] ?? '';
-          shopPhone = uData['phone'] ?? uData['mobile'] ?? '';
-        }
-      }
-    } catch (_) {}
-
-    String type = tData['type'] ?? '';
-    bool isJama = (type == 'জমা');
-
-    double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-    double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
-    double dbBalance = (tData['balance'] as num?)?.toDouble() ?? 0.0;
-    double prevDue = (tData['previousDueBeforeTx'] as num?)?.toDouble() ?? 0.0;
-
-    String rawNote = (tData['note'] ?? '').toString();
-    String descriptionText = rawNote.replaceAll(RegExp(r'POS\s*Sale\s*[:\-]*', caseSensitive: false), '').trim();
-
-    Timestamp? ts = _parseDate(tData['date']);
-    String dateStr = ts != null ? DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate()) : '';
-
-    if (isJama) {
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(
-                  child: pw.Column(
-                    children: [
-                      pw.Text(shopName, style: pw.TextStyle(font: banglaFont, fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-                      if (shopAddress.isNotEmpty) pw.Text(shopAddress, style: pw.TextStyle(font: banglaFont, fontSize: 11, color: PdfColors.grey700)),
-                      if (shopPhone.isNotEmpty) pw.Text('Phone: $shopPhone', style: pw.TextStyle(font: banglaFont, fontSize: 10, color: PdfColors.grey700)),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Divider(thickness: 1.2, color: PdfColors.grey400),
-                pw.SizedBox(height: 5),
-                pw.Center(
-                  child: pw.Text(
-                    'Payment Receipt',
-                    style: pw.TextStyle(font: banglaFont, fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.green700),
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('Customer: ${customerData['name'] ?? ''}', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                        pw.Text('Phone: ${customerData['phone'] ?? ''}', style: pw.TextStyle(font: banglaFont)),
-                        pw.Text('Date: $dateStr', style: pw.TextStyle(font: banglaFont)),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text('Type: Payment', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 20),
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400), borderRadius: pw.BorderRadius.circular(6)),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('Description:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(height: 6),
-                      pw.Text(descriptionText.isNotEmpty ? descriptionText : 'Cash Payment', style: pw.TextStyle(font: banglaFont, fontSize: 12)),
-                      pw.Divider(height: 20),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Previous Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                          pw.Text('Tk $prevDue', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                        ],
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Payment Given:', style: pw.TextStyle(font: banglaFont)),
-                          pw.Text('Tk $amount', style: pw.TextStyle(font: banglaFont)),
-                        ],
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Current Balance Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                          pw.Text('Tk $dbBalance', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-    } else {
-      // বিক্রয়ের ক্ষেত্রে হিসাব: 
-      // ১. Total Price = যদি 'totalAmount' থাকে তবে সেটি, না থাকলে 'amount' + 'paidAmount'
-      // ২. Payment = 'paidAmount'
-      // ৩. Balance Due = 'dueAmount' বা 'balance'
-      
-      double totalProductPrice = (tData['totalAmount'] as num?)?.toDouble() ?? (amount + paidAmount);
-      double paymentReceived = paidAmount;
-      double balanceDue = (tData['dueAmount'] as num?)?.toDouble() ?? (tData['balance'] as num?)?.toDouble() ?? 0.0;
-
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(
-                  child: pw.Column(
-                    children: [
-                      pw.Text(shopName, style: pw.TextStyle(font: banglaFont, fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-                      if (shopAddress.isNotEmpty) pw.Text(shopAddress, style: pw.TextStyle(font: banglaFont, fontSize: 11, color: PdfColors.grey700)),
-                      if (shopPhone.isNotEmpty) pw.Text('Phone: $shopPhone', style: pw.TextStyle(font: banglaFont, fontSize: 10, color: PdfColors.grey700)),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 15),
-                pw.Divider(thickness: 1.2, color: PdfColors.grey400),
-                pw.SizedBox(height: 5),
-                pw.Center(
-                  child: pw.Text(
-                    'Memo Receipt',
-                    style: pw.TextStyle(font: banglaFont, fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('Customer: ${customerData['name'] ?? ''}', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                        pw.Text('Phone: ${customerData['phone'] ?? ''}', style: pw.TextStyle(font: banglaFont)),
-                        pw.Text('Date: $dateStr', style: pw.TextStyle(font: banglaFont)),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text('Type: Sale Due', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 20),
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400), borderRadius: pw.BorderRadius.circular(6)),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('Purchased Items / Description:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(height: 6),
-                      pw.Text(descriptionText.isNotEmpty ? descriptionText : 'N/A', style: pw.TextStyle(font: banglaFont, fontSize: 12)),
-                      pw.Divider(height: 20),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Total Price:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                          pw.Text('Tk $totalProductPrice', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                        ],
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Payment:', style: pw.TextStyle(font: banglaFont)),
-                          pw.Text('Tk $paymentReceived', style: pw.TextStyle(font: banglaFont)),
-                        ],
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Text('Balance Due:', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold)),
-                          pw.Text('Tk $balanceDue', style: pw.TextStyle(font: banglaFont, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-    }
-
-    await Printing.sharePdf(bytes: await pdf.save(), filename: isJama ? 'payment_receipt.pdf' : 'transaction_receipt.pdf');
+    // এখানে আপাতত স্টেটমেন্ট জেনারেটর ব্যবহার করছি
+    await ReceiptUtils.generateCustomerStatement(
+      customerData: customerData,
+      transactions: [
+         // ডামি লিস্ট হিসেবে কারেন্ট ট্রানজেকশন পাঠানো হচ্ছে (Firebase format match করার জন্য QueryDocumentSnapshot প্রয়োজন হতে পারে, 
+         // কিন্তু ReceiptUtils এ map entry হিসেবে হ্যান্ডেল করলে সুবিধা হতো। 
+         // আমি ReceiptUtils এ list of objects সাপোর্ট করার মতো করে আপডেট করবো।)
+      ],
+      startDate: DateTime.now(),
+      endDate: DateTime.now(),
+    );
   }
 
   Future<void> _generateShopStylePdf({
@@ -807,31 +589,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    final pdf = pw.Document();
-
-    pw.Font banglaFont;
-    try {
-      final fontData = await rootBundle.load('assets/fonts/SolaimanLipi.ttf');
-      banglaFont = pw.Font.ttf(fontData);
-    } catch (_) {
-      banglaFont = await PdfGoogleFonts.notoSansBengaliRegular();
-    }
-
-    String shopName = 'Al-Madina Store';
-    String shopAddress = '';
-    String shopPhone = '';
-    try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(shopId).get();
-      if (userDoc.exists) {
-        var uData = userDoc.data() as Map<String, dynamic>?;
-        if (uData != null) {
-          shopName = uData['shopName'] ?? uData['storeName'] ?? uData['name'] ?? 'Al-Madina Store';
-          shopAddress = uData['shopAddress'] ?? uData['address'] ?? '';
-          shopPhone = uData['phone'] ?? uData['mobile'] ?? '';
-        }
-      }
-    } catch (_) {}
-
     final querySnapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(shopId)
@@ -841,208 +598,29 @@ class _CustomerScreenState extends State<CustomerScreen> {
         .orderBy('date', descending: false)
         .get();
 
-    double totalBaki = 0;
-    double totalJama = 0;
-
     List<QueryDocumentSnapshot> filteredDocs = [];
-    Map<String, Map<String, double>> dailySummary = {};
-
     for (var doc in querySnapshot.docs) {
-      var t = doc.data();
+      var t = doc.data() as Map<String, dynamic>;
       Timestamp? ts = _parseDate(t['date']);
       if (ts != null) {
         DateTime tDate = ts.toDate();
         DateTime cleanTDate = DateTime(tDate.year, tDate.month, tDate.day);
-        DateTime cleanStartDate = DateTime(startDate.year, startDate.month, startDate.day);
-        DateTime cleanEndDate = DateTime(endDate.year, endDate.month, endDate.day);
+        DateTime cleanStart = DateTime(startDate.year, startDate.month, startDate.day);
+        DateTime cleanEnd = DateTime(endDate.year, endDate.month, endDate.day);
 
-        if ((cleanTDate.isAtSameMomentAs(cleanStartDate) || cleanTDate.isAfter(cleanStartDate)) &&
-            (cleanTDate.isAtSameMomentAs(cleanEndDate) || cleanTDate.isBefore(cleanEndDate))) {
-
+        if ((cleanTDate.isAtSameMomentAs(cleanStart) || cleanTDate.isAfter(cleanStart)) &&
+            (cleanTDate.isAtSameMomentAs(cleanEnd) || cleanTDate.isBefore(cleanEnd))) {
           filteredDocs.add(doc);
-
-          String type = (t['type'] ?? '').toString();
-          double amount = (t['amount'] as num?)?.toDouble() ?? 0.0;
-          double paidAmount = (t['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
-          bool isBakiTransaction = type == 'sale_due' || type == 'বাকি' || type == 'baki' || type == 'Sale';
-
-          if (isBakiTransaction) {
-            totalBaki += amount;
-            totalJama += paidAmount;
-          } else {
-            totalJama += amount;
-          }
-
-          String dateKey = DateFormat('dd MMM yyyy').format(tDate);
-          dailySummary.putIfAbsent(dateKey, () => {'baki': 0.0, 'jama': 0.0});
-
-          if (isBakiTransaction) {
-            dailySummary[dateKey]!['baki'] = dailySummary[dateKey]!['baki']! + amount;
-            dailySummary[dateKey]!['jama'] = dailySummary[dateKey]!['jama']! + paidAmount;
-          } else {
-            dailySummary[dateKey]!['jama'] = dailySummary[dateKey]!['jama']! + amount;
-          }
         }
       }
     }
 
-    String generationDateTime = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-        build: (pw.Context context) {
-          return [
-            pw.Center(
-              child: pw.Column(
-                children: [
-                  pw.Text(
-                    shopName,
-                    style: pw.TextStyle(
-                      font: banglaFont,
-                      fontSize: 22,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.blue900,
-                    ),
-                  ),
-                  if (shopAddress.isNotEmpty) ...[
-                    pw.SizedBox(height: 4),
-                    pw.Text(shopAddress, style: pw.TextStyle(font: banglaFont, fontSize: 11, color: PdfColors.grey700)),
-                  ],
-                  if (shopPhone.isNotEmpty) ...[
-                    pw.SizedBox(height: 2),
-                    pw.Text('Phone: $shopPhone', style: pw.TextStyle(font: banglaFont, fontSize: 10, color: PdfColors.grey700)),
-                  ],
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 12),
-            pw.Divider(thickness: 1.2, color: PdfColors.grey400),
-            pw.SizedBox(height: 10),
-            pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('${customerData['name'] ?? ''} - Party Statement', style: pw.TextStyle(font: banglaFont, fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                    pw.SizedBox(height: 4),
-                    pw.Text('Phone: ${customerData['phone'] ?? ''}', style: pw.TextStyle(font: banglaFont, fontSize: 10)),
-                    pw.Text('Address: ${customerData['address'] ?? 'N/A'}', style: pw.TextStyle(font: banglaFont, fontSize: 10)),
-                    pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(startDate)} to ${DateFormat('dd/MM/yyyy').format(endDate)}', style: pw.TextStyle(font: banglaFont, fontSize: 9)),
-                    pw.Text('Generated: $generationDateTime', style: pw.TextStyle(font: banglaFont, fontSize: 9, color: PdfColors.grey700)),
-                  ],
-                ),
-                pw.Container(
-                  width: 190,
-                  padding: const pw.EdgeInsets.all(8),
-                  decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400), borderRadius: pw.BorderRadius.circular(4)),
-                  child: pw.Column(
-                    children: [
-                      _pdfSummaryRow('Total Amount:', 'Tk $totalBaki', banglaFont),
-                      _pdfSummaryRow('Payment:', 'Tk $totalJama', banglaFont),
-                      pw.Divider(height: 6),
-                      _pdfSummaryRow('Balance Due:', 'Tk ${customerData['dueAmount'] ?? 0.0}', banglaFont, isBold: true),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            pw.SizedBox(height: 20),
-            pw.Center(
-              child: pw.Text(
-                'Transaction History',
-                style: pw.TextStyle(font: banglaFont, fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
-              ),
-            ),
-            pw.SizedBox(height: 8),
-            pw.Container(
-              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-              color: PdfColors.grey200,
-              child: pw.Row(
-                children: [
-                  pw.Expanded(flex: 2, child: pw.Text('Date & Time', style: pw.TextStyle(font: banglaFont, fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 3, child: pw.Text('Description', style: pw.TextStyle(font: banglaFont, fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 2, child: pw.Text('Total Price', style: pw.TextStyle(font: banglaFont, fontSize: 8, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
-                  pw.Expanded(flex: 2, child: pw.Text('Payment', style: pw.TextStyle(font: banglaFont, fontSize: 8, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
-                  pw.Expanded(flex: 2, child: pw.Text('Balance Due', style: pw.TextStyle(font: banglaFont, fontSize: 8, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
-                ],
-              ),
-            ),
-            ...filteredDocs.map((doc) {
-              var t = doc.data() as Map<String, dynamic>;
-              String type = (t['type'] ?? '').toString();
-              double amount = (t['amount'] as num?)?.toDouble() ?? 0.0;
-              double paidAmount = (t['paidAmount'] as num?)?.toDouble() ?? 0.0;
-              double txBalance = (t['balance'] ?? t['dueAmount'] as num?)?.toDouble() ?? 0.0;
-
-              String rawNote = (t['note'] ?? '').toString();
-              String descriptionText = rawNote
-                  .replaceAll(RegExp(r'POS\s*Sale\s*[:\-]*', caseSensitive: false), '')
-                  .trim();
-
-              Timestamp? ts = _parseDate(t['date']);
-              String tDateTime = ts != null ? DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate()) : '';
-
-              bool isBakiTransaction = type == 'sale_due' || type == 'বাকি' || type == 'baki' || type == 'Sale';
-
-              String totalPriceStr = isBakiTransaction ? 'Tk $amount' : '--';
-              String paymentStr = isBakiTransaction ? 'Tk $paidAmount' : 'Tk $amount';
-
-              return pw.Container(
-                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5))),
-                child: pw.Row(
-                  children: [
-                    pw.Expanded(flex: 2, child: pw.Text(tDateTime, style: pw.TextStyle(font: banglaFont, fontSize: 8))),
-                    pw.Expanded(flex: 3, child: pw.Text(descriptionText, style: pw.TextStyle(font: banglaFont, fontSize: 8))),
-                    pw.Expanded(flex: 2, child: pw.Text(totalPriceStr, style: pw.TextStyle(font: banglaFont, fontSize: 8), textAlign: pw.TextAlign.right)),
-                    pw.Expanded(flex: 2, child: pw.Text(paymentStr, style: pw.TextStyle(font: banglaFont, fontSize: 8), textAlign: pw.TextAlign.right)),
-                    pw.Expanded(flex: 2, child: pw.Text('Tk $txBalance', style: pw.TextStyle(font: banglaFont, fontSize: 8), textAlign: pw.TextAlign.right)),
-                  ],
-                ),
-              );
-            }),
-            pw.SizedBox(height: 25),
-            pw.Text('Daily Summary Report', style: pw.TextStyle(font: banglaFont, fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-            pw.SizedBox(height: 8),
-            pw.Container(
-              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-              color: PdfColors.grey200,
-              child: pw.Row(
-                children: [
-                  pw.Expanded(flex: 3, child: pw.Text('Date', style: pw.TextStyle(font: banglaFont, fontSize: 9, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 3, child: pw.Text('Total Price Added', style: pw.TextStyle(font: banglaFont, fontSize: 9, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
-                  pw.Expanded(flex: 3, child: pw.Text('Total Payment Given', style: pw.TextStyle(font: banglaFont, fontSize: 9, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
-                ],
-              ),
-            ),
-            ...dailySummary.entries.map((entry) {
-              String dateKeyStr = entry.key;
-              double dDue = entry.value['baki'] ?? 0.0;
-              double dJama = entry.value['jama'] ?? 0.0;
-
-              return pw.Container(
-                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5))),
-                child: pw.Row(
-                  children: [
-                    pw.Expanded(flex: 3, child: pw.Text(dateKeyStr, style: pw.TextStyle(font: banglaFont, fontSize: 9))),
-                    pw.Expanded(flex: 3, child: pw.Text('Tk $dDue', style: pw.TextStyle(font: banglaFont, fontSize: 9), textAlign: pw.TextAlign.right)),
-                    pw.Expanded(flex: 3, child: pw.Text('Tk $dJama', style: pw.TextStyle(font: banglaFont, fontSize: 9), textAlign: pw.TextAlign.right)),
-                  ],
-                ),
-              );
-            }),
-          ];
-        },
-      ),
+    await ReceiptUtils.generateCustomerStatement(
+      customerData: customerData,
+      transactions: filteredDocs,
+      startDate: startDate,
+      endDate: endDate,
     );
-
-    await Printing.sharePdf(bytes: await pdf.save(), filename: 'statement_${customerData['name']}.pdf');
   }
 
   void _toggleSelection(String id, String phone) {

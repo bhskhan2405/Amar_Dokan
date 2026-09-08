@@ -201,89 +201,16 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
 
   // PDF জেনারেট ও শেয়ার অপশন
   Future<void> _generateAndSharePdf(List<QueryDocumentSnapshot> docs, double currentDue) async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Container(
-                width: double.infinity,
-                padding: const pw.EdgeInsets.all(15),
-                decoration: const pw.BoxDecoration(color: PdfColors.blue900),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text(
-                      shopName,
-                      style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                    ),
-                    if (shopPhone.isNotEmpty)
-                      pw.Text('Mobile: $shopPhone', style: const pw.TextStyle(color: PdfColors.white, fontSize: 12)),
-                    pw.Text('Customer Statement / Ledger', style: const pw.TextStyle(color: PdfColors.white, fontSize: 10)),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('Customer Name: ${widget.customerName}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
-                      pw.Text('Phone: ${widget.customerPhone}'),
-                      pw.Text('Address: ${widget.customerAddress}'),
-                    ],
-                  ),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(10),
-                    decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey)),
-                    child: pw.Column(
-                      children: [
-                        pw.Text('Current Due', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                        pw.Text(
-                          'TK. ${currentDue.toStringAsFixed(2)}',
-                          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
-                        ),
-                      ],
-                    ),
-                  )
-                ],
-              ),
-              pw.SizedBox(height: 20),
-              pw.Divider(),
-              pw.Text('Transaction History:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 10),
-              pw.TableHelper.fromTextArray(
-                headers: const ['Type', 'Note', 'Amount (TK)'],
-                data: docs.map((doc) {
-                  var data = doc.data() as Map<String, dynamic>;
-                  return [
-                    data['type'] == 'PAYMENT' ? 'Paid' : 'Due/Sale',
-                    data['note'] ?? '',
-                    '${data['amount']}',
-                  ];
-                }).toList(),
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-                cellAlignment: pw.Alignment.centerLeft,
-              ),
-              pw.Spacer(),
-              pw.Divider(),
-              pw.Center(
-                child: pw.Text('Thank you for your business!', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-              ),
-            ],
-          );
-        },
-      ),
+    await ReceiptUtils.generateCustomerStatement(
+      customerData: {
+        'name': widget.customerName,
+        'phone': widget.customerPhone,
+        'dueAmount': currentDue,
+      },
+      transactions: docs,
+      startDate: DateTime.now().subtract(const Duration(days: 365)), // ডিফল্ট ১ বছর
+      endDate: DateTime.now(),
     );
-
-    await Printing.sharePdf(bytes: await pdf.save(), filename: '${widget.customerName}_statement.pdf');
   }
 
   @override
