@@ -8,13 +8,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'translations.dart';
 
 class ReceiptUtils {
-  // বাংলা ফন্ট লোড করার কমন মেথড
+  // --- Helper Methods ---
+
   static Future<pw.Font> loadBengaliFont() async {
     try {
       final fontData = await rootBundle.load("assets/fonts/SolaimanLipi-Normal.ttf");
       return pw.Font.ttf(fontData);
     } catch (e) {
-      // যদি ফাইল না পায় তবে গুগল ফন্ট ব্যবহার করবে (ইন্টারনেট লাগবে)
       return await PdfGoogleFonts.notoSansBengaliRegular();
     }
   }
@@ -28,7 +28,6 @@ class ReceiptUtils {
     }
   }
 
-  // দোকান বা ইউজারের ডিটেইলস নিয়ে আসার মেথড
   static Future<Map<String, String>> getShopInfo() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
@@ -47,26 +46,72 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // ১. POS বিল রিসিট জেনারেটর
-  static Future<void> generatePosReceipt({
-    required Map<String, dynamic> saleData,
-  }) async {
+  static pw.Widget _buildPosRow(String label, String value, {bool isBold = false, PdfColor? color}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color ?? PdfColors.black)),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _tableCell(String text, {bool isBold = false, pw.TextAlign align = pw.TextAlign.left, PdfColor? color}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(5),
+      child: pw.Text(text, textAlign: align, style: pw.TextStyle(fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color)),
+    );
+  }
+
+  static pw.Widget _summaryBox(String title, String value, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: color),
+        borderRadius: pw.BorderRadius.circular(5),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(title, style: const pw.TextStyle(fontSize: 8)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildDetailsRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: const pw.TextStyle(fontSize: 11)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  // --- Main PDF Generators ---
+
+  static Future<void> generatePosReceipt({required Map<String, dynamic> saleData}) async {
     final pdf = pw.Document();
     final fontRegular = await loadBengaliFont();
     final fontBold = await loadBengaliFontBold();
     final shopInfo = await getShopInfo();
 
-    // অনুবাদিত টেক্সট
     final labelCustomer = AppTranslations.get('customer');
     final labelMobile = AppTranslations.get('mobile');
-    final labelAddress = AppTranslations.get('address_label');
     final labelCashReceipt = AppTranslations.get('cash_receipt');
     final labelPaymentType = AppTranslations.get('payment_type');
     final labelSellBy = AppTranslations.get('sell_by');
     final labelDescription = AppTranslations.get('description');
-    final labelDiscount = AppTranslations.get('discount');
     final labelPrice = AppTranslations.get('price');
     final labelSubTotal = AppTranslations.get('sub_total');
+    final labelDiscount = AppTranslations.get('discount');
     final labelTotal = AppTranslations.get('total_revenue');
     final labelPaid = AppTranslations.get('paid_amount');
     final labelDue = AppTranslations.get('due');
@@ -153,7 +198,7 @@ class ReceiptUtils {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
 
               pw.Divider(thickness: 0.5),
               _buildPosRow(labelSubTotal, '$currency ${saleData['subTotal']?.toStringAsFixed(2) ?? '0.00'}'),
@@ -165,7 +210,7 @@ class ReceiptUtils {
                 _buildPosRow(labelDue, '$currency ${saleData['dueAmount']?.toStringAsFixed(2)}', isBold: true, color: PdfColors.red),
               
               pw.SizedBox(height: 10),
-              pw.Text(AppTranslations.get('thank_you_msg') ?? 'Thank you for shopping!', style: const pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic)),
+              pw.Text(AppTranslations.get('thank_you_msg'), style: const pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic)),
               pw.SizedBox(height: 2),
               pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey)),
             ],
@@ -177,20 +222,6 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  static pw.Widget _buildPosRow(String label, String value, {bool isBold = false, PdfColor? color}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color ?? PdfColors.black)),
-        ],
-      ),
-    );
-  }
-
-  // ২. কাস্টমার স্টেটমেন্ট (Statement) জেনারেটর
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
     required List<QueryDocumentSnapshot> transactions,
@@ -246,7 +277,6 @@ class ReceiptUtils {
             ),
             pw.SizedBox(height: 20),
 
-            // টেবিল হেডার
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
               children: [
@@ -276,7 +306,7 @@ class ReceiptUtils {
                       _tableCell('$currency ${balance.toStringAsFixed(2)}', align: pw.TextAlign.right),
                     ],
                   );
-                }).toList(),
+                }),
               ],
             ),
 
@@ -311,14 +341,6 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  static pw.Widget _tableCell(String text, {bool isBold = false, pw.TextAlign align = pw.TextAlign.left, PdfColor? color}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(5),
-      child: pw.Text(text, textAlign: align, style: pw.TextStyle(fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color)),
-    );
-  }
-
-  // ৩. হিসাব-কিতাব (Accounts) রিপোর্ট জেনারেটর
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
     required List<QueryDocumentSnapshot> expenses,
@@ -385,7 +407,7 @@ class ReceiptUtils {
                        _tableCell('$currency ${(data['profit'] as num?)?.toDouble() ?? 0.0}', align: pw.TextAlign.right),
                      ]
                    );
-                }).toList(),
+                }),
               ]
             ),
 
@@ -413,7 +435,7 @@ class ReceiptUtils {
                        _tableCell('$currency ${(data['amount'] as num?)?.toDouble() ?? 0.0}', align: pw.TextAlign.right),
                      ]
                    );
-                }).toList(),
+                }),
               ]
             ),
           ];
@@ -424,7 +446,6 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // ৪. সিঙ্গেল একাউন্ট রেকর্ড (Sale/Expense) PDF
   static Future<void> generateSingleAccountPdf({
     required Map<String, dynamic> data,
     required String timeString,
@@ -477,7 +498,6 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // সাবস্ক্রিপশন কার্ড (আগের কোডটি এখানেও কাজ করবে, কিন্তু উপরের মতো ক্লিনআপ করে দিলাম)
   static Future<void> shareSubscriptionCard({
     required String name,
     required String shopName,
@@ -559,18 +579,5 @@ class ReceiptUtils {
     );
 
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
-  }
-
-  static pw.Widget _buildDetailsRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 5),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: const pw.TextStyle(fontSize: 11)),
-          pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-        ],
-      ),
-    );
   }
 }
