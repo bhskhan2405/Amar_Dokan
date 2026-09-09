@@ -298,7 +298,7 @@ class ReceiptUtils {
         pw.MultiPage(
           theme: pw.ThemeData.withFont(base: banglaFont, bold: banglaFont),
           build: (context) => [
-            pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
             pw.Text('${AppTranslations.get('accounts')} ${AppTranslations.get('report')}'),
             pw.Divider(),
             pw.Text('${AppTranslations.get('total_sale')}: $totalSale'),
@@ -315,5 +315,113 @@ class ReceiptUtils {
 
   static Future<void> generateSingleAccountPdf({required Map<String, dynamic> data, required String timeString, bool isExpense = false}) async {
      await generatePosReceipt(saleData: data, isPrint: true); 
+  }
+
+  static Future<void> shareSubscriptionCard({
+    required String name,
+    required String shopName,
+    required String phone,
+    String? plan,
+    String? txId,
+    String? senderDigits,
+    String? rejectionReason,
+    bool isActivation = false,
+    bool isApproval = false,
+    bool isRejection = false,
+  }) async {
+    final pdf = pw.Document();
+
+    final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
+    final image = pw.MemoryImage(imageByte.buffer.asUint8List());
+
+    final planDisplay = plan?.replaceAll('_', ' ').toUpperCase() ?? 'N/A';
+    String title = 'SUBSCRIPTION REQUEST';
+    PdfColor titleColor = PdfColors.orange900;
+    PdfColor borderColor = PdfColors.blue900;
+
+    if (isActivation) {
+      title = 'PREMIUM ACTIVATED';
+      titleColor = PdfColors.green700;
+      borderColor = PdfColors.green900;
+    } else if (isApproval) {
+      title = 'ACCOUNT APPROVED';
+      titleColor = PdfColors.blue700;
+      borderColor = PdfColors.blue900;
+    } else if (isRejection) {
+      title = 'REQUEST CANCELLED';
+      titleColor = PdfColors.red700;
+      borderColor = PdfColors.red900;
+    }
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: const PdfPageFormat(400, 520, marginAll: 20),
+        build: (pw.Context context) {
+          return pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: borderColor, width: 2),
+              borderRadius: pw.BorderRadius.circular(15),
+              color: PdfColors.white,
+            ),
+            padding: const pw.EdgeInsets.all(20),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Image(image, width: 40, height: 40),
+                    pw.SizedBox(width: 10),
+                    pw.Text('Amar Dokan', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: isRejection ? PdfColors.red800 : (isActivation ? PdfColors.green800 : PdfColors.blue800))),
+                  ],
+                ),
+                pw.SizedBox(height: 10),
+                pw.Divider(color: PdfColors.grey300),
+                pw.SizedBox(height: 10),
+                pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: titleColor)),
+                pw.SizedBox(height: 20),
+                _buildDetailsRow('Owner Name', name),
+                _buildDetailsRow('Shop Name', shopName),
+                _buildDetailsRow('Mobile', phone),
+                if (!isApproval) ...[
+                  _buildDetailsRow('Plan', planDisplay),
+                  _buildDetailsRow('Transaction ID', txId ?? 'N/A'),
+                  if (senderDigits != null) _buildDetailsRow('Sender Last 4', senderDigits),
+                ],
+                pw.Spacer(),
+                pw.Divider(color: PdfColors.grey300),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Date: ${DateFormat('dd MMM yyyy').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                    pw.Text('Time: ${DateFormat('hh:mm a').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                  ],
+                ),
+                pw.SizedBox(height: 5),
+                pw.Text('Thank you for choosing Amar Dokan', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    String fileName = 'card_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    await Printing.sharePdf(bytes: await pdf.save(), filename: fileName);
+  }
+
+  static pw.Widget _buildDetailsRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+          pw.Flexible(
+            child: pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+          ),
+        ],
+      ),
+    );
   }
 }
