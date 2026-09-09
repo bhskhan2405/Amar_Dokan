@@ -1332,7 +1332,8 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       expenses: expenseDocs,
       totalSale: totalSale,
       totalProfit: totalProfit,
-      totalExpense: totalExpense + totalSalary, // ReceiptUtils এ expense label এর আন্ডারে দেখাচ্ছি
+      totalExpense: totalExpense,
+      totalSalary: totalSalary,
       start: start,
       end: end,
     );

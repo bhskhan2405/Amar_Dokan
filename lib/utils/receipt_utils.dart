@@ -273,6 +273,7 @@ class ReceiptUtils {
     required double totalSale,
     required double totalProfit,
     required double totalExpense,
+    required double totalSalary,
     required DateTime start,
     required DateTime end,
   }) async {
@@ -280,6 +281,9 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
+    final currency = AppTranslations.get('currency_symbol');
+
+    final double netProfit = totalProfit - totalExpense - totalSalary;
 
     pdf.addPage(
       pw.MultiPage(
@@ -288,21 +292,52 @@ class ReceiptUtils {
         header: (context) => pw.Column(children: [
           pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
           pw.Text('ACCOUNTS REPORT'),
-          pw.Text('${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
           pw.Divider(),
         ]),
         build: (context) => [
           pw.SizedBox(height: 10),
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBox('Total Sale', 'Tk ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
-            _summaryBox('Total Profit', 'Tk ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
-            _summaryBox('Total Expense', 'Tk ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
-          ]),
+          // প্রধান হিসাব সারসংক্ষেপ
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+            children: [
+              _summaryBox('Total Sale', 'Tk ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
+              _summaryBox('Gross Profit', 'Tk ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
+            ]
+          ),
+          pw.SizedBox(height: 10),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+            children: [
+              _summaryBox('Total Expense', 'Tk ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
+              _summaryBox('Total Salary', 'Tk ${totalSalary.toStringAsFixed(2)}', PdfColors.orange),
+            ]
+          ),
           pw.SizedBox(height: 20),
-          pw.Text('Recent Sales', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          
+          // নিট লাভ (Net Profit) হাইলাইট
+          pw.Center(
+            child: pw.Container(
+              padding: const pw.EdgeInsets.all(15),
+              decoration: pw.BoxDecoration(
+                color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50,
+                border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2),
+                borderRadius: pw.BorderRadius.circular(10),
+              ),
+              child: pw.Column(
+                children: [
+                  pw.Text('NET PROFIT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
+                  pw.Text('Tk ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
+                ],
+              ),
+            ),
+          ),
+          
+          pw.SizedBox(height: 30),
+          pw.Text('Recent Sales History', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.TableHelper.fromTextArray(
             headers: ['Date', 'Customer', 'Amount'],
-            data: sales.map((doc) {
+            data: sales.take(50).map((doc) { // শুধুমাত্র প্রথম ৫০টি দেখাবে যাতে পিডিএফ অনেক বড় না হয়
               final data = doc.data() as Map<String, dynamic>;
               return [
                 data['createdAt'] != null ? DateFormat('dd/MM').format((data['createdAt'] as Timestamp).toDate()) : '',
@@ -310,6 +345,8 @@ class ReceiptUtils {
                 'Tk ${(data['totalAmount'] as num?)?.toDouble() ?? 0.0}',
               ];
             }).toList(),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
           ),
         ],
       )
