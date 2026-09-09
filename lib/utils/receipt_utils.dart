@@ -225,14 +225,26 @@ class ReceiptUtils {
           ]),
           pw.SizedBox(height: 20),
           pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Description', 'Amount', 'Balance'],
+            headers: ['Date', 'Description', 'Total', 'Paid', 'Due'],
             data: transactions.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
+              
+              double total = (data['totalAmount'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
+              double paid = (data['paidAmount'] as num?)?.toDouble() ?? (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+              double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+
+              if (data['type'] == 'জমা' || data['type'] == 'jama' || data['type'] == 'Payment') {
+                total = 0.0;
+                paid = (data['amount'] as num?)?.toDouble() ?? 0.0;
+                due = 0.0;
+              }
+
               return [
                 data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
                 data['note'] ?? data['type'] ?? '',
-                'Tk ${(data['amount'] as num?)?.toDouble() ?? 0.0}',
-                'Tk ${(data['balance'] as num?)?.toDouble() ?? 0.0}',
+                total > 0 ? total.toStringAsFixed(2) : '-',
+                paid > 0 ? paid.toStringAsFixed(2) : '-',
+                due > 0 ? due.toStringAsFixed(2) : '-',
               ];
             }).toList(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
