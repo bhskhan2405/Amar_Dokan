@@ -546,164 +546,158 @@ class _POSScreenState extends State<POSScreen> {
       double totalCost = 0;
       double totalRevenue = _finalTotalAmount;
 
-    _cart.forEach((key, value) {
-      double costPrice = (value['costPrice'] as num).toDouble();
-      double qty = (value['qty'] as num).toDouble();
-      totalCost += costPrice * qty;
-    });
+      _cart.forEach((key, value) {
+        double costPrice = (value['costPrice'] as num).toDouble();
+        double qty = (value['qty'] as num).toDouble();
+        totalCost += costPrice * qty;
+      });
 
-    double profit = totalRevenue - totalCost;
-    final timestamp = Timestamp.now();
+      double profit = totalRevenue - totalCost;
+      final timestamp = Timestamp.now();
 
-    final cName = _customerNameController.text.trim();
-    final cPhone = _customerPhoneController.text.trim();
-    final cAddress = _customerAddressController.text.trim();
-    final double currentDue = _dueAmount;
-    final double paidAmount = double.tryParse(_cashPaidController.text.trim()) ?? 0.0;
+      final cName = _customerNameController.text.trim();
+      final cPhone = _customerPhoneController.text.trim();
+      final cAddress = _customerAddressController.text.trim();
+      final double currentDue = _dueAmount;
+      final double paidAmount = double.tryParse(_cashPaidController.text.trim()) ?? 0.0;
 
-    List<String> productNames = [];
-    _cart.forEach((key, value) {
-      productNames.add(value['name'] ?? 'Item');
-    });
-    String descText = 'POS Sale: ${productNames.join(", ")}';
+      List<String> productNames = [];
+      _cart.forEach((key, value) {
+        productNames.add(value['name'] ?? 'Item');
+      });
+      String descText = 'POS Sale: ${productNames.join(", ")}';
 
-    final saleMapData = {
-      'customerName': cName,
-      'customerPhone': cPhone,
-      'customerAddress': cAddress,
-      'paymentType': _selectedPaymentType,
-      'items': _cart.map((key, value) => MapEntry(key, value)),
-      'subTotal': _subTotalAmount,
-      'globalDiscountPercent': _globalDiscountPercent,
-      'globalDiscountTk': _globalDiscountTk,
-      'totalAmount': totalRevenue,
-      'cashPaid': paidAmount,
-      'dueAmount': currentDue,
-      'totalCost': totalCost,
-      'profit': profit,
-      'createdAt': timestamp,
-      'staffId': _currentStaffId,
-      'staffName': _currentStaffName ?? 'Admin',
-    };
+      final saleMapData = {
+        'customerName': cName,
+        'customerPhone': cPhone,
+        'customerAddress': cAddress,
+        'paymentType': _selectedPaymentType,
+        'items': _cart.map((key, value) => MapEntry(key, value)),
+        'subTotal': _subTotalAmount,
+        'globalDiscountPercent': _globalDiscountPercent,
+        'globalDiscountTk': _globalDiscountTk,
+        'totalAmount': totalRevenue,
+        'cashPaid': paidAmount,
+        'dueAmount': currentDue,
+        'totalCost': totalCost,
+        'profit': profit,
+        'createdAt': timestamp,
+        'staffId': _currentStaffId,
+        'staffName': _currentStaffName ?? 'Admin',
+      };
 
-    final firestore = FirebaseFirestore.instance;
-    final batch = firestore.batch();
+      final firestore = FirebaseFirestore.instance;
+      final batch = firestore.batch();
 
-    final salesRef = firestore.collection('users').doc(_shopId).collection('sales').doc();
-    batch.set(salesRef, saleMapData);
+      final salesRef = firestore.collection('users').doc(_shopId).collection('sales').doc();
+      batch.set(salesRef, saleMapData);
 
-    for (var entry in _cart.entries) {
-      String productId = entry.key;
-      double soldQty = (entry.value['qty'] as num).toDouble();
-      double currentStock = (entry.value['stock'] as num).toDouble();
+      for (var entry in _cart.entries) {
+        String productId = entry.key;
+        double soldQty = (entry.value['qty'] as num).toDouble();
+        double currentStock = (entry.value['stock'] as num).toDouble();
 
-      final productRef = firestore.collection('users').doc(_shopId).collection('products').doc(productId);
-      batch.update(productRef, {'stock': currentStock - soldQty});
-    }
-
-    if (cPhone.isNotEmpty && currentDue > 0) {
-      final customerQuery = await firestore
-          .collection('users')
-          .doc(_shopId)
-          .collection('customers')
-          .where('phone', isEqualTo: cPhone)
-          .get();
-
-      if (customerQuery.docs.isNotEmpty) {
-        final customerDoc = customerQuery.docs.first;
-        final customerRef = customerDoc.reference;
-
-        double existingDue = (customerDoc.data()['dueAmount'] ?? 0.0).toDouble();
-        double updatedDue = existingDue + currentDue;
-
-        batch.update(customerRef, {
-          'dueAmount': updatedDue,
-          'name': cName.isNotEmpty ? cName : customerDoc.data()['name'],
-          'address': cAddress.isNotEmpty ? cAddress : customerDoc.data()['address'],
-        });
-
-        final txnRef = customerRef.collection('transactions').doc();
-        batch.set(txnRef, {
-          'type': 'sale_due',
-          'amount': currentDue, 
-          'totalAmount': totalRevenue,
-          'paidAmount': paidAmount,
-          'cashPaid': paidAmount, // Consistent with saleMapData
-          'dueAmount': currentDue,
-          'items': _cart.map((key, value) => MapEntry(key, value)),
-          'subTotal': _subTotalAmount,
-          'globalDiscountPercent': _globalDiscountPercent,
-          'globalDiscountTk': _globalDiscountTk,
-          'customerName': cName,
-          'customerPhone': cPhone,
-          'customerAddress': cAddress,
-          'paymentType': _selectedPaymentType,
-          'staffName': _currentStaffName ?? 'Admin',
-          'note': descText,
-          'date': timestamp,
-          'createdAt': timestamp, // Consistent with ReceiptUtils
-        });
-      } else if (cName.isNotEmpty) {
-        final newCustomerRef = firestore.collection('users').doc(_shopId).collection('customers').doc();
-        batch.set(newCustomerRef, {
-          'name': cName,
-          'phone': cPhone,
-          'address': cAddress,
-          'dueAmount': currentDue,
-          'createdAt': timestamp,
-        });
-
-        final txnRef = newCustomerRef.collection('transactions').doc();
-        batch.set(txnRef, {
-          'type': 'sale_due',
-          'amount': currentDue,
-          'totalAmount': totalRevenue,
-          'paidAmount': paidAmount,
-          'cashPaid': paidAmount,
-          'dueAmount': currentDue,
-          'items': _cart.map((key, value) => MapEntry(key, value)),
-          'subTotal': _subTotalAmount,
-          'globalDiscountPercent': _globalDiscountPercent,
-          'globalDiscountTk': _globalDiscountTk,
-          'customerName': cName,
-          'customerPhone': cPhone,
-          'customerAddress': cAddress,
-          'paymentType': _selectedPaymentType,
-          'staffName': _currentStaffName ?? 'Admin',
-          'note': descText,
-          'date': timestamp,
-          'createdAt': timestamp,
-        });
-          'paidAmount': paidAmount, // মেমো রিসিটের জন্য কত জমা দিয়েছে
-          'dueAmount': currentDue,
-          'note': descText,
-          'staffName': widget.currentStaff != null ? widget.currentStaff!['name'] : 'Admin',
-          'date': timestamp,
-        });
+        final productRef = firestore.collection('users').doc(_shopId).collection('products').doc(productId);
+        batch.update(productRef, {'stock': currentStock - soldQty});
       }
-    }
 
-    await batch.commit();
+      if (cPhone.isNotEmpty && currentDue > 0) {
+        final customerQuery = await firestore
+            .collection('users')
+            .doc(_shopId)
+            .collection('customers')
+            .where('phone', isEqualTo: cPhone)
+            .get();
 
-    setState(() {
-      _cart.clear();
-      _customerNameController.clear();
-      _customerPhoneController.clear();
-      _customerAddressController.clear();
-      _globalDiscountPercentController.clear();
-      _globalDiscountTkController.clear();
-      _cashPaidController.clear();
-      _globalDiscountPercent = 0.0;
-      _globalDiscountTk = 0.0;
-      _isCashManuallyEdited = false;
-      if (!_isDefaultPaymentType) {
-        _selectedPaymentType = 'Cash';
+        if (customerQuery.docs.isNotEmpty) {
+          final customerDoc = customerQuery.docs.first;
+          final customerRef = customerDoc.reference;
+
+          double existingDue = (customerDoc.data()['dueAmount'] ?? 0.0).toDouble();
+          double updatedDue = existingDue + currentDue;
+
+          batch.update(customerRef, {
+            'dueAmount': updatedDue,
+            'name': cName.isNotEmpty ? cName : customerDoc.data()['name'],
+            'address': cAddress.isNotEmpty ? cAddress : customerDoc.data()['address'],
+          });
+
+          final txnRef = customerRef.collection('transactions').doc();
+          batch.set(txnRef, {
+            'type': 'sale_due',
+            'amount': currentDue, 
+            'totalAmount': totalRevenue,
+            'paidAmount': paidAmount,
+            'cashPaid': paidAmount,
+            'dueAmount': currentDue,
+            'items': _cart.map((key, value) => MapEntry(key, value)),
+            'subTotal': _subTotalAmount,
+            'globalDiscountPercent': _globalDiscountPercent,
+            'globalDiscountTk': _globalDiscountTk,
+            'customerName': cName,
+            'customerPhone': cPhone,
+            'customerAddress': cAddress,
+            'paymentType': _selectedPaymentType,
+            'staffName': _currentStaffName ?? 'Admin',
+            'note': descText,
+            'date': timestamp,
+            'createdAt': timestamp,
+          });
+        } else if (cName.isNotEmpty) {
+          final newCustomerRef = firestore.collection('users').doc(_shopId).collection('customers').doc();
+          batch.set(newCustomerRef, {
+            'name': cName,
+            'phone': cPhone,
+            'address': cAddress,
+            'dueAmount': currentDue,
+            'createdAt': timestamp,
+          });
+
+          final txnRef = newCustomerRef.collection('transactions').doc();
+          batch.set(txnRef, {
+            'type': 'sale_due',
+            'amount': currentDue,
+            'totalAmount': totalRevenue,
+            'paidAmount': paidAmount,
+            'cashPaid': paidAmount,
+            'dueAmount': currentDue,
+            'items': _cart.map((key, value) => MapEntry(key, value)),
+            'subTotal': _subTotalAmount,
+            'globalDiscountPercent': _globalDiscountPercent,
+            'globalDiscountTk': _globalDiscountTk,
+            'customerName': cName,
+            'customerPhone': cPhone,
+            'customerAddress': cAddress,
+            'paymentType': _selectedPaymentType,
+            'staffName': _currentStaffName ?? 'Admin',
+            'note': descText,
+            'date': timestamp,
+            'createdAt': timestamp,
+          });
+        }
       }
-    });
 
-    if (mounted) {
-      _showSuccessPopup(saleMapData);
-    }
+      await batch.commit();
+
+      setState(() {
+        _cart.clear();
+        _customerNameController.clear();
+        _customerPhoneController.clear();
+        _customerAddressController.clear();
+        _globalDiscountPercentController.clear();
+        _globalDiscountTkController.clear();
+        _cashPaidController.clear();
+        _globalDiscountPercent = 0.0;
+        _globalDiscountTk = 0.0;
+        _isCashManuallyEdited = false;
+        if (!_isDefaultPaymentType) {
+          _selectedPaymentType = 'Cash';
+        }
+      });
+
+      if (mounted) {
+        _showSuccessPopup(saleMapData);
+      }
     }); // AdManager closure
   }
 
