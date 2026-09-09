@@ -625,13 +625,23 @@ class _POSScreenState extends State<POSScreen> {
         final txnRef = customerRef.collection('transactions').doc();
         batch.set(txnRef, {
           'type': 'sale_due',
-          'amount': currentDue, // লেজারে দেখানোর জন্য শুধু বকেয়া
-          'totalAmount': totalRevenue, // মেমো রিসিটের জন্য মোট দাম
-          'paidAmount': paidAmount, // মেমো রিসিটের জন্য কত জমা দিয়েছে
+          'amount': currentDue, 
+          'totalAmount': totalRevenue,
+          'paidAmount': paidAmount,
+          'cashPaid': paidAmount, // Consistent with saleMapData
           'dueAmount': currentDue,
+          'items': _cart.map((key, value) => MapEntry(key, value)),
+          'subTotal': _subTotalAmount,
+          'globalDiscountPercent': _globalDiscountPercent,
+          'globalDiscountTk': _globalDiscountTk,
+          'customerName': cName,
+          'customerPhone': cPhone,
+          'customerAddress': cAddress,
+          'paymentType': _selectedPaymentType,
+          'staffName': _currentStaffName ?? 'Admin',
           'note': descText,
-          'staffName': widget.currentStaff != null ? widget.currentStaff!['name'] : 'Admin',
           'date': timestamp,
+          'createdAt': timestamp, // Consistent with ReceiptUtils
         });
       } else if (cName.isNotEmpty) {
         final newCustomerRef = firestore.collection('users').doc(_shopId).collection('customers').doc();
@@ -646,8 +656,24 @@ class _POSScreenState extends State<POSScreen> {
         final txnRef = newCustomerRef.collection('transactions').doc();
         batch.set(txnRef, {
           'type': 'sale_due',
-          'amount': currentDue, // লেজারে দেখানোর জন্য শুধু বকেয়া
-          'totalAmount': totalRevenue, // মেমো রিসিটের জন্য মোট দাম
+          'amount': currentDue,
+          'totalAmount': totalRevenue,
+          'paidAmount': paidAmount,
+          'cashPaid': paidAmount,
+          'dueAmount': currentDue,
+          'items': _cart.map((key, value) => MapEntry(key, value)),
+          'subTotal': _subTotalAmount,
+          'globalDiscountPercent': _globalDiscountPercent,
+          'globalDiscountTk': _globalDiscountTk,
+          'customerName': cName,
+          'customerPhone': cPhone,
+          'customerAddress': cAddress,
+          'paymentType': _selectedPaymentType,
+          'staffName': _currentStaffName ?? 'Admin',
+          'note': descText,
+          'date': timestamp,
+          'createdAt': timestamp,
+        });
           'paidAmount': paidAmount, // মেমো রিসিটের জন্য কত জমা দিয়েছে
           'dueAmount': currentDue,
           'note': descText,

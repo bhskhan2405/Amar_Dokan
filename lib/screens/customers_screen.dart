@@ -568,17 +568,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
   }
 
   Future<void> _generateSingleTransactionPdf(Map<String, dynamic> customerData, Map<String, dynamic> tData) async {
-    // এখানে আপাতত স্টেটমেন্ট জেনারেটর ব্যবহার করছি
-    await ReceiptUtils.generateCustomerStatement(
-      customerData: customerData,
-      transactions: [
-         // ডামি লিস্ট হিসেবে কারেন্ট ট্রানজেকশন পাঠানো হচ্ছে (Firebase format match করার জন্য QueryDocumentSnapshot প্রয়োজন হতে পারে, 
-         // কিন্তু ReceiptUtils এ map entry হিসেবে হ্যান্ডেল করলে সুবিধা হতো। 
-         // আমি ReceiptUtils এ list of objects সাপোর্ট করার মতো করে আপডেট করবো।)
-      ],
-      startDate: DateTime.now(),
-      endDate: DateTime.now(),
-    );
+    if (tData['type'] == 'sale_due') {
+      // যদি এটি POS থেকে আসা বকেয়া বিক্রি হয়, তবে পূর্ণাঙ্গ বিল রিসিট দেখাবে
+      await ReceiptUtils.generatePosReceipt(saleData: tData, isPrint: false);
+    } else {
+      // অন্যথায় (যেমন শুধু টাকা জমা) সাধারণ পেমেন্ট রিসিট দেখাবে
+      await ReceiptUtils.generatePosReceipt(saleData: tData, isPrint: false);
+      // নোট: ReceiptUtils.generatePosReceipt এখন সিঙ্গেল ট্রানজেকশনও হ্যান্ডেল করতে পারে 
+      // কারণ আমরা POS রিসিটের লেআউট অনুসরণ করছি।
+    }
   }
 
   Future<void> _generateShopStylePdf({

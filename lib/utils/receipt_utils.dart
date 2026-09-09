@@ -5,9 +5,10 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'translations.dart';
 
 class ReceiptUtils {
-  // --- 1. Font & Shop Info Loaders ---
+  // --- 1. Load Fonts & Shop Info ---
 
   static Future<pw.Font> _loadFont(String path) async {
     final fontData = await rootBundle.load(path);
@@ -32,7 +33,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. POS Bill Receipt (English UI, Bengali Content Support) ---
+  // --- 2. Generic Small Receipt Generator (POS Style) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -40,7 +41,6 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
 
-    // Load fonts (Regular for UI, Bold for headers)
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
@@ -48,6 +48,8 @@ class ReceiptUtils {
     String formattedDate = '';
     if (saleData['createdAt'] != null && saleData['createdAt'] is Timestamp) {
       formattedDate = DateFormat('d/M/yyyy h:mm a').format((saleData['createdAt'] as Timestamp).toDate());
+    } else if (saleData['date'] != null && saleData['date'] is Timestamp) {
+      formattedDate = DateFormat('d/M/yyyy h:mm a').format((saleData['date'] as Timestamp).toDate());
     } else {
       formattedDate = DateFormat('d/M/yyyy h:mm a').format(DateTime.now());
     }
@@ -63,72 +65,68 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              // Shop Header
               pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              // Receipt Title
-              pw.Text('CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
               pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Info Section
               _buildRow('Payment Type:', saleData['paymentType'] ?? 'Cash'),
               _buildRow('Sell By:', saleData['staffName'] ?? 'Admin'),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Table Header
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Expanded(flex: 3, child: pw.Text('Description', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 2, child: pw.Text('Discount', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 2, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                ],
-              ),
-              
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              if (items.isNotEmpty) ...[
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Expanded(flex: 3, child: pw.Text('Description', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                    pw.Expanded(flex: 2, child: pw.Text('Discount', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                    pw.Expanded(flex: 2, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                  ],
+                ),
+                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Items List
-              ...items.entries.map((entry) {
-                final item = entry.value;
-                final double qty = (item['qty'] ?? 1.0).toDouble();
-                final unit = item['unit'] ?? 'Pcs';
-                final discount = (item['discount'] ?? 0.0).toDouble();
-                final price = (item['price'] ?? 0.0).toDouble();
-                final originalPrice = (item['originalPrice'] ?? price).toDouble();
-                final itemDiscountTk = (originalPrice * discount) / 100;
+                ...items.entries.map((entry) {
+                  final item = entry.value;
+                  final double qty = (item['qty'] ?? 1.0).toDouble();
+                  final unit = item['unit'] ?? 'Pcs';
+                  final discount = (item['discount'] ?? 0.0).toDouble();
+                  final price = (item['price'] ?? 0.0).toDouble();
+                  final originalPrice = (item['originalPrice'] ?? price).toDouble();
+                  final itemDiscountTk = (originalPrice * discount) / 100;
 
-                return pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                        children: [
-                          pw.Expanded(flex: 3, child: pw.Text(item['name'] ?? '', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                          pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 7))),
-                          pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                        ],
-                      ),
-                      pw.Text('Qty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
-                    ],
-                  ),
-                );
-              }),
+                  return pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Expanded(flex: 3, child: pw.Text(item['name'] ?? '', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                            pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 7))),
+                            pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                          ],
+                        ),
+                        pw.Text('Qty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                      ],
+                    ),
+                  );
+                }),
+                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              ] else if (saleData['note'] != null) ...[
+                pw.Text('Note: ${saleData['note']}', style: const pw.TextStyle(fontSize: 8)),
+                pw.SizedBox(height: 5),
+              ],
 
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-
-              // Totals
-              _buildSummaryRow('Total', (saleData['subTotal'] ?? 0.0).toStringAsFixed(2)),
-              _buildSummaryRow('Total Amount', (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), isBold: true, fontSize: 10),
-              _buildSummaryRow('Paid', (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2)),
+              _buildSummaryRow('Total Amount', (saleData['totalAmount'] ?? saleData['amount'] ?? 0.0).toStringAsFixed(2), isBold: true, fontSize: 10),
+              _buildSummaryRow('Paid', (saleData['cashPaid'] ?? saleData['paidAmount'] ?? 0.0).toStringAsFixed(2)),
               _buildSummaryRow('Due', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
 
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
@@ -139,7 +137,6 @@ class ReceiptUtils {
               pw.Text('Sold items are not returnable.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
               pw.SizedBox(height: 8),
               
-              // Barcode logic
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: List.generate(24, (index) => pw.Container(
@@ -191,7 +188,7 @@ class ReceiptUtils {
     );
   }
 
-  // --- 3. Customer Statement (English UI) ---
+  // --- 3. Full Statement Report (A4) ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -231,7 +228,6 @@ class ReceiptUtils {
             headers: ['Date', 'Description', 'Amount', 'Balance'],
             data: transactions.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final isJama = (data['type'] == 'জমা' || data['type'] == 'jama' || data['type'] == 'Payment');
               return [
                 data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
                 data['note'] ?? data['type'] ?? '',
@@ -257,7 +253,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 4. Accounts Report (English UI) ---
+  // --- 4. Accounts Summary Report (A4) ---
 
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
@@ -310,7 +306,6 @@ class ReceiptUtils {
   }
 
   static Future<void> generateSingleAccountPdf({required Map<String, dynamic> data, required String timeString, bool isExpense = false}) async {
-    // Standardize to small format for single record
     await generatePosReceipt(saleData: data, isPrint: true);
   }
 
@@ -354,8 +349,6 @@ class ReceiptUtils {
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
   }
 
-  // --- Helper Widgets ---
-
   static pw.Widget _summaryBox(String title, String value, PdfColor color) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(10),
@@ -374,13 +367,6 @@ class ReceiptUtils {
         pw.Text(label, style: const pw.TextStyle(fontSize: 11)),
         pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
       ]),
-    );
-  }
-
-  static pw.Widget _tableCell(String text, {bool isBold = false, pw.TextAlign align = pw.TextAlign.left, PdfColor? color}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(5),
-      child: pw.Text(text, textAlign: align, style: pw.TextStyle(fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color)),
     );
   }
 }
