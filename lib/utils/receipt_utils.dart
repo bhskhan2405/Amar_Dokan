@@ -5,10 +5,9 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'translations.dart';
 
 class ReceiptUtils {
-  // --- ১. ফন্ট ও শপ ইনফো লোড করার মেথড ---
+  // --- 1. Font & Shop Info Loaders ---
 
   static Future<pw.Font> _loadFont(String path) async {
     final fontData = await rootBundle.load(path);
@@ -33,7 +32,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- ২. POS বিল রিসিট (১ নম্বর ছবির মতো নিখুঁত ডিজাইন) ---
+  // --- 2. POS Bill Receipt (English UI, Bengali Content Support) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -41,23 +40,10 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
 
-    // ফন্ট লোড করা
+    // Load fonts (Regular for UI, Bold for headers)
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
-
-    final labelTelp = AppTranslations.currentLanguage == 'bn' ? 'মোবাইল' : 'Telp.';
-    final labelCashReceipt = AppTranslations.get('cash_receipt');
-    final labelPaymentType = AppTranslations.get('payment_type');
-    final labelSellBy = AppTranslations.get('sell_by');
-    final labelDescription = AppTranslations.get('description');
-    final labelDiscount = AppTranslations.get('discount');
-    final labelPrice = AppTranslations.get('price');
-    final labelTotal = AppTranslations.get('total');
-    final labelTotalAmount = AppTranslations.get('total_revenue');
-    final labelPaid = AppTranslations.get('paid_amount');
-    final labelDue = AppTranslations.get('due');
-    final labelThankYou = AppTranslations.get('thank_you_msg');
 
     String formattedDate = '';
     if (saleData['createdAt'] != null && saleData['createdAt'] is Timestamp) {
@@ -79,33 +65,30 @@ class ReceiptUtils {
             children: [
               // Shop Header
               pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-              pw.Text('$labelTelp: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
               // Receipt Title
-              pw.Text(
-                AppTranslations.currentLanguage == 'en' ? labelCashReceipt.toUpperCase() : labelCashReceipt, 
-                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)
-              ),
+              pw.Text('CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
               pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
               // Info Section
-              _buildRow(labelPaymentType + ':', saleData['paymentType'] ?? 'Cash'),
-              _buildRow(labelSellBy + ':', saleData['staffName'] ?? 'Admin'),
+              _buildRow('Payment Type:', saleData['paymentType'] ?? 'Cash'),
+              _buildRow('Sell By:', saleData['staffName'] ?? 'Admin'),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Items Table Header
+              // Table Header
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Expanded(flex: 3, child: pw.Text(labelDescription, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 2, child: pw.Text(labelDiscount, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(flex: 2, child: pw.Text(labelPrice, textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(flex: 3, child: pw.Text('Description', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(flex: 2, child: pw.Text('Discount', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(flex: 2, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                 ],
               ),
               
@@ -143,19 +126,18 @@ class ReceiptUtils {
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
               // Totals
-              _buildSummaryRow(labelTotal, (saleData['subTotal'] ?? 0.0).toStringAsFixed(2)),
-              _buildSummaryRow(labelTotalAmount, (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), isBold: true, fontSize: 10),
-              _buildSummaryRow(labelPaid, (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2)),
-              _buildSummaryRow(labelDue, (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
+              _buildSummaryRow('Total', (saleData['subTotal'] ?? 0.0).toStringAsFixed(2)),
+              _buildSummaryRow('Total Amount', (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), isBold: true, fontSize: 10),
+              _buildSummaryRow('Paid', (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2)),
+              _buildSummaryRow('Due', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
 
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
               pw.SizedBox(height: 5),
-              pw.Text(
-                AppTranslations.currentLanguage == 'en' ? labelThankYou.toUpperCase() : labelThankYou, 
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)
-              ),
-              pw.SizedBox(height: 10),
+              pw.Text('THANK YOU!', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 2),
+              pw.Text('Sold items are not returnable.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
+              pw.SizedBox(height: 8),
               
               // Barcode logic
               pw.Row(
@@ -209,7 +191,7 @@ class ReceiptUtils {
     );
   }
 
-  // --- ৩. কাস্টমার স্টেটমেন্ট ---
+  // --- 3. Customer Statement (English UI) ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -229,32 +211,32 @@ class ReceiptUtils {
         header: (context) => pw.Column(children: [
           pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
           if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
-          pw.Text('${AppTranslations.get('mobile')}: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
           pw.Divider(),
           pw.SizedBox(height: 10),
         ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('${AppTranslations.get('customer')}: ${customerData['name']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text('${AppTranslations.get('mobile')}: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
+              pw.Text('Customer: ${customerData['name']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text('Mobile: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text(AppTranslations.get('statement'), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              pw.Text('STATEMENT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
               pw.Text('${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const pw.TextStyle(fontSize: 9)),
             ]),
           ]),
           pw.SizedBox(height: 20),
           pw.TableHelper.fromTextArray(
-            headers: [AppTranslations.get('date'), AppTranslations.get('description'), AppTranslations.get('amount'), AppTranslations.get('balance')],
+            headers: ['Date', 'Description', 'Amount', 'Balance'],
             data: transactions.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final isJama = (data['type'] == 'জমা' || data['type'] == 'jama' || data['type'] == 'Payment');
               return [
                 data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
                 data['note'] ?? data['type'] ?? '',
-                '${AppTranslations.get('currency_symbol')} ${(data['amount'] as num?)?.toDouble() ?? 0.0}',
-                '${AppTranslations.get('currency_symbol')} ${(data['balance'] as num?)?.toDouble() ?? 0.0}',
+                'Tk ${(data['amount'] as num?)?.toDouble() ?? 0.0}',
+                'Tk ${(data['balance'] as num?)?.toDouble() ?? 0.0}',
               ];
             }).toList(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
@@ -266,7 +248,7 @@ class ReceiptUtils {
             pw.Container(
               padding: const pw.EdgeInsets.all(10),
               decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue)),
-              child: pw.Text('${AppTranslations.get('total_due')}: ${AppTranslations.get('currency_symbol')} ${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+              child: pw.Text('Total Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
             )
           ]),
         ],
@@ -275,7 +257,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- ৪. হিসাব-কিতাব রিপোর্ট ---
+  // --- 4. Accounts Report (English UI) ---
 
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
@@ -290,7 +272,6 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
-    final currency = AppTranslations.get('currency_symbol');
 
     pdf.addPage(
       pw.MultiPage(
@@ -298,27 +279,27 @@ class ReceiptUtils {
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
           pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          pw.Text('${AppTranslations.get('accounts')} ${AppTranslations.get('report')}'),
+          pw.Text('ACCOUNTS REPORT'),
           pw.Text('${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
           pw.Divider(),
         ]),
         build: (context) => [
           pw.SizedBox(height: 10),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBox(AppTranslations.get('total_sale'), '$currency ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
-            _summaryBox(AppTranslations.get('total_profit'), '$currency ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
-            _summaryBox(AppTranslations.get('total_expense'), '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
+            _summaryBox('Total Sale', 'Tk ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
+            _summaryBox('Total Profit', 'Tk ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
+            _summaryBox('Total Expense', 'Tk ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
           ]),
           pw.SizedBox(height: 20),
-          pw.Text(AppTranslations.get('recent_sales'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.Text('Recent Sales', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.TableHelper.fromTextArray(
-            headers: [AppTranslations.get('date'), AppTranslations.get('customer'), AppTranslations.get('amount')],
+            headers: ['Date', 'Customer', 'Amount'],
             data: sales.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               return [
                 data['createdAt'] != null ? DateFormat('dd/MM').format((data['createdAt'] as Timestamp).toDate()) : '',
                 data['customerName'] ?? 'Cash',
-                '$currency ${(data['totalAmount'] as num?)?.toDouble() ?? 0.0}',
+                'Tk ${(data['totalAmount'] as num?)?.toDouble() ?? 0.0}',
               ];
             }).toList(),
           ),
@@ -329,7 +310,7 @@ class ReceiptUtils {
   }
 
   static Future<void> generateSingleAccountPdf({required Map<String, dynamic> data, required String timeString, bool isExpense = false}) async {
-    // সিঙ্গেল একাউন্ট রেকর্ড সাধারণত POS রিসিটের মতো ছোট প্রিন্টারে হলে ভালো হয়
+    // Standardize to small format for single record
     await generatePosReceipt(saleData: data, isPrint: true);
   }
 
@@ -373,7 +354,7 @@ class ReceiptUtils {
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
   }
 
-  // --- হেল্পার উইজেটস ---
+  // --- Helper Widgets ---
 
   static pw.Widget _summaryBox(String title, String value, PdfColor color) {
     return pw.Container(
