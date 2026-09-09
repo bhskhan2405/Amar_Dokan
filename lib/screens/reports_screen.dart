@@ -106,7 +106,7 @@ class SalesListTab extends StatelessWidget {
   const SalesListTab({super.key, required this.filterType, this.selectedDate});
 
   Future<void> _generatePdf(BuildContext context, Map<String, dynamic> saleData, String dateStr) async {
-    await ReceiptUtils.generatePosReceipt(saleData: saleData);
+    await ReceiptUtils.generatePosReceipt(saleData: saleData, isPrint: true);
   }
 
   @override

@@ -411,7 +411,7 @@ class _POSScreenState extends State<POSScreen> {
   }
 
   Future<void> _generateAndPrintBill({required bool isPrint, required Map<String, dynamic> saleData}) async {
-    await ReceiptUtils.generatePosReceipt(saleData: saleData);
+    await ReceiptUtils.generatePosReceipt(saleData: saleData, isPrint: isPrint);
   }
 
   void _showSuccessPopup(Map<String, dynamic> saleData) {
