@@ -297,7 +297,80 @@ class ReceiptUtils {
         ]),
         build: (context) => [
           pw.SizedBox(height: 10),
-          // প্রধান হিসাব সারসংক্ষেপ
+          pw.Text('Daily Transaction Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 5),
+          pw.TableHelper.fromTextArray(
+            headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary'],
+            data: () {
+              // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary]
+              Map<String, List<double>> dailyData = {};
+              
+              // বিক্রয় প্রসেস করা
+              for (var doc in sales) {
+                final data = doc.data() as Map<String, dynamic>;
+                final timestamp = data['createdAt'] as Timestamp?;
+                if (timestamp == null) continue;
+                
+                final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
+                final amount = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
+                final profit = (data['profit'] as num?)?.toDouble() ?? 0.0;
+                
+                if (!dailyData.containsKey(dateKey)) {
+                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0];
+                }
+                dailyData[dateKey]![0] += amount;
+                dailyData[dateKey]![1] += profit;
+              }
+
+              // খরচ ও বেতন প্রসেস করা
+              for (var doc in expenses) {
+                final data = doc.data() as Map<String, dynamic>;
+                final timestamp = data['createdAt'] as Timestamp?;
+                if (timestamp == null) continue;
+                
+                final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
+                final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+                final note = (data['note'] ?? '').toString();
+                bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
+
+                if (!dailyData.containsKey(dateKey)) {
+                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0];
+                }
+
+                if (isSalary) {
+                  dailyData[dateKey]![3] += amount;
+                } else {
+                  dailyData[dateKey]![2] += amount;
+                }
+              }
+
+              // তারিখ অনুযায়ী সর্ট করা (ডিসেন্ডিং)
+              var sortedKeys = dailyData.keys.toList()
+                ..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
+
+              return sortedKeys.map((date) {
+                return [
+                  date,
+                  dailyData[date]![0].toStringAsFixed(0),
+                  dailyData[date]![1].toStringAsFixed(0),
+                  dailyData[date]![2].toStringAsFixed(0),
+                  dailyData[date]![3].toStringAsFixed(0),
+                ];
+              }).toList();
+            }(),
+            headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            cellAlignment: pw.Alignment.centerLeft,
+            cellStyle: const pw.TextStyle(fontSize: 9),
+          ),
+          
+          pw.SizedBox(height: 30),
+          pw.Divider(),
+          pw.SizedBox(height: 10),
+          pw.Text('Final Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10),
+          
+          // প্রধান হিসাব সারসংক্ষেপ (নিচে নিয়ে আসা হলো)
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
             children: [
@@ -331,47 +404,6 @@ class ReceiptUtils {
                 ],
               ),
             ),
-          ),
-          
-          pw.SizedBox(height: 30),
-          pw.Text('Daily Sales Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-          pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Total Sale', 'Daily Profit'],
-            data: () {
-              // তারিখ অনুযায়ী বিক্রয় গ্রুপ করা
-              Map<String, List<double>> dailyData = {};
-              
-              for (var doc in sales) {
-                final data = doc.data() as Map<String, dynamic>;
-                final timestamp = data['createdAt'] as Timestamp?;
-                if (timestamp == null) continue;
-                
-                final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                final amount = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
-                final profit = (data['profit'] as num?)?.toDouble() ?? 0.0;
-                
-                if (!dailyData.containsKey(dateKey)) {
-                  dailyData[dateKey] = [0.0, 0.0];
-                }
-                dailyData[dateKey]![0] += amount;
-                dailyData[dateKey]![1] += profit;
-              }
-
-              // তারিখ অনুযায়ী সর্ট করা (ডিসেন্ডিং)
-              var sortedKeys = dailyData.keys.toList()
-                ..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
-
-              return sortedKeys.map((date) {
-                return [
-                  date,
-                  '$currency ${dailyData[date]![0].toStringAsFixed(2)}',
-                  '$currency ${dailyData[date]![1].toStringAsFixed(2)}',
-                ];
-              }).toList();
-            }(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellAlignment: pw.Alignment.centerLeft,
           ),
         ],
       )
