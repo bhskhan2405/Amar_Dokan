@@ -862,6 +862,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     double totalProfit = 0.0;
     double totalExpense = 0.0;
     double totalSalary = 0.0;
+    double totalBonus = 0.0;
     List<QueryDocumentSnapshot<Object?>> filteredSales = [];
     List<QueryDocumentSnapshot<Object?>> filteredExpenses = [];
 
@@ -884,14 +885,18 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       if (data == null) continue;
       Timestamp? timestamp = data['createdAt'];
       if (timestamp != null) {
-        DateTime expenseDate = timestamp.toDate();
-        if (_isDateMatched(expenseDate)) {
+        DateTime expDate = timestamp.toDate();
+        if (_isDateMatched(expDate)) {
           filteredExpenses.add(doc);
           String note = data['note'] ?? '';
-          if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
-            totalSalary += _convertToDouble(data['amount']);
+          double amt = _convertToDouble(data['amount']);
+          
+          if (note.contains('বোনাস') || note.toLowerCase().contains('bonus')) {
+            totalBonus += amt;
+          } else if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
+            totalSalary += amt;
           } else {
-            totalExpense += _convertToDouble(data['amount']);
+            totalExpense += amt;
           }
         }
       }
@@ -908,7 +913,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
                 onPressed: () {
-                  _generateDateRangePdf(filteredSales, filteredExpenses, totalSale, totalProfit, totalExpense, totalSalary, startDate!, endDate!, userId);
+                  _generateDateRangePdf(filteredSales, filteredExpenses, totalSale, totalProfit, totalExpense, totalSalary, totalBonus, startDate!, endDate!, userId);
                 },
                 icon: const Icon(Icons.picture_as_pdf),
                 label: Text(AppTranslations.get('download_pdf_range')),
@@ -1086,6 +1091,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     double monthlyTotalProfit = 0.0;
     double monthlyTotalExpense = 0.0;
     double monthlyTotalSalary = 0.0;
+    double monthlyTotalBonus = 0.0;
     List<QueryDocumentSnapshot<Object?>> monthlySales = [];
 
     for (var doc in allSales) {
@@ -1110,10 +1116,14 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
         DateTime expenseDate = timestamp.toDate();
         if (expenseDate.year == selectedDate.year && expenseDate.month == selectedDate.month) {
           String note = data['note'] ?? '';
-          if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
-            monthlyTotalSalary += _convertToDouble(data['amount']);
+          double amt = _convertToDouble(data['amount']);
+          
+          if (note.contains('বোনাস') || note.toLowerCase().contains('bonus')) {
+            monthlyTotalBonus += amt;
+          } else if (note.contains('বেতন') || note.toLowerCase().contains('salary')) {
+            monthlyTotalSalary += amt;
           } else {
-            monthlyTotalExpense += _convertToDouble(data['amount']);
+            monthlyTotalExpense += amt;
           }
         }
       }
@@ -1166,7 +1176,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                         children: [
                           Text(AppTranslations.get('expense_salary'), style: const TextStyle(color: Colors.grey, fontSize: 13)),
                           const SizedBox(height: 4),
-                          Text('${AppTranslations.get('currency_symbol')} ${(monthlyTotalExpense + monthlyTotalSalary).toStringAsFixed(2)}',
+                          Text('${AppTranslations.get('currency_symbol')} ${(monthlyTotalExpense + monthlyTotalSalary + monthlyTotalBonus).toStringAsFixed(2)}',
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
                         ],
                       ),
@@ -1323,20 +1333,16 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       double totalProfit,
       double totalExpense,
       double totalSalary,
+      double totalBonus,
       DateTime start,
       DateTime end,
       String userId) async {
     
-    // কাস্টমার ট্রানজেকশন (বাকি ও জমা) নিয়ে আসা
-    // উল্লেখ্য: collectionGroup সরাসরি ইউজারের আন্ডারে ফিল্টার করা কঠিন যদি না ডকুমেন্টে শপ আইডি থাকে।
-    // তবে আপনার বর্তমান সিস্টেমে ট্রানজেকশন গুলো সংগ্রহ করছি।
     final transSnapshot = await FirebaseFirestore.instance
         .collectionGroup('transactions')
         .get();
         
-    // বর্তমান শপ বা ইউজারের ট্রানজেকশন গুলো ফিল্টার করা (Path চেক করে)
     final List<QueryDocumentSnapshot> customerTransactions = transSnapshot.docs.where((doc) {
-      // পাথ ফরম্যাট: users/{userId}/customers/{customerId}/transactions/{transId}
       return doc.reference.path.contains(userId);
     }).toList();
 
@@ -1348,6 +1354,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       totalProfit: totalProfit,
       totalExpense: totalExpense,
       totalSalary: totalSalary,
+      totalBonus: totalBonus,
       start: start,
       end: end,
     );

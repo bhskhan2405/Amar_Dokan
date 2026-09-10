@@ -33,7 +33,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. Generic Small Receipt Generator (POS Style) ---
+  // --- 2. POS Bill Receipt (English UI, Bengali Content Support) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -65,13 +65,13 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
               pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
@@ -188,7 +188,7 @@ class ReceiptUtils {
     );
   }
 
-  // --- 3. Full Statement Report (A4) ---
+  // --- 3. Customer Statement Report (A4) ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -228,7 +228,6 @@ class ReceiptUtils {
             headers: ['Date', 'Description', 'Total', 'Paid', 'Due'],
             data: transactions.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              
               double total = (data['totalAmount'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
               double paid = (data['paidAmount'] as num?)?.toDouble() ?? (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
               double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
@@ -275,6 +274,7 @@ class ReceiptUtils {
     required double totalProfit,
     required double totalExpense,
     required double totalSalary,
+    required double totalBonus,
     required DateTime start,
     required DateTime end,
   }) async {
@@ -284,7 +284,7 @@ class ReceiptUtils {
     final shopInfo = await getShopInfo();
     final currency = AppTranslations.get('currency_symbol');
 
-    final double netProfit = totalProfit - totalExpense - totalSalary;
+    final double netProfit = totalProfit - totalExpense - totalSalary - totalBonus;
 
     pdf.addPage(
       pw.MultiPage(
@@ -303,152 +303,163 @@ class ReceiptUtils {
           pw.TableHelper.fromTextArray(
             headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
             data: () {
-              // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary, Baki, Jama]
               Map<String, List<double>> dailyData = {};
               
-              // ১. বিক্রয় প্রসেস করা
               for (var doc in sales) {
                 final data = doc.data() as Map<String, dynamic>;
                 final timestamp = data['createdAt'] as Timestamp?;
                 if (timestamp == null) continue;
-                
                 final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                final amount = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
-                final profit = (data['profit'] as num?)?.toDouble() ?? 0.0;
-                
-                if (!dailyData.containsKey(dateKey)) {
-                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-                }
-                dailyData[dateKey]![0] += amount;
-                dailyData[dateKey]![1] += profit;
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
+                dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
               }
 
-              // ২. খরচ ও বেতন প্রসেস করা
               for (var doc in expenses) {
                 final data = doc.data() as Map<String, dynamic>;
                 final timestamp = data['createdAt'] as Timestamp?;
                 if (timestamp == null) continue;
-                
                 final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
-                final note = (data['note'] ?? '').toString();
-                bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
-
-                if (!dailyData.containsKey(dateKey)) {
-                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-                }
-
-                if (isSalary) {
-                  dailyData[dateKey]![3] += amount;
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
+                String note = (data['note'] ?? '').toString().toLowerCase();
+                if (note.contains('বেতন') || note.contains('salary') || note.contains('bonus') || note.contains('বোনাস')) {
+                  dailyData[dateKey]![3] += amt;
                 } else {
-                  dailyData[dateKey]![2] += amount;
+                  dailyData[dateKey]![2] += amt;
                 }
               }
 
-              // ৩. কাস্টমার ট্রানজেকশন (বাকি ও জমা) প্রসেস করা
               for (var doc in customerTransactions) {
                 final data = doc.data() as Map<String, dynamic>;
-                // কাস্টমার ট্রানজেকশনে ফিল্ডের নাম 'date' হতে পারে
                 dynamic dateVal = data['date'] ?? data['timestamp'] ?? data['createdAt'];
                 if (dateVal == null) continue;
-                
-                DateTime tDate;
-                if (dateVal is Timestamp) {
-                  tDate = dateVal.toDate();
-                } else if (dateVal is String) {
-                  tDate = DateTime.tryParse(dateVal) ?? DateTime.now();
-                } else {
-                  continue;
-                }
-
+                DateTime tDate = dateVal is Timestamp ? dateVal.toDate() : (DateTime.tryParse(dateVal.toString()) ?? DateTime.now());
                 final dateKey = DateFormat('dd/MM/yyyy').format(tDate);
-                final type = (data['type'] ?? '').toString();
-                final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
-                final paidAmount = (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
-                if (!dailyData.containsKey(dateKey)) {
-                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-                }
-
-                if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'DUE') {
-                  dailyData[dateKey]![4] += amount; // Baki (বকেয়া বিক্রি)
-                  dailyData[dateKey]![5] += paidAmount; // ওই বিক্রির সময় কিছু জমা দিলে তা Jama তে যাবে
-                } else if (type == 'জমা' || type == 'jama' || type == 'Payment' || type == 'PAYMENT') {
-                  dailyData[dateKey]![5] += amount; // সরাসরি জমা
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                String type = (data['type'] ?? '').toString();
+                if (type == 'sale_due' || type == 'baki') {
+                  dailyData[dateKey]![4] += (data['amount'] as num?)?.toDouble() ?? 0.0;
+                  dailyData[dateKey]![5] += (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                } else {
+                  dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
                 }
               }
 
-              // তারিখ অনুযায়ী সর্ট করা (ডিসেন্ডিং)
-              var sortedKeys = dailyData.keys.toList()
-                ..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
-
-              return sortedKeys.map((date) {
-                return [
-                  date,
-                  dailyData[date]![0].toStringAsFixed(0),
-                  dailyData[date]![1].toStringAsFixed(0),
-                  dailyData[date]![2].toStringAsFixed(0),
-                  dailyData[date]![3].toStringAsFixed(0),
-                  dailyData[date]![4].toStringAsFixed(0),
-                  dailyData[date]![5].toStringAsFixed(0),
-                ];
-              }).toList();
+              var sortedKeys = dailyData.keys.toList()..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
+              return sortedKeys.map((date) => [
+                date,
+                dailyData[date]![0].toStringAsFixed(0),
+                dailyData[date]![1].toStringAsFixed(0),
+                dailyData[date]![2].toStringAsFixed(0),
+                dailyData[date]![3].toStringAsFixed(0),
+                dailyData[date]![4].toStringAsFixed(0),
+                dailyData[date]![5].toStringAsFixed(0),
+              ]).toList();
             }(),
             headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellAlignment: pw.Alignment.centerLeft,
             cellStyle: const pw.TextStyle(fontSize: 8),
           ),
           
           pw.SizedBox(height: 30),
           pw.Divider(),
-          pw.SizedBox(height: 10),
           pw.Text('Final Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 10),
           
-          // প্রধান হিসাব সারসংক্ষেপ (নিচে নিয়ে আসা হলো)
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-            children: [
-              _summaryBox('Total Sale', '$currency ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
-              _summaryBox('Gross Profit', '$currency ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
-            ]
-          ),
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
+            _summaryBox('Total Sale', '$currency ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
+            _summaryBox('Gross Profit', '$currency ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
+          ]),
           pw.SizedBox(height: 10),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-            children: [
-              _summaryBox('Total Expense', '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
-              _summaryBox('Total Salary', '$currency ${totalSalary.toStringAsFixed(2)}', PdfColors.orange),
-            ]
-          ),
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
+            _summaryBox('Total Expense', '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
+            _summaryBox('Salary & Bonus', '$currency ${(totalSalary + totalBonus).toStringAsFixed(2)}', PdfColors.orange),
+          ]),
           pw.SizedBox(height: 20),
           
-          // নিট লাভ (Net Profit) হাইলাইট
-          pw.Center(
-            child: pw.Container(
-              padding: const pw.EdgeInsets.all(15),
-              decoration: pw.BoxDecoration(
-                color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50,
-                border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2),
-                borderRadius: pw.BorderRadius.circular(10),
-              ),
-              child: pw.Column(
-                children: [
-                  pw.Text('NET PROFIT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
-                  pw.Text('$currency ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
-                ],
-              ),
+          pw.Center(child: pw.Container(
+            padding: const pw.EdgeInsets.all(15),
+            decoration: pw.BoxDecoration(
+              color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50,
+              border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2),
+              borderRadius: pw.BorderRadius.circular(10),
             ),
-          ),
+            child: pw.Column(children: [
+              pw.Text('NET PROFIT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
+              pw.Text('$currency ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
+            ]),
+          )),
         ],
       )
     );
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
+  // --- 5. Single Voucher (A4) ---
+
   static Future<void> generateSingleAccountPdf({required Map<String, dynamic> data, required String timeString, bool isExpense = false}) async {
-    await generatePosReceipt(saleData: data, isPrint: true);
+    final pdf = pw.Document();
+    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shopInfo = await getShopInfo();
+    
+    final note = data['note'] ?? '';
+    final isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
+    final String title = isSalary ? 'Salary Voucher' : 'Expense Voucher';
+
+    pdf.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
+      build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+            pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+          ]),
+          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(title.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+        ]),
+        pw.SizedBox(height: 30),
+        pw.Divider(),
+        _buildVoucherRow('Date:', timeString),
+        _buildVoucherRow('Description:', note),
+        pw.Divider(),
+        pw.SizedBox(height: 10),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
+          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
+        ]),
+        pw.Spacer(),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Column(children: [pw.Divider(width: 100), pw.Text('Authorized')]),
+          pw.Column(children: [pw.Divider(width: 100), pw.Text('Receiver')]),
+        ]),
+      ]),
+    ));
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
+  // --- Helper Widgets ---
+
+  static pw.Widget _summaryBox(String title, String value, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)),
+      child: pw.Column(children: [
+        pw.Text(title, style: const pw.TextStyle(fontSize: 8)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
+      ]),
+    );
+  }
+
+  static pw.Widget _buildVoucherRow(String label, String value) {
+    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 8), child: pw.Row(children: [
+      pw.SizedBox(width: 100, child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+      pw.Expanded(child: pw.Text(value)),
+    ]));
+  }
+
+  static pw.Widget _tableCell(String text, {bool isBold = false, pw.TextAlign align = pw.TextAlign.left, PdfColor? color}) {
+    return pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(text, textAlign: align, style: pw.TextStyle(fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color)));
   }
 
   static Future<void> shareSubscriptionCard({required String name, required String shopName, required String phone, String? plan, String? txId, String? senderDigits, String? rejectionReason, bool isActivation = false, bool isApproval = false, bool isRejection = false}) async {
@@ -478,10 +489,10 @@ class ReceiptUtils {
           pw.Divider(),
           pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: titleColor)),
           pw.SizedBox(height: 20),
-          _buildDetailsRow('Owner Name', name),
-          _buildDetailsRow('Shop Name', shopName),
-          _buildDetailsRow('Mobile', phone),
-          if (!isApproval) _buildDetailsRow('Plan', planDisplay),
+          _buildRow('Owner Name', name),
+          _buildRow('Shop Name', shopName),
+          _buildRow('Mobile', phone),
+          if (!isApproval) _buildRow('Plan', planDisplay),
           pw.Spacer(),
           pw.Text('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 9)),
           pw.Text('Thank you for choosing Amar Dokan', style: const pw.TextStyle(fontSize: 8)),
@@ -489,26 +500,5 @@ class ReceiptUtils {
       ),
     ));
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
-  }
-
-  static pw.Widget _summaryBox(String title, String value, PdfColor color) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
-      decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)),
-      child: pw.Column(children: [
-        pw.Text(title, style: const pw.TextStyle(fontSize: 8)),
-        pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
-      ]),
-    );
-  }
-
-  static pw.Widget _buildDetailsRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 5),
-      child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-        pw.Text(label, style: const pw.TextStyle(fontSize: 11)),
-        pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-      ]),
-    );
   }
 }
