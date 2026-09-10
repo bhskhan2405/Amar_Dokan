@@ -65,32 +65,32 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-              pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 9)),
+              pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
               pw.SizedBox(height: 4),
-              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-              pw.Text(formattedDate, style: pw.TextStyle(fontSize: 7)),
+              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
               
-              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
               _buildRow('Payment Type:', saleData['paymentType'] ?? 'Cash'),
               _buildRow('Sell By:', saleData['staffName'] ?? 'Admin'),
               
-              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
               if (items.isNotEmpty) ...[
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Expanded(flex: 3, child: pw.Text('Description', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                    pw.Expanded(flex: 2, child: pw.Text('Discount', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                    pw.Expanded(flex: 2, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                    pw.Expanded(flex: 3, child: pw.Text('Description', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                    pw.Expanded(flex: 2, child: pw.Text('Discount', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                    pw.Expanded(flex: 2, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                   ],
                 ),
-                pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
+                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
                 ...items.entries.map((entry) {
                   final item = entry.value;
@@ -102,26 +102,26 @@ class ReceiptUtils {
                   final itemDiscountTk = (originalPrice * discount) / 100;
 
                   return pw.Padding(
-                    padding: pw.EdgeInsets.symmetric(vertical: 2),
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Expanded(flex: 3, child: pw.Text(item['name'] ?? '', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                            pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 7))),
-                            pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                            pw.Expanded(flex: 3, child: pw.Text(item['name'] ?? '', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                            pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 7))),
+                            pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                           ],
                         ),
-                        pw.Text('Qty: $qty $unit', style: pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('Qty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
                       ],
                     ),
                   );
                 }),
-                pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
+                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               ] else if (saleData['note'] != null) ...[
-                pw.Text('Note: ${saleData['note']}', style: pw.TextStyle(fontSize: 8)),
+                pw.Text('Note: ${saleData['note']}', style: const pw.TextStyle(fontSize: 8)),
                 pw.SizedBox(height: 5),
               ],
 
@@ -129,12 +129,12 @@ class ReceiptUtils {
               _buildSummaryRow('Paid', (saleData['cashPaid'] ?? saleData['paidAmount'] ?? 0.0).toStringAsFixed(2)),
               _buildSummaryRow('Due', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
 
-              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
               pw.SizedBox(height: 5),
-              pw.Text('THANK YOU!', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.Text('THANK YOU!', style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 2),
-              pw.Text('Sold items are not returnable.', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
+              pw.Text('Sold items are not returnable.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
               pw.SizedBox(height: 8),
               
               pw.Row(
@@ -143,12 +143,12 @@ class ReceiptUtils {
                   width: index % 3 == 0 ? 3 : (index % 2 == 0 ? 1 : 2),
                   height: 25,
                   color: PdfColors.black,
-                  margin: pw.EdgeInsets.symmetric(horizontal: 0.5),
+                  margin: const pw.EdgeInsets.symmetric(horizontal: 0.5),
                 )),
               ),
               
               pw.SizedBox(height: 5),
-              pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
+              pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
           );
         },
@@ -164,12 +164,12 @@ class ReceiptUtils {
 
   static pw.Widget _buildRow(String key, String value) {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(vertical: 1),
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(key, style: pw.TextStyle(fontSize: 8)),
-          pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+          pw.Text(key, style: const pw.TextStyle(fontSize: 8)),
+          pw.Text(value, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
         ],
       ),
     );
@@ -177,7 +177,7 @@ class ReceiptUtils {
 
   static pw.Widget _buildSummaryRow(String label, String value, {bool isBold = false, double fontSize = 9}) {
     return pw.Padding(
-      padding: pw.EdgeInsets.symmetric(vertical: 1),
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
@@ -206,21 +206,21 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
-          pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-          if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: pw.TextStyle(fontSize: 10)),
-          pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10)),
+          pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+          if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
           pw.Divider(),
           pw.SizedBox(height: 10),
         ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('Customer: ${customerData['name']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text('Mobile: ${customerData['phone']}', style: pw.TextStyle(fontSize: 10)),
+              pw.Text('Customer: ${customerData['name']}', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text('Mobile: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text('STATEMENT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.Text('${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: pw.TextStyle(fontSize: 9)),
+              pw.Text('STATEMENT', style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              pw.Text('${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const pw.TextStyle(fontSize: 9)),
             ]),
           ]),
           pw.SizedBox(height: 20),
@@ -246,16 +246,16 @@ class ReceiptUtils {
                 due > 0 ? due.toStringAsFixed(2) : '-',
               ];
             }).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.blue800),
+            headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
             cellAlignment: pw.Alignment.centerLeft,
           ),
           pw.SizedBox(height: 20),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
             pw.Container(
-              padding: pw.EdgeInsets.all(10),
+              padding: const pw.EdgeInsets.all(10),
               decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue)),
-              child: pw.Text('Total Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+              child: pw.Text('Total Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
             )
           ]),
         ],
@@ -291,17 +291,17 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
-          pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
           pw.Text('ACCOUNTS REPORT'),
-          pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: pw.TextStyle(fontSize: 10)),
+          pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
           pw.Divider(),
         ]),
         build: (context) => [
           pw.SizedBox(height: 10),
-          pw.Text('Daily Transaction Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.Text('Daily Transaction Summary', style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 5),
           pw.TableHelper.fromTextArray(
-            headers: const ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
+            headers: const ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Bonus', 'Due', 'Due Pmt.'],
             data: () {
               Map<String, List<double>> dailyData = {};
               
@@ -310,7 +310,7 @@ class ReceiptUtils {
                 final timestamp = data['createdAt'] as Timestamp?;
                 if (timestamp == null) continue;
                 final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
                 dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
               }
@@ -320,10 +320,12 @@ class ReceiptUtils {
                 final timestamp = data['createdAt'] as Timestamp?;
                 if (timestamp == null) continue;
                 final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
                 double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
                 String note = (data['note'] ?? '').toString().toLowerCase();
-                if (note.contains('বেতন') || note.contains('salary') || note.contains('bonus') || note.contains('বোনাস')) {
+                if (note.contains('bonus') || note.contains('বোনাস')) {
+                  dailyData[dateKey]![4] += amt;
+                } else if (note.contains('বেতন') || note.contains('salary')) {
                   dailyData[dateKey]![3] += amt;
                 } else {
                   dailyData[dateKey]![2] += amt;
@@ -336,13 +338,13 @@ class ReceiptUtils {
                 if (dateVal == null) continue;
                 DateTime tDate = dateVal is Timestamp ? dateVal.toDate() : (DateTime.tryParse(dateVal.toString()) ?? DateTime.now());
                 final dateKey = DateFormat('dd/MM/yyyy').format(tDate);
-                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
                 String type = (data['type'] ?? '').toString();
                 if (type == 'sale_due' || type == 'baki') {
-                  dailyData[dateKey]![4] += (data['amount'] as num?)?.toDouble() ?? 0.0;
-                  dailyData[dateKey]![5] += (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
-                } else {
                   dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
+                  dailyData[dateKey]![6] += (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                } else {
+                  dailyData[dateKey]![6] += (data['amount'] as num?)?.toDouble() ?? 0.0;
                 }
               }
 
@@ -355,16 +357,17 @@ class ReceiptUtils {
                 dailyData[date]![3].toStringAsFixed(0),
                 dailyData[date]![4].toStringAsFixed(0),
                 dailyData[date]![5].toStringAsFixed(0),
+                dailyData[date]![6].toStringAsFixed(0),
               ]).toList();
             }(),
-            headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: pw.TextStyle(fontSize: 8),
+            headerStyle: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            cellStyle: const pw.TextStyle(fontSize: 7),
           ),
           
           pw.SizedBox(height: 30),
           pw.Divider(),
-          pw.Text('Final Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.Text('Final Summary', style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 10),
           
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
@@ -374,19 +377,20 @@ class ReceiptUtils {
           pw.SizedBox(height: 10),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
             _summaryBox('Total Expense', '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
-            _summaryBox('Salary & Bonus', '$currency ${(totalSalary + totalBonus).toStringAsFixed(2)}', PdfColors.orange),
+            _summaryBox('Salary', '$currency ${totalSalary.toStringAsFixed(2)}', PdfColors.orange),
+            _summaryBox('Bonus', '$currency ${totalBonus.toStringAsFixed(2)}', PdfColors.purple),
           ]),
           pw.SizedBox(height: 20),
           
           pw.Center(child: pw.Container(
-            padding: pw.EdgeInsets.all(15),
+            padding: const pw.EdgeInsets.all(15),
             decoration: pw.BoxDecoration(
               color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50,
               border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2),
               borderRadius: pw.BorderRadius.circular(10),
             ),
             child: pw.Column(children: [
-              pw.Text('NET PROFIT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
+              pw.Text('NET PROFIT', style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green900)),
               pw.Text('$currency ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
             ]),
           )),
@@ -406,7 +410,11 @@ class ReceiptUtils {
     
     final note = data['note'] ?? '';
     final isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
-    final String title = isSalary ? 'Salary Voucher' : 'Expense Voucher';
+    final isBonus = note.contains('বোনাস') || note.toLowerCase().contains('bonus');
+    
+    String title = isExpense 
+        ? (isBonus ? 'Bonus Voucher' : (isSalary ? 'Salary Voucher' : 'Expense Voucher'))
+        : 'Sale Voucher';
 
     pdf.addPage(pw.Page(
       pageFormat: PdfPageFormat.a4,
@@ -414,10 +422,10 @@ class ReceiptUtils {
       build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-            pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10)),
+            pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+            pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
           ]),
-          pw.Container(padding: pw.EdgeInsets.all(10), decoration: pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(title.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(title.toUpperCase(), style: const pw.TextStyle(fontWeight: pw.FontWeight.bold))),
         ]),
         pw.SizedBox(height: 30),
         pw.Divider(),
@@ -426,7 +434,7 @@ class ReceiptUtils {
         pw.Divider(),
         pw.SizedBox(height: 10),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-          pw.Container(padding: pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
+          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
         ]),
         pw.Spacer(),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
@@ -442,18 +450,18 @@ class ReceiptUtils {
 
   static pw.Widget _summaryBox(String title, String value, PdfColor color) {
     return pw.Container(
-      padding: pw.EdgeInsets.all(10),
+      padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)),
       child: pw.Column(children: [
-        pw.Text(title, style: pw.TextStyle(fontSize: 8)),
+        pw.Text(title, style: const pw.TextStyle(fontSize: 8)),
         pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
       ]),
     );
   }
 
   static pw.Widget _buildVoucherRow(String label, String value) {
-    return pw.Padding(padding: pw.EdgeInsets.symmetric(vertical: 8), child: pw.Row(children: [
-      pw.SizedBox(width: 100, child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 8), child: pw.Row(children: [
+      pw.SizedBox(width: 100, child: pw.Text(label, style: const pw.TextStyle(fontWeight: pw.FontWeight.bold))),
       pw.Expanded(child: pw.Text(value)),
     ]));
   }
@@ -474,12 +482,12 @@ class ReceiptUtils {
       theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
       build: (context) => pw.Container(
         decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)),
-        padding: pw.EdgeInsets.all(20),
+        padding: const pw.EdgeInsets.all(20),
         child: pw.Column(children: [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [
             pw.Image(image, width: 40, height: 40),
             pw.SizedBox(width: 10),
-            pw.Text('Amar Dokan', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Amar Dokan', style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
           ]),
           pw.SizedBox(height: 10),
           pw.Divider(),
@@ -490,8 +498,8 @@ class ReceiptUtils {
           _buildRow('Mobile', phone),
           if (!isApproval) _buildRow('Plan', planDisplay),
           pw.Spacer(),
-          pw.Text('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', style: pw.TextStyle(fontSize: 9)),
-          pw.Text('Thank you for choosing Amar Dokan', style: pw.TextStyle(fontSize: 8)),
+          pw.Text('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 9)),
+          pw.Text('Thank you for choosing Amar Dokan', style: const pw.TextStyle(fontSize: 8)),
         ]),
       ),
     ));

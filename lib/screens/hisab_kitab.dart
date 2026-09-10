@@ -958,7 +958,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                         children: [
                           Text(AppTranslations.get('expense_salary'), style: const TextStyle(color: Colors.grey, fontSize: 13)),
                           const SizedBox(height: 4),
-                          Text('${AppTranslations.get('currency_symbol')} ${(totalExpense + totalSalary).toStringAsFixed(2)}',
+                          Text('${AppTranslations.get('currency_symbol')} ${(totalExpense + totalSalary + totalBonus).toStringAsFixed(2)}',
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red)),
                         ],
                       ),
@@ -985,7 +985,11 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                       String note = data['note'] ?? 'Expense';
                       String addedBy = data['addedBy'] ?? 'N/A';
                       bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
-                      String titleLabel = isSalary ? '${AppTranslations.get('salary')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}' : '${AppTranslations.get('expense')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}';
+                      bool isBonus = note.contains('বোনাস') || note.toLowerCase().contains('bonus');
+                      
+                      String titleLabel = isBonus 
+                          ? '${AppTranslations.get('bonus')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}'
+                          : (isSalary ? '${AppTranslations.get('salary')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}' : '${AppTranslations.get('expense')}: ${AppTranslations.get('currency_symbol')} ${amt.toStringAsFixed(2)}');
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
