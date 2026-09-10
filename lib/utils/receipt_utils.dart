@@ -66,20 +66,20 @@ class ReceiptUtils {
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
               pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-              pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 9)),
               
               pw.SizedBox(height: 4),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
               
               pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-              pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
+              pw.Text(formattedDate, style: pw.TextStyle(fontSize: 7)),
               
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
 
               _buildRow('Payment Type:', saleData['paymentType'] ?? 'Cash'),
               _buildRow('Sell By:', saleData['staffName'] ?? 'Admin'),
               
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
 
               if (items.isNotEmpty) ...[
                 pw.Row(
@@ -90,7 +90,7 @@ class ReceiptUtils {
                     pw.Expanded(flex: 2, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                   ],
                 ),
-                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+                pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
 
                 ...items.entries.map((entry) {
                   final item = entry.value;
@@ -102,7 +102,7 @@ class ReceiptUtils {
                   final itemDiscountTk = (originalPrice * discount) / 100;
 
                   return pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    padding: pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
@@ -110,18 +110,18 @@ class ReceiptUtils {
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
                             pw.Expanded(flex: 3, child: pw.Text(item['name'] ?? '', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                            pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 7))),
+                            pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 7))),
                             pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                           ],
                         ),
-                        pw.Text('Qty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('Qty: $qty $unit', style: pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
                       ],
                     ),
                   );
                 }),
-                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+                pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
               ] else if (saleData['note'] != null) ...[
-                pw.Text('Note: ${saleData['note']}', style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('Note: ${saleData['note']}', style: pw.TextStyle(fontSize: 8)),
                 pw.SizedBox(height: 5),
               ],
 
@@ -129,12 +129,12 @@ class ReceiptUtils {
               _buildSummaryRow('Paid', (saleData['cashPaid'] ?? saleData['paidAmount'] ?? 0.0).toStringAsFixed(2)),
               _buildSummaryRow('Due', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
 
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.Text(divider, style: pw.TextStyle(fontSize: 8)),
               
               pw.SizedBox(height: 5),
               pw.Text('THANK YOU!', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 2),
-              pw.Text('Sold items are not returnable.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
+              pw.Text('Sold items are not returnable.', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
               pw.SizedBox(height: 8),
               
               pw.Row(
@@ -143,12 +143,12 @@ class ReceiptUtils {
                   width: index % 3 == 0 ? 3 : (index % 2 == 0 ? 1 : 2),
                   height: 25,
                   color: PdfColors.black,
-                  margin: const pw.EdgeInsets.symmetric(horizontal: 0.5),
+                  margin: pw.EdgeInsets.symmetric(horizontal: 0.5),
                 )),
               ),
               
               pw.SizedBox(height: 5),
-              pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
+              pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
           );
         },
@@ -164,11 +164,11 @@ class ReceiptUtils {
 
   static pw.Widget _buildRow(String key, String value) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      padding: pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(key, style: const pw.TextStyle(fontSize: 8)),
+          pw.Text(key, style: pw.TextStyle(fontSize: 8)),
           pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
         ],
       ),
@@ -177,7 +177,7 @@ class ReceiptUtils {
 
   static pw.Widget _buildSummaryRow(String label, String value, {bool isBold = false, double fontSize = 9}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      padding: pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
@@ -207,8 +207,8 @@ class ReceiptUtils {
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
           pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-          if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
-          pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+          if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: pw.TextStyle(fontSize: 10)),
+          pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10)),
           pw.Divider(),
           pw.SizedBox(height: 10),
         ]),
@@ -216,16 +216,16 @@ class ReceiptUtils {
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Customer: ${customerData['name']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text('Mobile: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
+              pw.Text('Mobile: ${customerData['phone']}', style: pw.TextStyle(fontSize: 10)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
               pw.Text('STATEMENT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.Text('${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text('${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: pw.TextStyle(fontSize: 9)),
             ]),
           ]),
           pw.SizedBox(height: 20),
           pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Description', 'Total', 'Paid', 'Due'],
+            headers: const ['Date', 'Description', 'Total', 'Paid', 'Due'],
             data: transactions.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               double total = (data['totalAmount'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
@@ -247,13 +247,13 @@ class ReceiptUtils {
               ];
             }).toList(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            headerDecoration: pw.BoxDecoration(color: PdfColors.blue800),
             cellAlignment: pw.Alignment.centerLeft,
           ),
           pw.SizedBox(height: 20),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
+              padding: pw.EdgeInsets.all(10),
               decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue)),
               child: pw.Text('Total Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
             )
@@ -293,7 +293,7 @@ class ReceiptUtils {
         header: (context) => pw.Column(children: [
           pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
           pw.Text('ACCOUNTS REPORT'),
-          pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: pw.TextStyle(fontSize: 10)),
           pw.Divider(),
         ]),
         build: (context) => [
@@ -301,7 +301,7 @@ class ReceiptUtils {
           pw.Text('Daily Transaction Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 5),
           pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
+            headers: const ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
             data: () {
               Map<String, List<double>> dailyData = {};
               
@@ -358,8 +358,8 @@ class ReceiptUtils {
               ]).toList();
             }(),
             headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: const pw.TextStyle(fontSize: 8),
+            headerDecoration: pw.BoxDecoration(color: PdfColors.blue800),
+            cellStyle: pw.TextStyle(fontSize: 8),
           ),
           
           pw.SizedBox(height: 30),
@@ -379,7 +379,7 @@ class ReceiptUtils {
           pw.SizedBox(height: 20),
           
           pw.Center(child: pw.Container(
-            padding: const pw.EdgeInsets.all(15),
+            padding: pw.EdgeInsets.all(15),
             decoration: pw.BoxDecoration(
               color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50,
               border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2),
@@ -415,9 +415,9 @@ class ReceiptUtils {
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
             pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-            pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+            pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10)),
           ]),
-          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(title.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+          pw.Container(padding: pw.EdgeInsets.all(10), decoration: pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(title.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
         ]),
         pw.SizedBox(height: 30),
         pw.Divider(),
@@ -426,12 +426,12 @@ class ReceiptUtils {
         pw.Divider(),
         pw.SizedBox(height: 10),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
+          pw.Container(padding: pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
         ]),
         pw.Spacer(),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Column(children: [pw.Divider(width: 100), pw.Text('Authorized')]),
-          pw.Column(children: [pw.Divider(width: 100), pw.Text('Receiver')]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), pw.Text('Authorized')]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), pw.Text('Receiver')]),
         ]),
       ]),
     ));
@@ -442,24 +442,20 @@ class ReceiptUtils {
 
   static pw.Widget _summaryBox(String title, String value, PdfColor color) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
+      padding: pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)),
       child: pw.Column(children: [
-        pw.Text(title, style: const pw.TextStyle(fontSize: 8)),
+        pw.Text(title, style: pw.TextStyle(fontSize: 8)),
         pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
       ]),
     );
   }
 
   static pw.Widget _buildVoucherRow(String label, String value) {
-    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 8), child: pw.Row(children: [
+    return pw.Padding(padding: pw.EdgeInsets.symmetric(vertical: 8), child: pw.Row(children: [
       pw.SizedBox(width: 100, child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
       pw.Expanded(child: pw.Text(value)),
     ]));
-  }
-
-  static pw.Widget _tableCell(String text, {bool isBold = false, pw.TextAlign align = pw.TextAlign.left, PdfColor? color}) {
-    return pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(text, textAlign: align, style: pw.TextStyle(fontSize: 9, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color)));
   }
 
   static Future<void> shareSubscriptionCard({required String name, required String shopName, required String phone, String? plan, String? txId, String? senderDigits, String? rejectionReason, bool isActivation = false, bool isApproval = false, bool isRejection = false}) async {
@@ -478,7 +474,7 @@ class ReceiptUtils {
       theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
       build: (context) => pw.Container(
         decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)),
-        padding: const pw.EdgeInsets.all(20),
+        padding: pw.EdgeInsets.all(20),
         child: pw.Column(children: [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [
             pw.Image(image, width: 40, height: 40),
@@ -494,8 +490,8 @@ class ReceiptUtils {
           _buildRow('Mobile', phone),
           if (!isApproval) _buildRow('Plan', planDisplay),
           pw.Spacer(),
-          pw.Text('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 9)),
-          pw.Text('Thank you for choosing Amar Dokan', style: const pw.TextStyle(fontSize: 8)),
+          pw.Text('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', style: pw.TextStyle(fontSize: 9)),
+          pw.Text('Thank you for choosing Amar Dokan', style: pw.TextStyle(fontSize: 8)),
         ]),
       ),
     ));
