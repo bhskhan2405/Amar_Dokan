@@ -301,7 +301,7 @@ class ReceiptUtils {
           pw.Text('Daily Transaction Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 5),
           pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Baki', 'Jama'],
+            headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
             data: () {
               // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary, Baki, Jama]
               Map<String, List<double>> dailyData = {};
