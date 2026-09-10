@@ -284,7 +284,8 @@ class ReceiptUtils {
     final shopInfo = await getShopInfo();
     final currency = AppTranslations.get('currency_symbol');
 
-    final double netProfit = totalProfit - totalExpense - totalSalary - totalBonus;
+    final double combinedSalary = totalSalary + totalBonus;
+    final double netProfit = totalProfit - totalExpense - combinedSalary;
 
     pdf.addPage(
       pw.MultiPage(
@@ -301,8 +302,9 @@ class ReceiptUtils {
           pw.Text('Daily Transaction Summary', style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 5),
           pw.TableHelper.fromTextArray(
-            headers: const ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Bonus', 'Due', 'Due Pmt.'],
+            headers: const ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
             data: () {
+              // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary (Basic+Bonus), Due, Due Pmt]
               Map<String, List<double>> dailyData = {};
               
               for (var doc in sales) {
@@ -310,7 +312,7 @@ class ReceiptUtils {
                 final timestamp = data['createdAt'] as Timestamp?;
                 if (timestamp == null) continue;
                 final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
               }
@@ -320,12 +322,12 @@ class ReceiptUtils {
                 final timestamp = data['createdAt'] as Timestamp?;
                 if (timestamp == null) continue;
                 final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
                 String note = (data['note'] ?? '').toString().toLowerCase();
-                if (note.contains('bonus') || note.contains('বোনাস')) {
-                  dailyData[dateKey]![4] += amt;
-                } else if (note.contains('বেতন') || note.contains('salary')) {
+                
+                // বেতন বা বোনাস দুইই স্যালারি কলামে যোগ হবে
+                if (note.contains('বেতন') || note.contains('salary') || note.contains('bonus') || note.contains('বোনাস')) {
                   dailyData[dateKey]![3] += amt;
                 } else {
                   dailyData[dateKey]![2] += amt;
@@ -338,13 +340,13 @@ class ReceiptUtils {
                 if (dateVal == null) continue;
                 DateTime tDate = dateVal is Timestamp ? dateVal.toDate() : (DateTime.tryParse(dateVal.toString()) ?? DateTime.now());
                 final dateKey = DateFormat('dd/MM/yyyy').format(tDate);
-                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
+                if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 String type = (data['type'] ?? '').toString();
                 if (type == 'sale_due' || type == 'baki') {
-                  dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
-                  dailyData[dateKey]![6] += (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                  dailyData[dateKey]![4] += (data['amount'] as num?)?.toDouble() ?? 0.0;
+                  dailyData[dateKey]![5] += (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
                 } else {
-                  dailyData[dateKey]![6] += (data['amount'] as num?)?.toDouble() ?? 0.0;
+                  dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
                 }
               }
 
@@ -357,7 +359,6 @@ class ReceiptUtils {
                 dailyData[date]![3].toStringAsFixed(0),
                 dailyData[date]![4].toStringAsFixed(0),
                 dailyData[date]![5].toStringAsFixed(0),
-                dailyData[date]![6].toStringAsFixed(0),
               ]).toList();
             }(),
             headerStyle: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
@@ -377,8 +378,7 @@ class ReceiptUtils {
           pw.SizedBox(height: 10),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
             _summaryBox('Total Expense', '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
-            _summaryBox('Salary', '$currency ${totalSalary.toStringAsFixed(2)}', PdfColors.orange),
-            _summaryBox('Bonus', '$currency ${totalBonus.toStringAsFixed(2)}', PdfColors.purple),
+            _summaryBox('Salary & Bonus', '$currency ${combinedSalary.toStringAsFixed(2)}', PdfColors.orange),
           ]),
           pw.SizedBox(height: 20),
           
@@ -410,11 +410,11 @@ class ReceiptUtils {
     
     final note = data['note'] ?? '';
     final isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
-    final isBonus = note.contains('বোনাস') || note.toLowerCase().contains('bonus');
-    
-    String title = isExpense 
-        ? (isBonus ? 'Bonus Voucher' : (isSalary ? 'Salary Voucher' : 'Expense Voucher'))
-        : 'Sale Voucher';
+    final double basicSalary = (data['basicSalary'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
+    final double bonus = (data['bonus'] as num?)?.toDouble() ?? 0.0;
+    final double totalAmount = (data['amount'] as num?)?.toDouble() ?? (basicSalary + bonus);
+
+    final String title = isSalary ? 'Salary Voucher' : 'Expense Voucher';
 
     pdf.addPage(pw.Page(
       pageFormat: PdfPageFormat.a4,
@@ -430,11 +430,16 @@ class ReceiptUtils {
         pw.SizedBox(height: 30),
         pw.Divider(),
         _buildVoucherRow('Date:', timeString),
+        _buildVoucherRow('Category:', isSalary ? 'Employee Salary' : 'Business Expense'),
+        if (isSalary) ...[
+          _buildVoucherRow('Basic Salary:', 'Tk ${basicSalary.toStringAsFixed(2)}'),
+          _buildVoucherRow('Bonus:', 'Tk ${bonus.toStringAsFixed(2)}'),
+        ],
         _buildVoucherRow('Description:', note),
         pw.Divider(),
         pw.SizedBox(height: 10),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
+          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('TOTAL: Tk ${totalAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900))),
         ]),
         pw.Spacer(),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [

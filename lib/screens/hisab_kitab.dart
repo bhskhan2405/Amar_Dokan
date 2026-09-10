@@ -399,12 +399,13 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     );
   }
 
-  void _showPaySalaryDialog(BuildContext context, String userId, String employeeId, String empName, double baseSalary) async {
+  void _showPaySalaryDialog(BuildContext context, String userId, String employeeId, String empName, double baseSalary, double defaultBonus) async {
     bool authorized = await _verifyPin(context, userId);
     if (!authorized) return;
 
     final amountController = TextEditingController(text: baseSalary.toString());
-    final noteController = TextEditingController(text: 'মাসিক বেতন পরিশোধ');
+    final bonusController = TextEditingController(text: defaultBonus.toString());
+    final noteController = TextEditingController(text: 'Monthly salary and bonus payment');
 
     if (!context.mounted) return;
 
@@ -419,7 +420,13 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: AppTranslations.get('payment_amount_tk')),
+                decoration: InputDecoration(labelText: AppTranslations.get('salary_label') + ' (Tk)'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: bonusController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: AppTranslations.get('bonus') + ' (Tk)'),
               ),
               const SizedBox(height: 10),
               TextField(
@@ -436,9 +443,21 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
               onPressed: () async {
-                double paidAmount = double.tryParse(amountController.text) ?? 0.0;
-                if (paidAmount > 0) {
+                double paidSalary = double.tryParse(amountController.text) ?? 0.0;
+                double paidBonus = double.tryParse(bonusController.text) ?? 0.0;
+                double totalPaid = paidSalary + paidBonus;
+
+                if (totalPaid > 0) {
                   String paidBy = await _getCurrentUserName();
+
+                  final paymentData = {
+                    'amount': totalPaid,
+                    'basicSalary': paidSalary,
+                    'bonus': paidBonus,
+                    'note': noteController.text.trim(),
+                    'paidBy': paidBy,
+                    'createdAt': Timestamp.now(),
+                  };
 
                   await FirebaseFirestore.instance
                       .collection('users')
@@ -446,20 +465,17 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                       .collection('employees')
                       .doc(employeeId)
                       .collection('payments')
-                      .add({
-                    'amount': paidAmount,
-                    'note': noteController.text.trim(),
-                    'paidBy': paidBy, // মাল্টিপল ইউজার অপশন
-                    'createdAt': Timestamp.now(),
-                  });
+                      .add(paymentData);
 
                   await FirebaseFirestore.instance
                       .collection('users')
                       .doc(userId)
                       .collection('expenses')
                       .add({
-                    'amount': paidAmount,
-                    'note': '${AppTranslations.get('salary')}: $empName (${noteController.text.trim()}) [By: $paidBy]',
+                    'amount': totalPaid,
+                    'basicSalary': paidSalary,
+                    'bonus': paidBonus,
+                    'note': '${AppTranslations.get('salary')}: $empName (${noteController.text.trim()})',
                     'addedBy': paidBy,
                     'createdAt': Timestamp.now(),
                   });
@@ -1307,7 +1323,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
                       onPressed: () {
-                        _showPaySalaryDialog(context, userId, empId, name, salary);
+                        _showPaySalaryDialog(context, userId, empId, name, salary, bonus);
                       },
                       icon: const Icon(Icons.payment, size: 16),
                       label: Text(AppTranslations.get('pay_salary')),
