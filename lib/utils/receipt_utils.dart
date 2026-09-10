@@ -65,7 +65,7 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
               pw.SizedBox(height: 4),
@@ -301,16 +301,16 @@ class ReceiptUtils {
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
             children: [
-              _summaryBox('Total Sale', 'Tk ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
-              _summaryBox('Gross Profit', 'Tk ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
+              _summaryBox('Total Sale', '$currency ${totalSale.toStringAsFixed(2)}', PdfColors.blue),
+              _summaryBox('Gross Profit', '$currency ${totalProfit.toStringAsFixed(2)}', PdfColors.green),
             ]
           ),
           pw.SizedBox(height: 10),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
             children: [
-              _summaryBox('Total Expense', 'Tk ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
-              _summaryBox('Total Salary', 'Tk ${totalSalary.toStringAsFixed(2)}', PdfColors.orange),
+              _summaryBox('Total Expense', '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red),
+              _summaryBox('Total Salary', '$currency ${totalSalary.toStringAsFixed(2)}', PdfColors.orange),
             ]
           ),
           pw.SizedBox(height: 20),
@@ -327,26 +327,51 @@ class ReceiptUtils {
               child: pw.Column(
                 children: [
                   pw.Text('NET PROFIT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
-                  pw.Text('Tk ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
+                  pw.Text('$currency ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900)),
                 ],
               ),
             ),
           ),
           
           pw.SizedBox(height: 30),
-          pw.Text('Recent Sales History', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.Text('Daily Sales Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Customer', 'Amount'],
-            data: sales.take(50).map((doc) { // শুধুমাত্র প্রথম ৫০টি দেখাবে যাতে পিডিএফ অনেক বড় না হয়
-              final data = doc.data() as Map<String, dynamic>;
-              return [
-                data['createdAt'] != null ? DateFormat('dd/MM').format((data['createdAt'] as Timestamp).toDate()) : '',
-                data['customerName'] ?? 'Cash',
-                'Tk ${(data['totalAmount'] as num?)?.toDouble() ?? 0.0}',
-              ];
-            }).toList(),
+            headers: ['Date', 'Total Sale', 'Daily Profit'],
+            data: () {
+              // তারিখ অনুযায়ী বিক্রয় গ্রুপ করা
+              Map<String, List<double>> dailyData = {};
+              
+              for (var doc in sales) {
+                final data = doc.data() as Map<String, dynamic>;
+                final timestamp = data['createdAt'] as Timestamp?;
+                if (timestamp == null) continue;
+                
+                final dateKey = DateFormat('dd/MM/yyyy').format(timestamp.toDate());
+                final amount = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
+                final profit = (data['profit'] as num?)?.toDouble() ?? 0.0;
+                
+                if (!dailyData.containsKey(dateKey)) {
+                  dailyData[dateKey] = [0.0, 0.0];
+                }
+                dailyData[dateKey]![0] += amount;
+                dailyData[dateKey]![1] += profit;
+              }
+
+              // তারিখ অনুযায়ী সর্ট করা (ডিসেন্ডিং)
+              var sortedKeys = dailyData.keys.toList()
+                ..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
+
+              return sortedKeys.map((date) {
+                return [
+                  date,
+                  '$currency ${dailyData[date]![0].toStringAsFixed(2)}',
+                  '$currency ${dailyData[date]![1].toStringAsFixed(2)}',
+                ];
+              }).toList();
+            }(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            cellAlignment: pw.Alignment.centerLeft,
           ),
         ],
       )
