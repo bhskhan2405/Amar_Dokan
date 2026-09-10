@@ -71,7 +71,7 @@ class ReceiptUtils {
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.Text(saleData['type'] == 'sale_due' ? 'CREDIT SALE' : 'CASH RECEIPT', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
               pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
@@ -270,6 +270,7 @@ class ReceiptUtils {
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
     required List<QueryDocumentSnapshot> expenses,
+    required List<QueryDocumentSnapshot> customerTransactions,
     required double totalSale,
     required double totalProfit,
     required double totalExpense,
@@ -300,12 +301,12 @@ class ReceiptUtils {
           pw.Text('Daily Transaction Summary', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 5),
           pw.TableHelper.fromTextArray(
-            headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary'],
+            headers: ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Baki', 'Jama'],
             data: () {
-              // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary]
+              // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary, Baki, Jama]
               Map<String, List<double>> dailyData = {};
               
-              // বিক্রয় প্রসেস করা
+              // ১. বিক্রয় প্রসেস করা
               for (var doc in sales) {
                 final data = doc.data() as Map<String, dynamic>;
                 final timestamp = data['createdAt'] as Timestamp?;
@@ -316,13 +317,13 @@ class ReceiptUtils {
                 final profit = (data['profit'] as num?)?.toDouble() ?? 0.0;
                 
                 if (!dailyData.containsKey(dateKey)) {
-                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0];
+                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
                 }
                 dailyData[dateKey]![0] += amount;
                 dailyData[dateKey]![1] += profit;
               }
 
-              // খরচ ও বেতন প্রসেস করা
+              // ২. খরচ ও বেতন প্রসেস করা
               for (var doc in expenses) {
                 final data = doc.data() as Map<String, dynamic>;
                 final timestamp = data['createdAt'] as Timestamp?;
@@ -334,13 +335,46 @@ class ReceiptUtils {
                 bool isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
 
                 if (!dailyData.containsKey(dateKey)) {
-                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0];
+                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
                 }
 
                 if (isSalary) {
                   dailyData[dateKey]![3] += amount;
                 } else {
                   dailyData[dateKey]![2] += amount;
+                }
+              }
+
+              // ৩. কাস্টমার ট্রানজেকশন (বাকি ও জমা) প্রসেস করা
+              for (var doc in customerTransactions) {
+                final data = doc.data() as Map<String, dynamic>;
+                // কাস্টমার ট্রানজেকশনে ফিল্ডের নাম 'date' হতে পারে
+                dynamic dateVal = data['date'] ?? data['timestamp'] ?? data['createdAt'];
+                if (dateVal == null) continue;
+                
+                DateTime tDate;
+                if (dateVal is Timestamp) {
+                  tDate = dateVal.toDate();
+                } else if (dateVal is String) {
+                  tDate = DateTime.tryParse(dateVal) ?? DateTime.now();
+                } else {
+                  continue;
+                }
+
+                final dateKey = DateFormat('dd/MM/yyyy').format(tDate);
+                final type = (data['type'] ?? '').toString();
+                final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+                final paidAmount = (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
+
+                if (!dailyData.containsKey(dateKey)) {
+                  dailyData[dateKey] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+                }
+
+                if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'DUE') {
+                  dailyData[dateKey]![4] += amount; // Baki (বকেয়া বিক্রি)
+                  dailyData[dateKey]![5] += paidAmount; // ওই বিক্রির সময় কিছু জমা দিলে তা Jama তে যাবে
+                } else if (type == 'জমা' || type == 'jama' || type == 'Payment' || type == 'PAYMENT') {
+                  dailyData[dateKey]![5] += amount; // সরাসরি জমা
                 }
               }
 
@@ -355,13 +389,15 @@ class ReceiptUtils {
                   dailyData[date]![1].toStringAsFixed(0),
                   dailyData[date]![2].toStringAsFixed(0),
                   dailyData[date]![3].toStringAsFixed(0),
+                  dailyData[date]![4].toStringAsFixed(0),
+                  dailyData[date]![5].toStringAsFixed(0),
                 ];
               }).toList();
             }(),
-            headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
             cellAlignment: pw.Alignment.centerLeft,
-            cellStyle: const pw.TextStyle(fontSize: 9),
+            cellStyle: const pw.TextStyle(fontSize: 8),
           ),
           
           pw.SizedBox(height: 30),

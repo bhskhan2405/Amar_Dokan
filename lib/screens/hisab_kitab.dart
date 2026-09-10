@@ -1327,9 +1327,23 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       DateTime end,
       String userId) async {
     
+    // কাস্টমার ট্রানজেকশন (বাকি ও জমা) নিয়ে আসা
+    // উল্লেখ্য: collectionGroup সরাসরি ইউজারের আন্ডারে ফিল্টার করা কঠিন যদি না ডকুমেন্টে শপ আইডি থাকে।
+    // তবে আপনার বর্তমান সিস্টেমে ট্রানজেকশন গুলো সংগ্রহ করছি।
+    final transSnapshot = await FirebaseFirestore.instance
+        .collectionGroup('transactions')
+        .get();
+        
+    // বর্তমান শপ বা ইউজারের ট্রানজেকশন গুলো ফিল্টার করা (Path চেক করে)
+    final List<QueryDocumentSnapshot> customerTransactions = transSnapshot.docs.where((doc) {
+      // পাথ ফরম্যাট: users/{userId}/customers/{customerId}/transactions/{transId}
+      return doc.reference.path.contains(userId);
+    }).toList();
+
     await ReceiptUtils.generateAccountsReport(
       sales: salesDocs,
       expenses: expenseDocs,
+      customerTransactions: customerTransactions,
       totalSale: totalSale,
       totalProfit: totalProfit,
       totalExpense: totalExpense,
