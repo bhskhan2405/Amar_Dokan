@@ -82,9 +82,42 @@ class SubscriptionUtils {
           if (data.containsKey('subscriptionExpiryDate')) {
             await prefs.setString('subscription_expiry_date', (data['subscriptionExpiryDate'] as Timestamp).toDate().toIso8601String());
           }
+          // প্ল্যান এবং অতিরিক্ত স্টাফ স্লট সিঙ্ক করা
+          if (data.containsKey('plan')) {
+            await prefs.setString('subscription_plan', data['plan'].toString());
+          }
+          if (data.containsKey('extraStaffSlots')) {
+            await prefs.setInt('extra_staff_slots', (data['extraStaffSlots'] as num).toInt());
+          }
         }
       }
     } catch (_) {}
+  }
+
+  // স্টাফ লিমিট পাওয়ার মেথড
+  static Future<int> getStaffLimit() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // সুপার এডমিন হলে লিমিট নাই (বিশাল সংখ্যা)
+    if (await isSuperAdmin()) return 1000;
+    
+    // প্রিমিয়াম না হলে স্টাফ এড করা নিষেধ (আপনার আগে থেকে থাকা রুল)
+    if (!(await isPremium())) return 0;
+    
+    String plan = prefs.getString('subscription_plan') ?? '';
+    int extraSlots = prefs.getInt('extra_staff_slots') ?? 0;
+    
+    int baseLimit = 0;
+    if (plan == '3_months') {
+      baseLimit = 3;
+    } else if (plan == '6_months' || plan == '12_months') {
+      baseLimit = 5;
+    } else {
+      // যদি প্রিমিয়াম হয় কিন্তু প্ল্যান না থাকে (যেমন ট্রায়াল যদি ভবিষ্যতে চালু করেন)
+      baseLimit = 1; 
+    }
+    
+    return baseLimit + extraSlots;
   }
 
   static Widget premiumIcon({double size = 20}) {

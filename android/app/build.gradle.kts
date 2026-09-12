@@ -26,6 +26,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -55,8 +56,8 @@ android {
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
             
-            isMinifyEnabled = true 
-            isShrinkResources = true 
+            isMinifyEnabled = false 
+            isShrinkResources = false 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -70,4 +71,5 @@ flutter {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

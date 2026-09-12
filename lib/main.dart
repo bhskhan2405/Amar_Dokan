@@ -5,8 +5,19 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // ফায়ারবেস অথ ইমপোর্ট করা হলো
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // ফায়ারস্টোর ইমপোর্ট করা হলো
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'screens/auth_gate.dart';
 import 'utils/translations.dart';
+import 'utils/fcm_service.dart';
+
+// গ্লোবাল নেভিগেটর কি
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// ব্যাকগ্রাউন্ড নোটিফিকেশন হ্যান্ডলার
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 // গ্লোবাল হেল্পার ফাংশন: এটি চেক করবে ইউজার নিজে দোকানদার নাকি কোনো স্টাফ।
 // স্টাফ হলে মূল দোকানদারের shopId রিটার্ন করবে, নতুবা নিজের uid রিটার্ন করবে।
@@ -57,6 +68,10 @@ void main() async {
   // ভাষা লোড করা
   await AppTranslations.loadLanguage();
 
+  // FCM ইনিশিয়ালাইজ করা
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await FcmService.initialize();
+
   runApp(const MyApp());
 }
 
@@ -96,6 +111,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: AppTranslations.get('app_name'),
       theme: ThemeData(primarySwatch: Colors.blue),

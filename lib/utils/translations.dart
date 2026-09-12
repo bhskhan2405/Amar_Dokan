@@ -317,6 +317,12 @@ class AppTranslations {
     'provided_by': {'en': 'By:', 'bn': 'প্রদানকারী:'},
     'yes_delete': {'en': 'Yes, Delete', 'bn': 'হ্যাঁ, মুছুন'},
     'delete_staff_msg': {'en': 'Are you sure to delete this staff?', 'bn': 'আপনি কি এই স্টাফকে মুছে ফেলতে নিশ্চিত?'},
+    'staff_limit_reached': {'en': 'Staff Limit Reached!', 'bn': 'স্টাফ লিমিট পূর্ণ হয়েছে!'},
+    'buy_slot_msg': {'en': 'Fee of 100 TK is applicable for each extra staff slot.', 'bn': 'অতিরিক্ত স্টাফ প্রতি ১০০ টাকা ফি প্রযোজ্য।'},
+    'buy_extra_staff': {'en': 'Buy Extra Staff Slot', 'bn': 'অতিরিক্ত স্টাফ স্লট কিনুন'},
+    'buy_now': {'en': 'Buy Now', 'bn': 'এখনই কিনুন'},
+    'extra_staff_price': {'en': '100 TK per slot', 'bn': 'প্রতি স্লট ১০০ টাকা'},
+    'buy_premium_staf_msg': {'en': 'To add more staff, please buy extra slots.', 'bn': 'আরও স্টাফ যোগ করতে অতিরিক্ত স্লট কিনুন।'},
     'not_logged_in': {'en': 'Not logged in!', 'bn': 'লগইন করা নেই!'},
     'edit_info': {'en': 'Edit Info', 'bn': 'তথ্য পরিবর্তন'},
 
@@ -537,6 +543,8 @@ class AppTranslations {
     'total_revenue': {'en': 'Total Amount', 'bn': 'মোট টাকা'},
     'paid_amount': {'en': 'Paid Amount', 'bn': 'পরিশোধিত টাকা'},
     'sub_total': {'en': 'Sub Total', 'bn': 'উপ-মোট'},
+    'no_record_found': {'en': 'No record found.', 'bn': 'কোনো হিসাব পাওয়া যায়নি।'},
+    'no_payment_record': {'en': 'No payment record found.', 'bn': 'কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।'},
   };
 
   static String get(String key) {

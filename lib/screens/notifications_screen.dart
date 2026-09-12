@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../utils/notification_utils.dart';
 import '../utils/translations.dart';
 import '../widgets/custom_banner_ad.dart';
+import 'notification_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final bool isAdmin;
@@ -268,6 +269,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               if (!isRead) {
                                 NotificationUtils.markAsRead(id);
                               }
+                              // ডিটেইলস পেজে যাওয়া
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NotificationDetailScreen(notificationData: data),
+                                ),
+                              );
                             }
                           },
                         ),

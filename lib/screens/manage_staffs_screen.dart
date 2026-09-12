@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../utils/translations.dart';
 import '../widgets/custom_banner_ad.dart';
+import '../utils/subscription_utils.dart';
+import 'subscription_screen.dart';
 
 class ManageStaffsScreen extends StatefulWidget {
   const ManageStaffsScreen({super.key});
@@ -129,7 +131,28 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   }
 
   // স্টাফ যোগ বা এডিট করার ডায়ালগ বক্স
-  void _showStaffDialog(BuildContext context, String adminUid, {Map<String, dynamic>? staffData, String? staffId}) {
+  void _showStaffDialog(BuildContext context, String adminUid, {Map<String, dynamic>? staffData, String? staffId}) async {
+    bool isEditing = staffId != null;
+
+    if (!isEditing) {
+      _isLoadingNotifier.value = true;
+      try {
+        int currentLimit = await SubscriptionUtils.getStaffLimit();
+        var snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(adminUid)
+            .collection('staffs')
+            .get();
+        
+        if (snapshot.docs.length >= currentLimit) {
+          if (context.mounted) _showLimitDialog(context);
+          return;
+        }
+      } finally {
+        _isLoadingNotifier.value = false;
+      }
+    }
+
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: staffData?['name'] ?? '');
     final phoneController = TextEditingController(text: staffData?['phone'] ?? '');
@@ -144,8 +167,6 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
     bool canPosSale = permissions['pos_sale'] ?? true;
     bool canAccounts = permissions['accounts'] ?? false;
     bool canCustomer = permissions['customer'] ?? permissions['can_customer'] ?? true;
-
-    bool isEditing = staffId != null;
 
     showDialog(
       context: context,
@@ -271,6 +292,36 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
           },
         );
       },
+    );
+  }
+
+  void _showLimitDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppTranslations.get('staff_limit_reached'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 50, color: Colors.red),
+            const SizedBox(height: 15),
+            Text(AppTranslations.get('buy_premium_staf_msg'), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(AppTranslations.get('buy_slot_msg'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel'))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+            },
+            child: Text(AppTranslations.get('buy_now')),
+          ),
+        ],
+      ),
     );
   }
 

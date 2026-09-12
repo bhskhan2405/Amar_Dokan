@@ -93,6 +93,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         'shopName': userData['shopName'] ?? 'No Shop',
         'phone': userData['phone'] ?? 'No Phone',
         'plan': _selectedPlan,
+        'type': _selectedPlan == 'extra_staff' ? 'extra_staff' : 'plan',
         'txId': txId,
         'senderDigits': senderDigits,
         'status': 'pending',
@@ -104,7 +105,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ? (AppTranslations.currentLanguage == 'bn' ? '৩ মাস' : '3 Months') 
         : (_selectedPlan == '6_months' 
           ? (AppTranslations.currentLanguage == 'bn' ? '৬ মাস' : '6 Months') 
-          : (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months'));
+          : (_selectedPlan == '12_months' 
+            ? (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months')
+            : AppTranslations.get('buy_extra_staff')));
           
       await NotificationUtils.notifyAdmin(
         title: AppTranslations.currentLanguage == 'bn' ? "নতুন সাবস্ক্রিপশন রিকোয়েস্ট" : "New Subscription Request",
@@ -119,6 +122,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         'shopName': userData['shopName'] ?? 'No Shop',
         'phone': userData['phone'] ?? 'No Phone',
         'plan': _selectedPlan,
+        'type': _selectedPlan == 'extra_staff' ? 'extra_staff' : 'plan',
         'txId': txId,
         'senderDigits': senderDigits,
         'status': 'pending',
@@ -194,6 +198,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               icon: Icons.verified_rounded,
               color: Colors.indigo.shade800,
             ),
+            _buildPlanCard(
+              id: 'extra_staff',
+              title: AppTranslations.get('buy_extra_staff'),
+              icon: Icons.person_add_alt_1_rounded,
+              color: Colors.orange.shade800,
+            ),
 
             if (_selectedPlan != null) ...[
               const SizedBox(height: 24),
@@ -219,21 +229,42 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _paymentPhone,
+                          _selectedPlan == 'extra_staff' 
+                            ? AppTranslations.get('extra_staff_price')
+                            : _paymentPhone,
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                         ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.copy_all_rounded, color: Colors.blueAccent),
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: _paymentPhone));
-                            _showSnackBar(AppTranslations.get('number_copied'));
-                          },
-                          tooltip: AppTranslations.get('copy_payment_number'),
-                        ),
+                        if (_selectedPlan != 'extra_staff') ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.copy_all_rounded, color: Colors.blueAccent),
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: _paymentPhone));
+                              _showSnackBar(AppTranslations.get('number_copied'));
+                            },
+                            tooltip: AppTranslations.get('copy_payment_number'),
+                          ),
+                        ],
                       ],
                     ),
+                    if (_selectedPlan == 'extra_staff') ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _paymentPhone,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.copy_all_rounded, color: Colors.blueAccent, size: 20),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: _paymentPhone));
+                          _showSnackBar(AppTranslations.get('number_copied'));
+                        },
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
                     const Divider(height: 24),
                     Text(
                       AppTranslations.get('whatsapp_instruction'),
@@ -347,7 +378,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           leading: CircleAvatar(
-            backgroundColor: color.withOpacity(0.1),
+            backgroundColor: color.withValues(alpha: 0.1),
             child: Icon(icon, color: color),
           ),
           title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isSelected ? color : Colors.black87)),
@@ -363,7 +394,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ? (AppTranslations.currentLanguage == 'bn' ? '৩ মাস' : '3 Months') 
       : (plan == '6_months' 
         ? (AppTranslations.currentLanguage == 'bn' ? '৬ মাস' : '6 Months') 
-        : (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months'));
+        : (plan == '12_months' 
+          ? (AppTranslations.currentLanguage == 'bn' ? '১২ মাস' : '12 Months')
+          : AppTranslations.get('buy_extra_staff')));
         
     return Center(
       child: Padding(
