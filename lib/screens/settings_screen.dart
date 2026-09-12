@@ -10,7 +10,8 @@ import 'user_approval_screen.dart';
 import 'subscription_screen.dart';
 import 'account_settings_screen.dart'; // নতুন স্ক্রিন ইমপোর্ট
 import '../utils/translations.dart';
-import '../utils/notification_utils.dart'; // নোটিফিকেশন ইউটিলিটি ইমপোর্ট
+import '../utils/notification_utils.dart';
+import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
 import '../widgets/custom_banner_ad.dart';
 import '../main.dart';
@@ -40,21 +41,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _isAddressEditable = false;
   bool _isNoteEditable = false;
+  String _shopId = '';
+  String _userRole = 'admin';
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _initializeSettings();
+  }
+
+  Future<void> _initializeSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isFingerprintEnabled = prefs.getBool('fingerprint_enabled') ?? false;
+    _userRole = prefs.getString('role') ?? 'admin';
+    _shopId = await ShopUtils.getShopId();
+    await _loadUserData();
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isFingerprintEnabled = prefs.getBool('fingerprint_enabled') ?? false;
-    });
-
-    if (user != null) {
-      var doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+    if (_shopId.isNotEmpty) {
+      var doc = await FirebaseFirestore.instance.collection('users').doc(_shopId).get();
       if (doc.exists) {
         var data = doc.data();
         setState(() {
@@ -383,7 +390,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
 
-    final String adminUid = user?.uid ?? 'UID পাওয়া যায়নি';
+    final String adminUid = _shopId.isNotEmpty ? _shopId : 'UID পাওয়া যায়নি';
 
     return Scaffold(
       appBar: AppBar(
@@ -692,17 +699,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
-
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
-                          minimumSize: const Size(double.infinity, 50),
+                      if (_userRole == 'admin') ...[
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D47A1),
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          onPressed: _showPinVerificationDialog,
+                          icon: const Icon(Icons.save, color: Colors.white),
+                          label: Text(AppTranslations.get('save_settings'), style: const TextStyle(color: Colors.white, fontSize: 16)),
                         ),
-                        onPressed: _showPinVerificationDialog,
-                        icon: const Icon(Icons.save, color: Colors.white),
-                        label: Text(AppTranslations.get('save_settings'), style: const TextStyle(color: Colors.white, fontSize: 16)),
-                      ),
+                      ],
 
                       const SizedBox(height: 12),
 
@@ -731,17 +739,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       const SizedBox(height: 20),
 
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: _showAccountDeleteDialog,
-                          icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 18),
-                          label: Text(
-                            AppTranslations.get('delete_account'),
-                            style: const TextStyle(color: Colors.red, fontSize: 13, decoration: TextDecoration.underline),
+                      if (_userRole == 'admin')
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: _showAccountDeleteDialog,
+                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 18),
+                            label: Text(
+                              AppTranslations.get('delete_account'),
+                              style: const TextStyle(color: Colors.red, fontSize: 13, decoration: TextDecoration.underline),
+                            ),
                           ),
                         ),
-                      ),
 
                       const SizedBox(height: 10),
                       Center(

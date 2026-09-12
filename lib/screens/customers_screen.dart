@@ -45,7 +45,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
   @override
   void initState() {
     super.initState();
-    shopId = user?.uid ?? '';
     _initializeShopIdAndPermissions();
   }
 
@@ -57,15 +56,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
       String role = prefs.getString('role') ?? 'admin';
 
       if (role == 'staff') {
+        String staffId = prefs.getString('staff_id') ?? '';
         // পারমিশন চেক করা
-        bool staffCustomerPerm = prefs.getBool('can_customer') ?? prefs.getBool('customer') ?? true;
+        bool staffCustomerPerm = prefs.getBool('can_customer') ?? true;
 
         try {
           DocumentSnapshot staffDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(shopId)
               .collection('staffs')
-              .doc(user?.uid)
+              .doc(staffId.isNotEmpty ? staffId : user?.uid)
               .get();
 
           if (staffDoc.exists) {
@@ -890,6 +890,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         DateTime todayStart = DateTime(now.year, now.month, now.day);
 
                         for (var doc in transSnapshot.data!.docs) {
+                          // বর্তমান শপ বা ইউজারের ট্রানজেকশন কি না তা পাথ চেক করে নিশ্চিত করা
+                          if (!doc.reference.path.contains(shopId)) continue;
+
                           var tData = doc.data() as Map<String, dynamic>;
                           Timestamp? ts = _parseDate(tData['date']);
 
@@ -1018,6 +1021,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       DateTime sEnd = sStart.add(const Duration(days: 1));
 
                       for (var doc in snapshot.data!.docs) {
+                        // বর্তমান শপ বা ইউজারের ট্রানজেকশন কি না তা পাথ চেক করে নিশ্চিত করা
+                        if (!doc.reference.path.contains(shopId)) continue;
+
                         var tData = doc.data() as Map<String, dynamic>;
                         Timestamp? ts = _parseDate(tData['date']);
                         if (ts != null) {
@@ -1076,8 +1082,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ),
               ),
               Expanded(
-                child: user == null
-                    ? Center(child: Text(AppTranslations.get('not_logged_in'), style: const TextStyle(color: Colors.white)))
+                child: shopId.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
                     : StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('users')

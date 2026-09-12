@@ -694,9 +694,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
           ],
         ),
       ),
-      floatingActionButton: user == null
-          ? null
-          : FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.red.shade800,
         foregroundColor: Colors.white,
         onPressed: () {

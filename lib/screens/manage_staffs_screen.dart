@@ -56,7 +56,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
             'pos_sale': pSale,
             'accounts': accounts,
             'customer': customer,
-            'can_customer': customer, // কোডের সামঞ্জস্যতার জন্য উভয় কি (key) সেভ করা হলো
+            'can_customer': customer, 
           },
           'createdAt': Timestamp.now(),
         });

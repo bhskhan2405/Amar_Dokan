@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../utils/receipt_utils.dart';
+import '../utils/shop_utils.dart';
 import '../utils/translations.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -15,11 +16,18 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDate = DateTime.now();
+  String _shopId = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadShopId();
+  }
+
+  Future<void> _loadShopId() async {
+    _shopId = await ShopUtils.getShopId();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -45,6 +53,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    if (_shopId.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(AppTranslations.get('hisab'), style: const TextStyle(color: Colors.white, fontFamily: 'Bornomala')),
@@ -89,8 +100,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             child: TabBarView(
               controller: _tabController,
               children: [
-                SalesListTab(filterType: 'daily', selectedDate: _selectedDate),
-                const SalesListTab(filterType: 'month', selectedDate: null),
+                SalesListTab(filterType: 'daily', selectedDate: _selectedDate, shopId: _shopId),
+                SalesListTab(filterType: 'month', selectedDate: null, shopId: _shopId),
               ],
             ),
           ),
@@ -103,7 +114,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 class SalesListTab extends StatelessWidget {
   final String filterType;
   final DateTime? selectedDate;
-  const SalesListTab({super.key, required this.filterType, this.selectedDate});
+  final String shopId;
+  const SalesListTab({super.key, required this.filterType, this.selectedDate, required this.shopId});
 
   Future<void> _generatePdf(BuildContext context, Map<String, dynamic> saleData, String dateStr) async {
     await ReceiptUtils.generatePosReceipt(saleData: saleData, isPrint: true);
@@ -111,13 +123,10 @@ class SalesListTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return Center(child: Text(AppTranslations.get('not_logged_in')));
-
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(shopId)
           .collection('sales')
           .orderBy('createdAt', descending: true)
           .snapshots(),

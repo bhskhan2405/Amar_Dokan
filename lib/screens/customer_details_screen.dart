@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/receipt_utils.dart';
+import '../utils/shop_utils.dart';
 import '../utils/translations.dart';
 
 class CustomerDetailsScreen extends StatefulWidget {
@@ -30,11 +31,12 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
 
   String shopName = 'আমার দোকান';
   String shopPhone = '';
+  String _shopId = '';
 
   @override
   void initState() {
     super.initState();
-    _loadShopInfo();
+    _loadShopIdAndInfo();
   }
 
   @override
@@ -45,9 +47,10 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
   }
 
   // দোকানের তথ্য লোড
-  Future<void> _loadShopInfo() async {
-    if (user != null) {
-      var doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+  Future<void> _loadShopIdAndInfo() async {
+    _shopId = await ShopUtils.getShopId();
+    if (_shopId.isNotEmpty) {
+      var doc = await FirebaseFirestore.instance.collection('users').doc(_shopId).get();
       if (doc.exists && mounted) {
         setState(() {
           shopName = doc.data()?['shopName'] ?? 'আমার দোকান';
@@ -165,7 +168,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
               // ১. কাস্টমার ব্যালেন্স আপডেট
               await FirebaseFirestore.instance
                   .collection('users')
-                  .doc(user?.uid)
+                  .doc(_shopId)
                   .collection('customers')
                   .doc(widget.customerId)
                   .update({'dueAmount': newDue});
@@ -173,7 +176,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
               // ২. লেনদেনের বিবরণ সেভ
               await FirebaseFirestore.instance
                   .collection('users')
-                  .doc(user?.uid)
+                  .doc(_shopId)
                   .collection('customers')
                   .doc(widget.customerId)
                   .collection('transactions')
@@ -213,6 +216,9 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_shopId.isEmpty) {
+       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.customerName, style: const TextStyle(color: Colors.white)),
@@ -222,7 +228,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
-            .doc(user?.uid)
+            .doc(_shopId)
             .collection('customers')
             .doc(widget.customerId)
             .snapshots(),
@@ -325,7 +331,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
                       onPressed: () async {
                         var transDocs = await FirebaseFirestore.instance
                             .collection('users')
-                            .doc(user?.uid)
+                            .doc(_shopId)
                             .collection('customers')
                             .doc(widget.customerId)
                             .collection('transactions')
@@ -341,7 +347,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('users')
-                      .doc(user?.uid)
+                      .doc(_shopId)
                       .collection('customers')
                       .doc(widget.customerId)
                       .collection('transactions')

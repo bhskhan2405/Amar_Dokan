@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../utils/translations.dart';
 import '../utils/subscription_utils.dart';
 import '../utils/notification_utils.dart';
+import '../utils/shop_utils.dart';
 import '../widgets/custom_banner_ad.dart';
 import 'subscription_screen.dart';
 import 'notifications_screen.dart';
@@ -38,24 +39,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _userPhone = '';
   String _userName = '';
   String _shopName = '';
+  String _shopId = '';
 
   @override
   void initState() {
     super.initState();
     shopName = AppTranslations.get('app_name');
-    _loadUserData();
+    _initializeDashboard();
     _checkConnectivity();
-    _checkTrialStatus();
-    _checkApprovalStatus();
+  }
+
+  Future<void> _initializeDashboard() async {
+    _shopId = await ShopUtils.getShopId();
+    if (_shopId.isNotEmpty) {
+      _loadUserData();
+      _checkTrialStatus();
+      _checkApprovalStatus();
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _checkApprovalStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots().listen((doc) {
+    if (_shopId.isNotEmpty) {
+      FirebaseFirestore.instance.collection('users').doc(_shopId).snapshots().listen((doc) {
         if (doc.exists && mounted) {
           setState(() {
-            _isApproved = doc.data()?['isApproved'] ?? true; // পুরাতন ইউজারদের জন্য ডিফল্ট true
+            _isApproved = doc.data()?['isApproved'] ?? true; 
             _userPhone = doc.data()?['phone'] ?? '';
             _userName = doc.data()?['name'] ?? '';
             _shopName = doc.data()?['shopName'] ?? '';
@@ -66,9 +75,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _checkTrialStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await SubscriptionUtils.syncSubscriptionStatus(user.uid);
+    if (_shopId.isNotEmpty) {
+      await SubscriptionUtils.syncSubscriptionStatus(_shopId);
       int remaining = await SubscriptionUtils.getTrialDaysRemaining();
       if (mounted) {
         setState(() {
@@ -96,19 +104,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+    if (user != null && _shopId.isNotEmpty) {
       if (mounted) setState(() => email = user.email ?? '');
       try {
         final doc = await FirebaseFirestore.instance
             .collection('users')
-            .doc(user.uid)
+            .doc(_shopId)
             .get(const GetOptions(source: Source.serverAndCache));
         if (doc.exists && mounted) {
           final data = doc.data();
           if (data != null) {
             setState(() {
-              shopName = data['shopName'] ?? data['storeName'] ?? 'B H S COMPUTER';
-              ownerName = data['name'] ?? data['ownerName'] ?? 'B H S Khan';
+              shopName = data['shopName'] ?? data['storeName'] ?? 'আমার দোকান';
+              ownerName = data['name'] ?? data['ownerName'] ?? 'Admin';
               _base64ImageString = data['photoBase64'];
             });
           }
@@ -372,10 +380,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildLowStockAlert() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const SizedBox.shrink();
+    if (_shopId.isEmpty) return const SizedBox.shrink();
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('products').snapshots(),
+      stream: FirebaseFirestore.instance.collection('users').doc(_shopId).collection('products').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
         final lowStockProducts = snapshot.data!.docs.where((doc) {

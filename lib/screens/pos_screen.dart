@@ -1021,7 +1021,7 @@ class _POSScreenState extends State<POSScreen> {
                                   StreamBuilder<QuerySnapshot>(
                                     stream: FirebaseFirestore.instance
                                         .collection('users')
-                                        .doc(user?.uid)
+                                        .doc(_shopId)
                                         .collection('customers')
                                         .snapshots(),
                                     builder: (context, customerSnapshot) {

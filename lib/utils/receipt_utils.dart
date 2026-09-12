@@ -5,6 +5,7 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/shop_utils.dart';
 import 'translations.dart';
 
 class ReceiptUtils {
@@ -16,11 +17,11 @@ class ReceiptUtils {
   }
 
   static Future<Map<String, String>> getShopInfo() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
+    String shopId = await ShopUtils.getShopId();
+    if (shopId.isEmpty) return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(shopId).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         return {
