@@ -206,12 +206,20 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
         }
       }
 
-      DateTime newExpiry = DateTime(currentExpiry.year, currentExpiry.month + months, currentExpiry.day);
+      if (plan == 'extra_staff') {
+        int currentExtraSlots = (userDoc.data()?['extraStaffSlots'] as num?)?.toInt() ?? 0;
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'extraStaffSlots': currentExtraSlots + 1,
+        });
+      } else {
+        DateTime newExpiry = DateTime(currentExpiry.year, currentExpiry.month + months, currentExpiry.day);
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'subscriptionExpiryDate': Timestamp.fromDate(newExpiry),
-        'isApproved': true, 
-      });
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'subscriptionExpiryDate': Timestamp.fromDate(newExpiry),
+          'plan': plan, // প্ল্যান আপডেট করা হলো যাতে লিমিট ঠিক থাকে
+          'isApproved': true, 
+        });
+      }
 
       await FirebaseFirestore.instance.collection('subscription_requests').doc(requestId).update({
         'status': 'approved',
@@ -438,9 +446,9 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          color: Colors.blueAccent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
                         ),
                         child: SelectableText(
                           "${AppTranslations.get('shop_id_label')}: $uid",
@@ -576,9 +584,9 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
-                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          color: Colors.blueAccent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
                         ),
                         child: SelectableText(
                           "${AppTranslations.get('shop_id_label')}: $uid",
@@ -748,9 +756,9 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
-                          color: Colors.blueAccent.withValues(alpha: 0.1),
+                          color: Colors.blueAccent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
                         ),
                         child: SelectableText(
                           "${AppTranslations.get('shop_id_label')}: $uid",
@@ -762,9 +770,9 @@ class _UserApprovalScreenState extends State<UserApprovalScreen> with SingleTick
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.1),
+                          color: Colors.amber.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                          border: Border.all(color: Colors.amber.withOpacity(0.3)),
                         ),
                         child: Text(
                           AppTranslations.get('expires_in_days').replaceAll('@days', daysRemaining.toString()),

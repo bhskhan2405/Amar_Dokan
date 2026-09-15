@@ -17,3 +17,21 @@
 -dontwarn com.google.android.play.core.**
 -keep class com.google.android.play.core.** { *; }
 -keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
+
+# অ্যাসেট ইমেজ প্রোটেকশন
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+-keep class **.R{*;}
+
+# Flutter Assets Protection
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keep class com.google.firebase.** { *; }
+
+-dontshrink
+-dontoptimize

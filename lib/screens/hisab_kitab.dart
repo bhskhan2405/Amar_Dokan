@@ -1337,7 +1337,8 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
   }
 
   Future<void> _generateAndPrintPdf(Map<String, dynamic> data, String timeString, String userId) async {
-    await ReceiptUtils.generateSingleAccountPdf(data: data, timeString: timeString, isExpense: false);
+    // বিক্রয় রেকর্ডের জন্য এখন আসল POS Receipt দেখানো হবে
+    await ReceiptUtils.generatePosReceipt(saleData: data, isPrint: false);
   }
 
   Future<void> _generateAndPrintExpensePdf(Map<String, dynamic> data, String timeString, String userId) async {
@@ -1358,7 +1359,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     
     final transSnapshot = await FirebaseFirestore.instance
         .collectionGroup('transactions')
-        .get();
+        .get(const GetOptions(source: Source.serverAndCache));
         
     final List<QueryDocumentSnapshot> customerTransactions = transSnapshot.docs.where((doc) {
       return doc.reference.path.contains(userId);

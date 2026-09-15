@@ -102,6 +102,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // রিলিজ মোডে ইমেজ দ্রুত লোড হওয়ার জন্য প্রিক্যাশ করা হলো
+    precacheImage(const AssetImage('assets/images/dashboard_bg.png'), context);
+    precacheImage(const AssetImage('assets/images/feature_bg.png'), context);
+  }
+
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && _shopId.isNotEmpty) {
@@ -314,7 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildPendingOverlay() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.8),
+      color: Colors.black.withOpacity(0.8),
       width: double.infinity,
       height: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -438,7 +446,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(8), // প্যাডিং কমিয়ে বর্ডার ছোট করা হলো
-                  decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
                   child: Icon(icon, size: 52, color: iconColor), // আইকন বড় করা হলো (৪০ থেকে ৫২)
                 ),
                 if (isPremium) Positioned(top: -2, right: -2, child: SubscriptionUtils.premiumIcon(size: 24)),

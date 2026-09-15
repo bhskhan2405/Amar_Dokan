@@ -45,9 +45,11 @@ class _POSScreenState extends State<POSScreen> {
   final TextEditingController _globalDiscountPercentController = TextEditingController();
   final TextEditingController _globalDiscountTkController = TextEditingController();
   final TextEditingController _cashPaidController = TextEditingController();
+  final TextEditingController _vatPercentController = TextEditingController();
 
   double _globalDiscountPercent = 0.0;
   double _globalDiscountTk = 0.0;
+  double _vatPercent = 0.0;
   bool _isCashManuallyEdited = false;
   String _shopId = '';
   String? _currentStaffName;
@@ -57,6 +59,7 @@ class _POSScreenState extends State<POSScreen> {
   void initState() {
     super.initState();
     selectedCategory = AppTranslations.get('all');
+    _vatPercentController.text = '0';
     _loadShopId();
   }
 
@@ -85,6 +88,7 @@ class _POSScreenState extends State<POSScreen> {
     _globalDiscountPercentController.dispose();
     _globalDiscountTkController.dispose();
     _cashPaidController.dispose();
+    _vatPercentController.dispose();
     super.dispose();
   }
 
@@ -387,6 +391,11 @@ class _POSScreenState extends State<POSScreen> {
     );
   }
 
+  double get _vatAmount {
+    double sub = _subTotalAmount;
+    return (sub * _vatPercent) / 100;
+  }
+
   double get _subTotalAmount {
     double sum = 0;
     _cart.forEach((key, value) {
@@ -399,7 +408,7 @@ class _POSScreenState extends State<POSScreen> {
 
   double get _finalTotalAmount {
     double sub = _subTotalAmount;
-    double finalAmt = sub - _globalDiscountTk;
+    double finalAmt = (sub - _globalDiscountTk) + _vatAmount;
     return finalAmt < 0 ? 0 : finalAmt;
   }
 
@@ -576,6 +585,8 @@ class _POSScreenState extends State<POSScreen> {
         'subTotal': _subTotalAmount,
         'globalDiscountPercent': _globalDiscountPercent,
         'globalDiscountTk': _globalDiscountTk,
+        'vatPercent': _vatPercent,
+        'vatAmount': _vatAmount, // এখানে গেটার ভ্যালু সেভ হবে
         'totalAmount': totalRevenue,
         'cashPaid': paidAmount,
         'dueAmount': currentDue,
@@ -607,7 +618,7 @@ class _POSScreenState extends State<POSScreen> {
             .doc(_shopId)
             .collection('customers')
             .where('phone', isEqualTo: cPhone)
-            .get();
+            .get(const GetOptions(source: Source.serverAndCache)); // অফলাইনে দ্রুত ডাটা পাওয়ার জন্য
 
         if (customerQuery.docs.isNotEmpty) {
           final customerDoc = customerQuery.docs.first;
@@ -677,7 +688,18 @@ class _POSScreenState extends State<POSScreen> {
         }
       }
 
-      await batch.commit();
+      // অফলাইনে থাকলে যাতে আটকে না থাকে, তাই commit এর জন্য অপেক্ষা না করে দ্রুত ফিডব্যাক দেওয়া হচ্ছে
+      batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.get('sale_success_msg')),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
 
       setState(() {
         _cart.clear();
@@ -687,6 +709,8 @@ class _POSScreenState extends State<POSScreen> {
         _globalDiscountPercentController.clear();
         _globalDiscountTkController.clear();
         _cashPaidController.clear();
+        _vatPercentController.clear();
+        _vatPercent = 0.0;
         _globalDiscountPercent = 0.0;
         _globalDiscountTk = 0.0;
         _isCashManuallyEdited = false;
@@ -796,7 +820,7 @@ class _POSScreenState extends State<POSScreen> {
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                     isDense: true,
                                     filled: true,
-                                    fillColor: Colors.white.withValues(alpha: 0.9),
+                                    fillColor: Colors.white.withOpacity(0.9),
                                   ),
                                 ),
                               ),
@@ -893,7 +917,7 @@ class _POSScreenState extends State<POSScreen> {
                                   margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.9),
+                                    color: Colors.white.withOpacity(0.9),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: Colors.blue.shade200),
                                   ),
@@ -998,8 +1022,8 @@ class _POSScreenState extends State<POSScreen> {
                         const Divider(height: 1),
 
                         ExpansionTile(
-                          backgroundColor: Colors.white.withValues(alpha: 0.85),
-                          collapsedBackgroundColor: Colors.white.withValues(alpha: 0.85),
+                          backgroundColor: Colors.white.withOpacity(0.85),
+                          collapsedBackgroundColor: Colors.white.withOpacity(0.85),
                           title: Text(AppTranslations.get('customer_info'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                           children: [
                             Padding(
@@ -1119,7 +1143,7 @@ class _POSScreenState extends State<POSScreen> {
                         ),
 
                         Container(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: Colors.white.withOpacity(0.8),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1157,7 +1181,7 @@ class _POSScreenState extends State<POSScreen> {
                           child: Center(child: Text(AppTranslations.get('no_product_in_cart'), style: const TextStyle(color: Colors.white))),
                         )
                             : Container(
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: Colors.white.withOpacity(0.85),
                           child: Column(
                             children: _cart.keys.map((productId) {
                               var item = _cart[productId]!;
@@ -1239,7 +1263,7 @@ class _POSScreenState extends State<POSScreen> {
                 // সম্পূর্ণ পেমেন্ট সেকশন টগল সিস্টেম (হেডারে ক্লিক করলে সম্পূর্ণ বক্সটি নিচে চলে যাবে বা হাইড হবে)
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
+                    color: Colors.white.withOpacity(0.95),
                     boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
                   ),
                   child: Column(
@@ -1409,6 +1433,55 @@ class _POSScreenState extends State<POSScreen> {
                                         });
                                       },
                                     ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+
+                            // VAT Section
+                            Row(
+                              children: [
+                                Text(AppTranslations.get('vat'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                SubscriptionUtils.premiumIcon(),
+                                const SizedBox(width: 42),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 38,
+                                    child: TextField(
+                                      controller: _vatPercentController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      onTap: () async {
+                                        if (!(await SubscriptionUtils.isPremium())) {
+                                          if (!mounted) return;
+                                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
+                                        }
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: AppTranslations.get('vat_percent'),
+                                        border: const OutlineInputBorder(),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                        isDense: true,
+                                      ),
+                                      onChanged: (val) {
+                                        double? percent = double.tryParse(val);
+                                        setState(() {
+                                          _vatPercent = percent ?? 0.0;
+                                          if (!_isCashManuallyEdited) {
+                                            _cashPaidController.text = _finalTotalAmount.toStringAsFixed(2);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Container(
+                                  width: 80,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    '${AppTranslations.get('currency_symbol')} ${_vatAmount.toStringAsFixed(1)}',
+                                    style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],

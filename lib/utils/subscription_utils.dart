@@ -14,7 +14,10 @@ class SubscriptionUtils {
     if (phone.isEmpty) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get(const GetOptions(source: Source.serverAndCache));
         if (doc.exists) {
           phone = doc.data()?['phone'] ?? '';
           await prefs.setString('saved_phone', phone);
@@ -70,7 +73,10 @@ class SubscriptionUtils {
   // ফায়ারস্টোর থেকে সাবস্ক্রিপশন ডাটা সিঙ্ক করা
   static Future<void> syncSubscriptionStatus(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get(const GetOptions(source: Source.serverAndCache));
       if (doc.exists) {
         final data = doc.data();
         final prefs = await SharedPreferences.getInstance();
@@ -96,28 +102,36 @@ class SubscriptionUtils {
 
   // স্টাফ লিমিট পাওয়ার মেথড
   static Future<int> getStaffLimit() async {
-    final prefs = await SharedPreferences.getInstance();
-    
     // সুপার এডমিন হলে লিমিট নাই (বিশাল সংখ্যা)
     if (await isSuperAdmin()) return 1000;
     
     // প্রিমিয়াম না হলে স্টাফ এড করা নিষেধ (আপনার আগে থেকে থাকা রুল)
     if (!(await isPremium())) return 0;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 0;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          String plan = data['plan']?.toString() ?? '';
+          int extraSlots = (data['extraStaffSlots'] as num?)?.toInt() ?? 0;
+          
+          int baseLimit = 1; // ডিফল্ট ১
+          if (plan == '3_months') {
+            baseLimit = 3;
+          } else if (plan == '6_months' || plan == '12_months') {
+            baseLimit = 5;
+          }
+          
+          return baseLimit + extraSlots;
+        }
+      }
+    } catch (_) {}
     
-    String plan = prefs.getString('subscription_plan') ?? '';
-    int extraSlots = prefs.getInt('extra_staff_slots') ?? 0;
-    
-    int baseLimit = 0;
-    if (plan == '3_months') {
-      baseLimit = 3;
-    } else if (plan == '6_months' || plan == '12_months') {
-      baseLimit = 5;
-    } else {
-      // যদি প্রিমিয়াম হয় কিন্তু প্ল্যান না থাকে (যেমন ট্রায়াল যদি ভবিষ্যতে চালু করেন)
-      baseLimit = 1; 
-    }
-    
-    return baseLimit + extraSlots;
+    return 1; // কোনো কারণে এরর হলে ডিফল্ট ১
   }
 
   static Widget premiumIcon({double size = 20}) {

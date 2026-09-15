@@ -242,7 +242,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ),
         if (_isVerifying)
           Container(
-            color: Colors.black.withValues(alpha: 0.8),
+            color: Colors.black.withOpacity(0.8),
             child: Center(
               child: Card(
                 margin: const EdgeInsets.all(30),

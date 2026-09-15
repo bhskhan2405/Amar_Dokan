@@ -88,9 +88,19 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-              String? lang = prefs.getString('language_code');
-              await prefs.clear();
-              if (lang != null) await prefs.setString('language_code', lang);
+              
+              // শুধুমাত্র স্টাফ সেশন ডাটা মুছে ফেলা
+              await prefs.remove('admin_uid');
+              await prefs.remove('role');
+              await prefs.remove('staff_name');
+              await prefs.remove('staff_id');
+              await prefs.remove('can_product_list');
+              await prefs.remove('can_pos_sale');
+              await prefs.remove('can_accounts');
+              await prefs.remove('can_customer');
+              await prefs.remove('subscription_expiry_date');
+              await prefs.remove('trial_start_date');
+              
               await FirebaseAuth.instance.signOut();
               if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
             },

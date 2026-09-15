@@ -723,11 +723,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         onPressed: () async {
                           final prefs = await SharedPreferences.getInstance();
-                          String? currentLang = prefs.getString('language_code');
-                          await prefs.clear();
-                          if (currentLang != null) {
-                            await prefs.setString('language_code', currentLang);
+                          
+                          // গুরুত্বপূর্ণ সেশন ডাটাগুলো মুছে ফেলা
+                          await prefs.remove('admin_uid');
+                          await prefs.remove('role');
+                          // 'app_pin' আর মুছে ফেলা হবে না যাতে অফলাইনে পুনরায় পিন দিয়ে ঢোকা যায়
+                          await prefs.remove('subscription_expiry_date');
+                          await prefs.remove('subscription_plan');
+                          await prefs.remove('extra_staff_slots');
+                          await prefs.remove('trial_start_date');
+                          
+                          // যদি ইউজার মনে রাখতে না চায়, তবে ফোন নম্বর এবং পিনও মুছে ফেলা
+                          bool rememberPhone = prefs.getBool('remember_phone') ?? false;
+                          if (!rememberPhone) {
+                            await prefs.remove('saved_phone');
+                            await prefs.remove('app_pin');
                           }
+
                           await FirebaseAuth.instance.signOut();
                           if (context.mounted) {
                             Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'ad_helper.dart';
 import 'subscription_utils.dart';
 
@@ -59,11 +60,18 @@ class AdManager {
     }
   }
 
-  static void _loadInterstitialAd(Function(InterstitialAd) onLoaded, Function onFail) {
+  static void _loadInterstitialAd(Function(InterstitialAd) onLoaded, Function onFail) async {
     bool isCallbackCalled = false;
 
-    // ৫ সেকেন্ডের মধ্যে অ্যাড লোড না হলে অটোমেটিক ফেইল কল হবে (অফলাইন সাপোর্ট)
-    Future.delayed(const Duration(seconds: 5), () {
+    // অফলাইন চেক: ইন্টারনেট না থাকলে সাথে সাথে ফেইল কল হবে
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult.contains(ConnectivityResult.none)) {
+      onFail();
+      return;
+    }
+
+    // ২ সেকেন্ডের মধ্যে অ্যাড লোড না হলে অটোমেটিক ফেইল কল হবে (স্পিড বৃদ্ধির জন্য ৫ থেকে ২ সেকেন্ডে আনা হলো)
+    Future.delayed(const Duration(seconds: 2), () {
       if (!isCallbackCalled) {
         isCallbackCalled = true;
         onFail();

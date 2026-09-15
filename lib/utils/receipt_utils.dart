@@ -21,7 +21,10 @@ class ReceiptUtils {
     if (shopId.isEmpty) return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(shopId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(shopId)
+          .get(const GetOptions(source: Source.serverAndCache)); // অফলাইন সাপোর্টের জন্য
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         return {
@@ -126,6 +129,11 @@ class ReceiptUtils {
                 pw.SizedBox(height: 5),
               ],
 
+              _buildSummaryRow('Sub-Total', (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2)),
+              if ((saleData['globalDiscountTk'] ?? 0) > 0)
+                _buildSummaryRow('Discount', '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}'),
+              if ((saleData['vatAmount'] ?? 0) > 0)
+                _buildSummaryRow('VAT (${(saleData['vatPercent'] as num).toStringAsFixed(0)}%)', '+${(saleData['vatAmount'] as num).toStringAsFixed(2)}'),
               _buildSummaryRow('Total Amount', (saleData['totalAmount'] ?? saleData['amount'] ?? 0.0).toStringAsFixed(2), isBold: true, fontSize: 10),
               _buildSummaryRow('Paid', (saleData['cashPaid'] ?? saleData['paidAmount'] ?? 0.0).toStringAsFixed(2)),
               _buildSummaryRow('Due', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
@@ -159,7 +167,8 @@ class ReceiptUtils {
     if (isPrint) {
       await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
     } else {
-      await Printing.sharePdf(bytes: await pdf.save(), filename: 'bill_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      String fileName = 'Bill_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      await Printing.sharePdf(bytes: await pdf.save(), filename: fileName);
     }
   }
 
@@ -403,7 +412,12 @@ class ReceiptUtils {
 
   // --- 5. Single Voucher (A4) ---
 
-  static Future<void> generateSingleAccountPdf({required Map<String, dynamic> data, required String timeString, bool isExpense = false}) async {
+  static Future<void> generateSingleAccountPdf({
+    required Map<String, dynamic> data, 
+    required String timeString, 
+    bool isExpense = false,
+    bool isShare = false,
+  }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
@@ -449,7 +463,15 @@ class ReceiptUtils {
         ]),
       ]),
     ));
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+
+    String filePrefix = isSalary ? 'Salary' : 'Expense';
+    String fileName = '${filePrefix}_Voucher_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    if (isShare) {
+      await Printing.sharePdf(bytes: await pdf.save(), filename: fileName);
+    } else {
+      await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+    }
   }
 
   // --- Helper Widgets ---

@@ -591,7 +591,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
         .doc(widget.customerId)
         .collection('transactions')
         .orderBy('date', descending: false)
-        .get();
+        .get(const GetOptions(source: Source.serverAndCache));
 
     List<QueryDocumentSnapshot> filteredDocs = [];
     for (var doc in querySnapshot.docs) {
@@ -918,7 +918,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         margin: const EdgeInsets.all(12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.blue.shade200),
                         ),
@@ -971,7 +971,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade400),
                             borderRadius: BorderRadius.circular(8),
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: Colors.white.withOpacity(0.9),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1048,7 +1048,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.amber.shade300),
                       ),
@@ -1076,7 +1076,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     prefixIcon: const Icon(Icons.search, color: Color(0xFF0D47A1)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.9),
+                    fillColor: Colors.white.withOpacity(0.9),
                     isDense: true,
                   ),
                 ),
@@ -1146,7 +1146,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                     onChanged: (val) => _toggleSelection(doc.id, data['phone'] ?? ''),
                                   )
                                 : CircleAvatar(
-                                    backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+                                    backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
                                     child: Text(data['name'] != null ? data['name'][0].toUpperCase() : 'C', style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
                                   ),
                             title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -1247,7 +1247,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             child: Column(
               children: [
                 Container(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: Colors.white.withOpacity(0.9),
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Column(
                     children: [
@@ -1317,7 +1317,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: Colors.white.withOpacity(0.9),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: TextField(
                     onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
@@ -1375,7 +1375,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           bool isJama = rawType == 'জমা' || rawType == 'jama';
 
                           return Card(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: Colors.white.withOpacity(0.9),
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),

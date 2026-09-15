@@ -142,7 +142,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
             .collection('users')
             .doc(adminUid)
             .collection('staffs')
-            .get();
+            .get(const GetOptions(source: Source.serverAndCache));
         
         if (snapshot.docs.length >= currentLimit) {
           if (context.mounted) _showLimitDialog(context);
@@ -184,7 +184,11 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                     children: [
                       GestureDetector(
                         onTap: () async {
-                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                          final XFile? image = await _picker.pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 50, // কোয়ালিটি কমিয়ে সাইজ কমানো হলো
+                            maxWidth: 600,   // প্রস্থ কমিয়ে সাইজ কমানো হলো
+                          );
                           if (image != null) {
                             setDialogState(() {
                               selectedImage = File(image.path);

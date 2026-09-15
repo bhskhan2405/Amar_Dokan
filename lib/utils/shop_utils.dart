@@ -21,6 +21,8 @@ class ShopUtils {
       if (role == null) {
         await prefs.setString('role', 'admin');
       }
+      // অফলাইনের জন্য UID ব্যাকআপ হিসেবে সেভ রাখা
+      await prefs.setString('admin_uid', currentUser.uid);
       return currentUser.uid;
     }
     

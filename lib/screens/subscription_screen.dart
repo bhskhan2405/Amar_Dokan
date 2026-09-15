@@ -183,18 +183,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             _buildPlanCard(
               id: '3_months',
               title: AppTranslations.get('plan_3_month'),
+              subtitle: AppTranslations.get('limit_3_staff_desc'),
               icon: Icons.timer_3,
               color: Colors.blue.shade700,
             ),
             _buildPlanCard(
               id: '6_months',
               title: AppTranslations.get('plan_6_month'),
+              subtitle: AppTranslations.get('limit_5_staff_desc'),
               icon: Icons.timer_10,
               color: Colors.teal.shade700,
             ),
             _buildPlanCard(
               id: '12_months',
               title: AppTranslations.get('plan_12_month'),
+              subtitle: AppTranslations.get('limit_5_staff_desc'),
               icon: Icons.verified_rounded,
               color: Colors.indigo.shade800,
             ),
@@ -213,7 +216,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.blue.shade200, width: 2),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
                 ),
                 child: Column(
                   children: [
@@ -363,7 +366,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildPlanCard({required String id, required String title, required IconData icon, required Color color}) {
+  Widget _buildPlanCard({required String id, required String title, String? subtitle, required IconData icon, required Color color}) {
     bool isSelected = _selectedPlan == id;
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = id),
@@ -374,14 +377,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           borderRadius: BorderRadius.circular(12),
           side: isSelected ? BorderSide(color: color, width: 2) : BorderSide.none,
         ),
-        color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
+        color: isSelected ? color.withOpacity(0.05) : Colors.white,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           leading: CircleAvatar(
-            backgroundColor: color.withValues(alpha: 0.1),
+            backgroundColor: color.withOpacity(0.1),
             child: Icon(icon, color: color),
           ),
           title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isSelected ? color : Colors.black87)),
+          subtitle: subtitle != null ? Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)) : null,
           trailing: isSelected ? Icon(Icons.check_circle, color: color) : const Icon(Icons.circle_outlined, color: Colors.grey),
         ),
       ),

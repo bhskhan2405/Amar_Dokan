@@ -597,7 +597,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     if (barcode.isNotEmpty) {
                       final existingBarcodeQuery = await productsRef
                           .where('barcode', isEqualTo: barcode)
-                          .get();
+                          .get(const GetOptions(source: Source.serverAndCache)); // অফলাইনে দ্রুত চেক করার জন্য
 
                       bool isDuplicate = false;
                       for (var document in existingBarcodeQuery.docs) {
@@ -642,7 +642,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       // নতুন প্রোডাক্ট অ্যাড করার সময় অ্যাড চেক
                       await AdManager.checkAndShowProductAd(() async {
                         productData['createdAt'] = FieldValue.serverTimestamp();
-                        await productsRef.add(productData);
+                        // অফলাইনে থাকলে await অনেক সময় আটকে থাকে, তাই সরাসরি পরের ধাপে যাচ্ছি
+                        productsRef.add(productData); 
+                        
                         if (dialogContext.mounted) {
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -651,11 +653,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         }
                       });
                     } else {
-                      await productsRef.doc(doc.id).update(productData);
+                      productsRef.doc(doc.id).update(productData);
                       if (dialogContext.mounted) {
                         Navigator.pop(dialogContext);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(AppTranslations.get('product_saved_msg')), backgroundColor: Colors.green),
+                          SnackBar(content: Text(AppTranslations.get('product_updated_msg')), backgroundColor: Colors.green),
                         );
                       }
                     }

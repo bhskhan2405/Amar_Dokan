@@ -11,6 +11,7 @@ import '../utils/translations.dart';
 import '../utils/notification_utils.dart';
 import '../utils/device_utils.dart';
 import '../widgets/custom_banner_ad.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -377,6 +378,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       await prefs.setString('saved_phone', phone);
       await prefs.setString('app_pin', pin);
       await prefs.setString('role', 'admin');
+      await prefs.setBool('remember_phone', true); // রেজিস্ট্রেশনের পর প্রথমবার সেভ করা হলো
     } catch (e) {
       _showSnackBar('ডাটা সেভ ত্রুটি: $e');
     }
@@ -389,30 +391,60 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         String phone = _normalizePhone(_loginPhoneController.text.trim());
         String pin = _loginPinController.text.trim();
         final prefs = await SharedPreferences.getInstance();
-        if (prefs.getString('saved_phone') == phone && prefs.getString('app_pin') == pin) {
+        
+        // ১. ইন্টারনেট চেক করা
+        final connectivityResult = await (Connectivity().checkConnectivity());
+        bool isOffline = connectivityResult.contains(ConnectivityResult.none);
+
+        // ২. লোকাল চেক (অফলাইন মোডে পিন দিয়ে সরাসরি প্রবেশ) - এটিই এখন প্রধান চেক
+        String? savedPhone = prefs.getString('saved_phone');
+        String? savedPin = prefs.getString('app_pin');
+
+        if (savedPhone == phone && savedPin == pin) {
+          await prefs.setBool('remember_phone', _rememberPhone);
+          if (!_rememberPhone) {
+            await prefs.remove('saved_phone');
+          }
           if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
           return;
         }
-        final query = await FirebaseFirestore.instance.collection('users').where('phone', isEqualTo: phone).get(const GetOptions(source: Source.serverAndCache));
-        if (query.docs.isEmpty) {
-          _showSnackBar(AppTranslations.get('phone_not_registered_msg'));
+
+        // ৩. অফলাইন থাকলে এবং লোকাল পিন না মিললে মেসেজ
+        if (isOffline) {
+          _showSnackBar(AppTranslations.currentLanguage == 'bn' ? 'অফলাইন লগইনের জন্য পিন সঠিক নয় অথবা তথ্য পাওয়া যায়নি।' : 'Invalid PIN or data not found for offline login.');
           return;
         }
-        final userData = query.docs.first.data();
-        if (pin == userData['pin']) {
-          try {
-            await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: userData['tempPassword']);
-            _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
-          } catch (e) {
-            try {
-              await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: 'Pass_${phone}_$pin');
-              _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
-            } catch (inner) {
-              _showSnackBar(AppTranslations.get('login_failed_msg'));
+
+        // ৪. অনলাইন মোডে ফায়ারবেস চেক
+        try {
+          final query = await FirebaseFirestore.instance
+              .collection('users')
+              .where('phone', isEqualTo: phone)
+              .get(const GetOptions(source: Source.serverAndCache));
+          
+          if (query.docs.isNotEmpty) {
+            final userData = query.docs.first.data();
+            if (pin == userData['pin']) {
+              try {
+                await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: userData['tempPassword']);
+                _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
+              } catch (e) {
+                try {
+                  await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: 'Pass_${phone}_$pin');
+                  _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
+                } catch (inner) {
+                  _showSnackBar(AppTranslations.get('login_failed_msg'));
+                }
+              }
+            } else {
+              _showSnackBar(AppTranslations.get('wrong_pin_msg'));
             }
+          } else {
+            _showSnackBar(AppTranslations.get('phone_not_registered_msg'));
           }
-        } else {
-          _showSnackBar(AppTranslations.get('wrong_pin_msg'));
+        } catch (e) {
+          // অফলাইনে থাকলে এবং ক্যাশ ডাটা না থাকলে এখানে আসবে
+          _showSnackBar(AppTranslations.currentLanguage == 'bn' ? 'অফলাইন লগইনের জন্য তথ্য পাওয়া যায়নি। একবার অনলাইন লগইন করুন।' : 'Offline login data not found. Please login once while online.');
         }
       } else {
         await _completeRegistration();
@@ -437,6 +469,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     await prefs.setString('saved_phone', phone);
     await prefs.setString('app_pin', pin);
     await prefs.setString('role', 'admin');
+    await prefs.setBool('remember_phone', _rememberPhone);
+    
+    if (!_rememberPhone) {
+      // যদি ইউজার মনে রাখতে না চায়, তবে ডাটাবেজে থাকলেও লোকাল থেকে মুছে দেব
+      await prefs.remove('saved_phone');
+    }
+    
     if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
   }
 
