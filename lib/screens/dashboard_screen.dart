@@ -19,6 +19,7 @@ import 'hisab_kitab.dart';
 import 'customers_screen.dart';
 import 'settings_screen.dart';
 import 'manage_staffs_screen.dart';
+import '../widgets/calculator_widget.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -150,6 +151,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calculate_outlined, color: Colors.white),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const CalculatorWidget(),
+              );
+            },
+          ),
           FutureBuilder<bool>(
             future: SubscriptionUtils.isSuperAdmin(),
             builder: (context, adminSnapshot) {

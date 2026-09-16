@@ -467,6 +467,9 @@ class ReceiptUtils {
         _buildVoucherRow('Date:', timeString),
         _buildVoucherRow('Category:', isSalary ? 'Employee Salary' : 'Business Expense'),
         if (isSalary) ...[
+          if (data['empName'] != null) _buildVoucherRow('Employee:', data['empName']),
+          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRow('Mobile:', data['empPhone']),
+          if (data['empDesignation'] != null && data['empDesignation'].toString().isNotEmpty) _buildVoucherRow('Designation:', data['empDesignation']),
           _buildVoucherRow('Basic Salary:', 'Tk ${basicSalary.toStringAsFixed(2)}'),
           _buildVoucherRow('Bonus:', 'Tk ${bonus.toStringAsFixed(2)}'),
         ],

@@ -399,7 +399,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     );
   }
 
-  void _showPaySalaryDialog(BuildContext context, String userId, String employeeId, String empName, double baseSalary, double defaultBonus) async {
+  void _showPaySalaryDialog(BuildContext context, String userId, String employeeId, String empName, String empPhone, String empDesignation, double baseSalary, double defaultBonus) async {
     bool authorized = await _verifyPin(context, userId);
     if (!authorized) return;
 
@@ -455,6 +455,9 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                     'basicSalary': paidSalary,
                     'bonus': paidBonus,
                     'note': noteController.text.trim(),
+                    'empName': empName,
+                    'empPhone': empPhone,
+                    'empDesignation': empDesignation,
                     'paidBy': paidBy,
                     'createdAt': Timestamp.now(),
                   };
@@ -475,6 +478,9 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                     'amount': totalPaid,
                     'basicSalary': paidSalary,
                     'bonus': paidBonus,
+                    'empName': empName,
+                    'empPhone': empPhone,
+                    'empDesignation': empDesignation,
                     'note': '${AppTranslations.get('salary')}: $empName (${noteController.text.trim()})',
                     'addedBy': paidBy,
                     'createdAt': Timestamp.now(),
@@ -1321,7 +1327,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
                       onPressed: () {
-                        _showPaySalaryDialog(context, userId, empId, name, salary, bonus);
+                        _showPaySalaryDialog(context, userId, empId, name, phone, designation, salary, bonus);
                       },
                       icon: const Icon(Icons.payment, size: 16),
                       label: Text(AppTranslations.get('pay_salary')),
