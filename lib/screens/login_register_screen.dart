@@ -10,8 +10,10 @@ import 'staff_login_screen.dart';
 import '../utils/translations.dart';
 import '../utils/notification_utils.dart';
 import '../utils/device_utils.dart';
+import '../utils/subscription_utils.dart';
 import '../widgets/custom_banner_ad.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
@@ -35,6 +37,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool isLogin = true;
   bool isLoading = false;
   bool _rememberPhone = false;
+  
+  // নতুন ভ্যারিয়েবলসমূহ (সিকিউরিটি ও ইউএক্স)
+  bool _obscureLoginPin = true;
+  bool _obscurePin = true;
+  bool _obscureConfirmPin = true;
+  int _wrongPinCount = 0;
+
   final LocalAuthentication auth = LocalAuthentication();
 
   @override
@@ -42,6 +51,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     super.initState();
     _loadSavedPhone();
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
 
   String _normalizePhone(String phone) {
     phone = phone.trim();
@@ -405,7 +420,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           if (!_rememberPhone) {
             await prefs.remove('saved_phone');
           }
+          await prefs.setInt('wrong_pin_count', 0);
           if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
+          return;
+        } else if (savedPhone == phone && savedPin != pin) {
+          // নম্বর ঠিক আছে কিন্তু পিন ভুল (লোকাল চেক)
+          await _handleFailedAttempt();
+          setState(() => isLoading = false);
           return;
         }
 
@@ -428,16 +449,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               try {
                 await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: userData['tempPassword']);
                 _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
+                _wrongPinCount = 0; // সফল লগইনে রিসেট
               } catch (e) {
                 try {
                   await FirebaseAuth.instance.signInWithEmailAndPassword(email: userData['email'], password: 'Pass_${phone}_$pin');
                   _proceedToDashboard(phone, pin, userData, query.docs.first.id, userData['email']);
+                  _wrongPinCount = 0; // সফল লগইনে রিসেট
                 } catch (inner) {
                   _showSnackBar(AppTranslations.get('login_failed_msg'));
                 }
               }
             } else {
-              _showSnackBar(AppTranslations.get('wrong_pin_msg'));
+              await _handleFailedAttempt();
             }
           } else {
             _showSnackBar(AppTranslations.get('phone_not_registered_msg'));
@@ -456,6 +479,29 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     }
   }
 
+  Future<void> _handleFailedAttempt() async {
+    final prefs = await SharedPreferences.getInstance();
+    _wrongPinCount = (prefs.getInt('wrong_pin_count') ?? 0) + 1;
+    await prefs.setInt('wrong_pin_count', _wrongPinCount);
+
+    if (_wrongPinCount >= 4) {
+      await prefs.setInt('wrong_pin_count', 0);
+      setState(() {
+        _wrongPinCount = 0;
+      });
+      _showForgotPinDialog(); // সরাসরি পিন রিসেট অপশনে নিয়ে যাওয়া
+      _showSnackBar(AppTranslations.currentLanguage == 'bn' 
+        ? 'পরপর ৪ বার ভুল পিন দিয়েছেন। নিরাপত্তার জন্য পিন রিসেট করুন।' 
+        : 'Entered wrong PIN 4 times. Please reset your PIN for security.');
+    } else if (_wrongPinCount == 2) {
+      _showSnackBar(AppTranslations.currentLanguage == 'bn' 
+        ? 'আপনি ২ বার ভুল পিন দিয়েছেন। আর ২ বার ভুল পিন দিলে অ্যাকাউন্ট পিন রিসেট অপশনে নিয়ে যাবে।' 
+        : 'You entered wrong PIN 2 times. 2 more wrong attempts will take you to PIN reset.');
+    } else {
+      _showSnackBar(AppTranslations.get('wrong_pin_msg'));
+    }
+  }
+
   void _proceedToDashboard(String phone, String pin, Map<String, dynamic> userData, String docId, String email) async {
     String deviceId = await DeviceUtils.getUniqueId();
     List authorized = userData['authorizedDevices'] ?? [];
@@ -466,15 +512,20 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('admin_uid', docId); // শপ আইডি নিশ্চিত করা হলো
     await prefs.setString('saved_phone', phone);
     await prefs.setString('app_pin', pin);
     await prefs.setString('role', 'admin');
     await prefs.setBool('remember_phone', _rememberPhone);
     
+    // ড্যাশবোর্ডে যাওয়ার আগে প্রিমিয়াম স্ট্যাটাস এবং সাবস্ক্রিপশন ডাটা সিঙ্ক করা
+    await SubscriptionUtils.syncSubscriptionStatus(docId);
+    
     if (!_rememberPhone) {
       // যদি ইউজার মনে রাখতে না চায়, তবে ডাটাবেজে থাকলেও লোকাল থেকে মুছে দেব
       await prefs.remove('saved_phone');
     }
+    await prefs.setInt('wrong_pin_count', 0);
     
     if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
   }
@@ -554,9 +605,31 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               const SizedBox(height: 14),
                               _buildTextField(controller: _emailController, label: AppTranslations.get('email'), icon: Icons.email, keyboardType: TextInputType.emailAddress),
                               const SizedBox(height: 14),
-                              _buildTextField(controller: _pinController, label: AppTranslations.get('enter_4_digit_pin'), icon: Icons.lock, isPassword: true, maxLength: 4),
+                              _buildTextField(
+                                controller: _pinController, 
+                                label: AppTranslations.get('enter_4_digit_pin'), 
+                                icon: Icons.lock, 
+                                isPassword: true, 
+                                obscureText: _obscurePin,
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscurePin ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF0D47A1)),
+                                  onPressed: () => setState(() => _obscurePin = !_obscurePin),
+                                ),
+                                maxLength: 4
+                              ),
                               const SizedBox(height: 14),
-                              _buildTextField(controller: _confirmPinController, label: AppTranslations.get('confirm_pin'), icon: Icons.lock_outline, isPassword: true, maxLength: 4),
+                              _buildTextField(
+                                controller: _confirmPinController, 
+                                label: AppTranslations.get('confirm_pin'), 
+                                icon: Icons.lock_outline, 
+                                isPassword: true, 
+                                obscureText: _obscureConfirmPin,
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscureConfirmPin ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF0D47A1)),
+                                  onPressed: () => setState(() => _obscureConfirmPin = !_obscureConfirmPin),
+                                ),
+                                maxLength: 4
+                              ),
                             ] else ...[
                               Row(children: [
                                 Expanded(child: _buildTextField(controller: _loginPhoneController, label: AppTranslations.get('mobile'), icon: Icons.phone, keyboardType: TextInputType.phone)),
@@ -568,7 +641,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               ]),
                               const SizedBox(height: 10),
                               Row(children: [
-                                Expanded(child: _buildTextField(controller: _loginPinController, label: AppTranslations.get('enter_4_digit_pin'), icon: Icons.lock, isPassword: true, maxLength: 4)),
+                                Expanded(child: _buildTextField(
+                                  controller: _loginPinController, 
+                                  label: AppTranslations.get('enter_4_digit_pin'), 
+                                  icon: Icons.lock, 
+                                  isPassword: true, 
+                                  obscureText: _obscureLoginPin,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(_obscureLoginPin ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF0D47A1)),
+                                    onPressed: () => setState(() => _obscureLoginPin = !_obscureLoginPin),
+                                  ),
+                                  maxLength: 4
+                                )),
                                 const SizedBox(width: 8),
                                 IconButton(onPressed: _authenticateWithFingerprint, icon: const Icon(Icons.fingerprint, size: 32, color: Color(0xFF0D47A1))),
                               ]),
@@ -600,15 +684,25 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, bool isPassword = false, int? maxLength}) {
+  Widget _buildTextField({
+    required TextEditingController controller, 
+    required String label, 
+    required IconData icon, 
+    TextInputType keyboardType = TextInputType.text, 
+    bool isPassword = false, 
+    bool obscureText = false,
+    Widget? suffixIcon,
+    int? maxLength
+  }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      obscureText: isPassword,
+      obscureText: isPassword ? obscureText : false,
       maxLength: maxLength,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: const Color(0xFF0D47A1)),
+        suffixIcon: suffixIcon,
         counterText: '',
         filled: true,
         fillColor: const Color(0xFFF8FAFC),

@@ -10,6 +10,7 @@ import '../utils/receipt_utils.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
 import 'subscription_screen.dart';
+import 'pos_screen.dart';
 
 class CustomerScreen extends StatefulWidget {
   final String? customerId;
@@ -903,10 +904,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
                               double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
                               double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
 
-                              if (type == 'বাকি' || type == 'sale_due' || type == 'baki') {
+                              if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
                                 todayTotalBaki += amount;
                                 todayTotalJama += paidAmount;
-                              } else if (type == 'জমা') {
+                              } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
                                 todayTotalJama += amount;
                               }
                             }
@@ -1033,10 +1034,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
                             double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
                             double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
 
-                            if (type == 'বাকি' || type == 'sale_due' || type == 'baki') {
+                            if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
                               customBaki += amount;
                               customJama += paidAmount;
-                            } else if (type == 'জমা') {
+                            } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
                               customJama += amount;
                             }
                           }
@@ -1433,7 +1434,18 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
-                    onPressed: () => _showAddTransactionDialog(widget.customerId!, totalDue, 'baki'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => POSScreen(
+                            initialName: custName,
+                            initialPhone: phoneNum,
+                            initialAddress: customerData['address'] ?? '',
+                          ),
+                        ),
+                      );
+                    },
                     child: Text(AppTranslations.get('give_due')),
                   ),
                 ),

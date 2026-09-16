@@ -18,8 +18,17 @@ import 'subscription_screen.dart';
 
 class POSScreen extends StatefulWidget {
   final Map<String, dynamic>? currentStaff;
+  final String? initialName;
+  final String? initialPhone;
+  final String? initialAddress;
 
-  const POSScreen({super.key, this.currentStaff});
+  const POSScreen({
+    super.key, 
+    this.currentStaff,
+    this.initialName,
+    this.initialPhone,
+    this.initialAddress,
+  });
 
   @override
   State<POSScreen> createState() => _POSScreenState();
@@ -60,6 +69,12 @@ class _POSScreenState extends State<POSScreen> {
     super.initState();
     selectedCategory = AppTranslations.get('all');
     _vatPercentController.text = '0';
+    
+    // কাস্টমার স্ক্রিন থেকে আসা ডাটা দিয়ে অটো-ফিল করা
+    if (widget.initialName != null) _customerNameController.text = widget.initialName!;
+    if (widget.initialPhone != null) _customerPhoneController.text = widget.initialPhone!;
+    if (widget.initialAddress != null) _customerAddressController.text = widget.initialAddress!;
+    
     _loadShopId();
   }
 

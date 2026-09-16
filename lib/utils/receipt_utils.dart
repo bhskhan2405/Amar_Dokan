@@ -72,6 +72,13 @@ class ReceiptUtils {
               pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
+              if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
+                _buildRowLeft('Customer:', saleData['customerName']),
+              if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
+                _buildRowLeft('Mobile:', saleData['customerPhone']),
+              if (saleData['customerAddress'] != null && (saleData['customerAddress'] as String).isNotEmpty)
+                _buildRowLeft('Address:', saleData['customerAddress']),
+
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
@@ -180,6 +187,19 @@ class ReceiptUtils {
         children: [
           pw.Text(key, style: const pw.TextStyle(fontSize: 8)),
           pw.Text(value, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildRowLeft(String key, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.start,
+        children: [
+          pw.SizedBox(width: 45, child: pw.Text(key, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+          pw.Text(value, style: const pw.TextStyle(fontSize: 8)),
         ],
       ),
     );

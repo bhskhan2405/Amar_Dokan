@@ -95,6 +95,9 @@ class SubscriptionUtils {
           if (data.containsKey('extraStaffSlots')) {
             await prefs.setInt('extra_staff_slots', (data['extraStaffSlots'] as num).toInt());
           }
+          // শপ নেম এবং ওনার নেমও লোকালি আপডেট করা যাতে ড্যাশবোর্ড দ্রুত লোড হয়
+          if (data.containsKey('shopName')) await prefs.setString('shop_name', data['shopName']);
+          if (data.containsKey('name')) await prefs.setString('owner_name', data['name']);
         }
       }
     } catch (_) {}
