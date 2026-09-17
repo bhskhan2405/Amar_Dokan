@@ -1377,14 +1377,31 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     );
 
     try {
-      // ২. ট্রানজেকশন ডাটা সংগ্রহ করা (অফলাইন সা্পোর্টের জন্য serverAndCache)
-      final transSnapshot = await FirebaseFirestore.instance
-          .collectionGroup('transactions')
+      // ২. ডাটা সংগ্রহ করা (নতুন সিকিউর পদ্ধতি)
+      final salesQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('sales')
+          .get(const GetOptions(source: Source.serverAndCache));
+
+      final paymentsQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('manual_payments')
           .get(const GetOptions(source: Source.serverAndCache));
           
-      final List<QueryDocumentSnapshot> customerTransactions = transSnapshot.docs.where((doc) {
-        return doc.reference.path.contains(userId);
-      }).toList();
+      List<QueryDocumentSnapshot> customerTransactions = [];
+      // সেলস থেকে ট্রানজেকশন বানানো
+      for (var doc in salesQuery.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+        if (data['dueAmount'] != null && (data['dueAmount'] as num) > 0) {
+          customerTransactions.add(doc);
+        }
+      }
+      // ম্যানুয়াল পেমেন্ট থেকে ট্রানজেকশন বানানো
+      for (var doc in paymentsQuery.docs) {
+        customerTransactions.add(doc);
+      }
 
       // ৩. রিপোর্ট জেনারেট করা
       await ReceiptUtils.generateAccountsReport(
