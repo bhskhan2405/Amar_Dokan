@@ -1377,37 +1377,30 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
     );
 
     try {
-      // ২. ডাটা সংগ্রহ করা (নতুন সিকিউর পদ্ধতি)
-      final salesQuery = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('sales')
-          .get(const GetOptions(source: Source.serverAndCache));
-
+      // ২. ডাটা সংগ্রহ করা (নতুন সিকিউর পদ্ধতি - শুধুমাত্র ম্যানুয়াল পেমেন্ট)
       final paymentsQuery = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('manual_payments')
           .get(const GetOptions(source: Source.serverAndCache));
           
-      List<QueryDocumentSnapshot> customerTransactions = [];
-      // সেলস থেকে ট্রানজেকশন বানানো
-      for (var doc in salesQuery.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        if (data['dueAmount'] != null && (data['dueAmount'] as num) > 0) {
-          customerTransactions.add(doc);
-        }
-      }
-      // ম্যানুয়াল পেমেন্ট থেকে ট্রানজেকশন বানানো
+      List<QueryDocumentSnapshot> filteredPayments = [];
       for (var doc in paymentsQuery.docs) {
-        customerTransactions.add(doc);
+        var data = doc.data() as Map<String, dynamic>;
+        Timestamp? ts = data['date'] as Timestamp?;
+        if (ts != null) {
+          DateTime payDate = ts.toDate();
+          if (_isDateMatched(payDate)) {
+            filteredPayments.add(doc);
+          }
+        }
       }
 
       // ৩. রিপোর্ট জেনারেট করা
       await ReceiptUtils.generateAccountsReport(
         sales: salesDocs,
         expenses: expenseDocs,
-        customerTransactions: customerTransactions,
+        customerTransactions: filteredPayments,
         totalSale: totalSale,
         totalProfit: totalProfit,
         totalExpense: totalExpense,

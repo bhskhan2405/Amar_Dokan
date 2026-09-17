@@ -14,6 +14,8 @@ class ReceiptUtils {
   static Future<pw.Font> _loadFont(String path) async {
     final fontData = await rootBundle.load(path);
     return pw.Font.ttf(fontData);
+
+
   }
 
   static Future<Map<String, String>> getShopInfo() async {
@@ -354,6 +356,8 @@ class ReceiptUtils {
                 if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
+                // এই বিক্রিতে যদি কোনো বকেয়া থাকে তা 'Due' কলামে যোগ হবে
+                dailyData[dateKey]![4] += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
               }
 
               for (var doc in expenses) {
@@ -380,13 +384,10 @@ class ReceiptUtils {
                 DateTime tDate = dateVal is Timestamp ? dateVal.toDate() : (DateTime.tryParse(dateVal.toString()) ?? DateTime.now());
                 final dateKey = DateFormat('dd/MM/yyyy').format(tDate);
                 if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
-                String type = (data['type'] ?? '').toString();
-                if (type == 'sale_due' || type == 'baki') {
-                  dailyData[dateKey]![4] += (data['amount'] as num?)?.toDouble() ?? 0.0;
-                  dailyData[dateKey]![5] += (data['paidAmount'] as num?)?.toDouble() ?? 0.0;
-                } else {
-                  dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
-                }
+                
+                // এটি ম্যানুয়াল জমা (Manual Payment) বা বকেয়া আদায়
+                double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
+                dailyData[dateKey]![5] += amt;
               }
 
               var sortedKeys = dailyData.keys.toList()..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
