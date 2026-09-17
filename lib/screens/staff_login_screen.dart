@@ -95,6 +95,7 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
           await prefs.setBool('can_pos_sale', canPosSale);
           await prefs.setBool('can_accounts', canAccounts);
           await prefs.setBool('can_customer', canCustomer);
+          await prefs.setBool('is_logged_in', true); // অটো-লগইন ফ্ল্যাগ সেট করা হলো
 
           // এডমিনের সাবস্ক্রিপশন স্ট্যাটাস সিঙ্ক করা
           try {

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'user_approval_screen.dart';
 import 'subscription_screen.dart';
 import 'account_settings_screen.dart'; // নতুন স্ক্রিন ইমপোর্ট
@@ -36,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   File? _selectedImage;
   String? _base64ImageString;
-  bool _isFingerprintEnabled = false;
   bool _isLoading = false;
 
   bool _isAddressEditable = false;
@@ -52,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _initializeSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _isFingerprintEnabled = prefs.getBool('fingerprint_enabled') ?? false;
     _userRole = prefs.getString('role') ?? 'admin';
     _shopId = await ShopUtils.getShopId();
     await _loadUserData();
@@ -359,6 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         // ৫. লোকাল ডাটা ক্লিয়ার করা
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_logged_in', false); // লগআউট করলে ফ্ল্যাগ ফলস হবে
         await prefs.clear();
         
         if (mounted) {
@@ -659,15 +659,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       Card(
                         color: Colors.white.withOpacity(0.9),
-                        child: SwitchListTile(
-                          secondary: const Icon(Icons.fingerprint, color: Color(0xFF0D47A1)),
-                          title: Text(AppTranslations.get('fingerprint')),
-                          value: _isFingerprintEnabled,
-                          onChanged: (val) async {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setBool('fingerprint_enabled', val);
-                            setState(() => _isFingerprintEnabled = val);
-                          },
+                        child: ListTile(
+                          leading: const Icon(Icons.privacy_tip_outlined, color: Color(0xFF0D47A1)),
+                          title: Text(AppTranslations.get('privacy_policy') ?? 'Privacy Policy'),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () => launchUrl(Uri.parse('https://bhskhan2405.github.io/Amar_Dokan/'), mode: LaunchMode.externalApplication),
                         ),
                       ),
 
@@ -726,8 +722,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           bool rememberPhone = prefs.getBool('remember_phone') ?? false;
 
                           // গুরুত্বপূর্ণ সেশন ডাটাগুলো মুছে ফেলা
-                          // 'admin_uid' এবং সাবস্ক্রিপশন ডাটা আর মুছে ফেলা হবে না যাতে পিন/ফিঙ্গারপ্রিন্ট দিয়ে পুনরায় ঢোকার সময় সব ঠিক থাকে।
                           await prefs.remove('role');
+                          await prefs.setBool('is_logged_in', false); // লগআউট করলে অটো-লগইন বন্ধ হবে
                           
                           // যদি ইউজার মনে রাখতে না চায়, তবেই সব ডাটা পুরোপুরি ক্লিয়ার হবে
                           if (!rememberPhone) {

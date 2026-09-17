@@ -90,6 +90,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
               final prefs = await SharedPreferences.getInstance();
               
               // শুধুমাত্র স্টাফ সেশন ডাটা মুছে ফেলা
+              await prefs.setBool('is_logged_in', false);
               await prefs.remove('admin_uid');
               await prefs.remove('role');
               await prefs.remove('staff_name');

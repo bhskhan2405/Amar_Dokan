@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dashboard_screen.dart';
 import '../main.dart';
@@ -43,8 +42,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _obscurePin = true;
   bool _obscureConfirmPin = true;
   int _wrongPinCount = 0;
-
-  final LocalAuthentication auth = LocalAuthentication();
 
   @override
   void initState() {
@@ -87,41 +84,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         _loginPhoneController.text = _normalizePhone(savedPhone);
         _rememberPhone = true;
       });
-    }
-  }
-
-  Future<void> _authenticateWithFingerprint() async {
-    try {
-      bool canCheckBiometrics = await auth.canCheckBiometrics;
-      bool isDeviceSupported = await auth.isDeviceSupported();
-      if (!canCheckBiometrics && !isDeviceSupported) {
-        _showSnackBar(AppTranslations.get('biometric_not_supported'));
-        return;
-      }
-      bool didAuthenticate = await auth.authenticate(
-        localizedReason: AppTranslations.get('biometric_reason'),
-        biometricOnly: true,
-      );
-      if (didAuthenticate) {
-        final prefs = await SharedPreferences.getInstance();
-        String? savedPhone = prefs.getString('saved_phone');
-        String? docId = prefs.getString('admin_uid');
-
-        if (savedPhone != null && savedPhone.isNotEmpty) {
-          setState(() => isLoading = true);
-          // ড্যাশবোর্ডে যাওয়ার আগে সাবস্ক্রিপশন ডাটা সিঙ্ক নিশ্চিত করা
-          if (docId != null && docId.isNotEmpty) {
-            await SubscriptionUtils.syncSubscriptionStatus(docId);
-          }
-          if (mounted) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
-          }
-        } else {
-          _showSnackBar(AppTranslations.get('phone_not_saved'));
-        }
-      }
-    } catch (e) {
-      _showSnackBar(AppTranslations.get('biometric_error').replaceAll('@error', e.toString()));
     }
   }
 
@@ -400,6 +362,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       await prefs.setString('saved_phone', phone);
       await prefs.setString('app_pin', pin);
       await prefs.setString('role', 'admin');
+      await prefs.setBool('is_logged_in', true); // অটো-লগইন ফ্ল্যাগ সেট করা হলো
       await prefs.setBool('remember_phone', true); // রেজিস্ট্রেশনের পর প্রথমবার সেভ করা হলো
     } catch (e) {
       _showSnackBar('ডাটা সেভ ত্রুটি: $e');
@@ -435,6 +398,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             await prefs.remove('saved_phone');
           }
           await prefs.setInt('wrong_pin_count', 0);
+          await prefs.setBool('is_logged_in', true); // অটো-লগইন ফ্ল্যাগ সেট করা হলো
           if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
           return;
         } else if (savedPhone == phone && savedPin != pin) {
@@ -531,6 +495,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     await prefs.setString('app_pin', pin);
     await prefs.setString('role', 'admin');
     await prefs.setBool('remember_phone', _rememberPhone);
+    await prefs.setBool('is_logged_in', true); // অটো-লগইন ফ্ল্যাগ সেট করা হলো
     
     // ড্যাশবোর্ডে যাওয়ার আগে প্রিমিয়াম স্ট্যাটাস এবং সাবস্ক্রিপশন ডাটা সিঙ্ক করা
     await SubscriptionUtils.syncSubscriptionStatus(docId);
@@ -654,22 +619,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                 ]),
                               ]),
                               const SizedBox(height: 10),
-                              Row(children: [
-                                Expanded(child: _buildTextField(
-                                  controller: _loginPinController, 
-                                  label: AppTranslations.get('enter_4_digit_pin'), 
-                                  icon: Icons.lock, 
-                                  isPassword: true, 
-                                  obscureText: _obscureLoginPin,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(_obscureLoginPin ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF0D47A1)),
-                                    onPressed: () => setState(() => _obscureLoginPin = !_obscureLoginPin),
-                                  ),
-                                  maxLength: 4
-                                )),
-                                const SizedBox(width: 8),
-                                IconButton(onPressed: _authenticateWithFingerprint, icon: const Icon(Icons.fingerprint, size: 32, color: Color(0xFF0D47A1))),
-                              ]),
+                              _buildTextField(
+                                controller: _loginPinController, 
+                                label: AppTranslations.get('enter_4_digit_pin'), 
+                                icon: Icons.lock, 
+                                isPassword: true, 
+                                obscureText: _obscureLoginPin,
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscureLoginPin ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF0D47A1)),
+                                  onPressed: () => setState(() => _obscureLoginPin = !_obscureLoginPin),
+                                ),
+                                maxLength: 4
+                              ),
                               Align(alignment: Alignment.centerRight, child: TextButton(onPressed: _showForgotPinDialog, child: Text(AppTranslations.get('forgot_pin'), style: const TextStyle(fontSize: 13, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)))),
                             ],
                             const SizedBox(height: 24),
