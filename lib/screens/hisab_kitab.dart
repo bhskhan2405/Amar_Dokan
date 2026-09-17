@@ -1369,25 +1369,46 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
       DateTime end,
       String userId) async {
     
-    final transSnapshot = await FirebaseFirestore.instance
-        .collectionGroup('transactions')
-        .get(const GetOptions(source: Source.serverAndCache));
-        
-    final List<QueryDocumentSnapshot> customerTransactions = transSnapshot.docs.where((doc) {
-      return doc.reference.path.contains(userId);
-    }).toList();
-
-    await ReceiptUtils.generateAccountsReport(
-      sales: salesDocs,
-      expenses: expenseDocs,
-      customerTransactions: customerTransactions,
-      totalSale: totalSale,
-      totalProfit: totalProfit,
-      totalExpense: totalExpense,
-      totalSalary: totalSalary,
-      totalBonus: totalBonus,
-      start: start,
-      end: end,
+    // ১. লোডিং ডায়ালগ দেখানো
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
+
+    try {
+      // ২. ট্রানজেকশন ডাটা সংগ্রহ করা (অফলাইন সা্পোর্টের জন্য serverAndCache)
+      final transSnapshot = await FirebaseFirestore.instance
+          .collectionGroup('transactions')
+          .get(const GetOptions(source: Source.serverAndCache));
+          
+      final List<QueryDocumentSnapshot> customerTransactions = transSnapshot.docs.where((doc) {
+        return doc.reference.path.contains(userId);
+      }).toList();
+
+      // ৩. রিপোর্ট জেনারেট করা
+      await ReceiptUtils.generateAccountsReport(
+        sales: salesDocs,
+        expenses: expenseDocs,
+        customerTransactions: customerTransactions,
+        totalSale: totalSale,
+        totalProfit: totalProfit,
+        totalExpense: totalExpense,
+        totalSalary: totalSalary,
+        totalBonus: totalBonus,
+        start: start,
+        end: end,
+      );
+    } catch (e) {
+      debugPrint("PDF Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppTranslations.currentLanguage == 'bn' ? 'রিপোর্ট তৈরি করতে সমস্যা হয়েছে: $e' : 'Failed to generate report: $e')),
+        );
+      }
+    } finally {
+      // ৪. লোডিং ডায়ালগ বন্ধ করা
+      if (mounted) Navigator.pop(context);
+    }
   }
 }

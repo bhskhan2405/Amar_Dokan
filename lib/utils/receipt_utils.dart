@@ -309,9 +309,18 @@ class ReceiptUtils {
     required DateTime end,
   }) async {
     final pdf = pw.Document();
-    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    final shopInfo = await getShopInfo();
+
+    // লোডিং স্পিড বাড়ানোর জন্য ফন্ট এবং শপ ইনফো একসাথে লোড করা
+    final results = await Future.wait([
+      _loadFont("assets/fonts/SolaimanLipi-Normal.ttf"),
+      _loadFont("assets/fonts/SolaimanLipi-Bold.ttf"),
+      getShopInfo(),
+    ]);
+
+    final fontRegular = results[0] as pw.Font;
+    final fontBold = results[1] as pw.Font;
+    final shopInfo = results[2] as Map<String, String>;
+    
     final currency = AppTranslations.get('currency_symbol');
 
     final double combinedSalary = totalSalary + totalBonus;
