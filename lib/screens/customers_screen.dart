@@ -879,331 +879,297 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 SnackBar(content: Text(AppTranslations.currentLanguage == 'bn' ? 'কাস্টমার ডাটা সিঙ্ক হচ্ছে...' : 'Syncing customers...'), duration: const Duration(seconds: 1)),
               );
             },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height - 100),
-                child: Column(
-                  children: [
-                    const CustomBannerAd(),
-                    if (!_isSelectionMode) ...[
-                      StreamBuilder<QuerySnapshot>(
-                      key: const ValueKey('customer_summary_stable_box'),
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(shopId)
-                          .collection('customers')
-                          .snapshots(),
-                      builder: (context, customerSnapshot) {
-                        if (!customerSnapshot.hasData) {
-                          return const SizedBox.shrink();
+            child: Column(
+              children: [
+                const CustomBannerAd(),
+                if (!_isSelectionMode) ...[
+                  // আজকের বকেয়া ও জমার হিসাব (স্ট্যাবল অফলাইন ভার্সন)
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collectionGroup('transactions')
+                        .snapshots(),
+                    builder: (context, transSnapshot) {
+                      double todayTotalBaki = 0.0;
+                      double todayTotalJama = 0.0;
+
+                      if (transSnapshot.hasData) {
+                        DateTime now = DateTime.now();
+                        DateTime todayStart = DateTime(now.year, now.month, now.day);
+
+                        for (var doc in transSnapshot.data!.docs) {
+                          if (!doc.reference.path.contains('/users/$shopId/customers/')) continue;
+
+                          var tData = doc.data() as Map<String, dynamic>;
+                          Timestamp? ts;
+                          if (tData['date'] is Timestamp) {
+                            ts = tData['date'];
+                          } else if (tData['date'] is String) {
+                            DateTime? d = DateTime.tryParse(tData['date']);
+                            if (d != null) ts = Timestamp.fromDate(d);
+                          }
+
+                          if (ts != null) {
+                            DateTime tDate = ts.toDate();
+                            if (tDate.isAfter(todayStart) || tDate.isAtSameMomentAs(todayStart)) {
+                              String type = tData['type'] ?? '';
+                              double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
+                              double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+
+                              if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due' || type == 'due') {
+                                todayTotalBaki += amount;
+                                todayTotalJama += paidAmount;
+                              } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
+                                todayTotalJama += amount;
+                              }
+                            }
+                          }
                         }
+                      }
 
-                        return StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(shopId)
-                              .collection('customers')
-                              .snapshots(),
-                          builder: (context, customersSnapshot) {
-                            if (!customersSnapshot.hasData) return const SizedBox.shrink();
-                            
-                            // সব কাস্টমারের আজকের ট্রানজেকশন একসাথে ক্যালকুলেট করা
-                            return StreamBuilder<QuerySnapshot>(
-                              stream: FirebaseFirestore.instance
-                                  .collectionGroup('transactions')
-                                  .snapshots(),
-                              builder: (context, transSnapshot) {
-                                double todayTotalBaki = 0.0;
-                                double todayTotalJama = 0.0;
-
-                                if (transSnapshot.hasData) {
-                                  DateTime now = DateTime.now();
-                                  DateTime todayStart = DateTime(now.year, now.month, now.day);
-
-                                  for (var doc in transSnapshot.data!.docs) {
-                                    // বর্তমান শপের ট্রানজেকশন কি না তা কাস্টমার লিস্টের সাথে ম্যাচ করে নিশ্চিত করা
-                                    String path = doc.reference.path;
-                                    if (!path.contains('/users/$shopId/customers/')) continue;
-
-                                    var tData = doc.data() as Map<String, dynamic>;
-                                    Timestamp? ts;
-                                    if (tData['date'] is Timestamp) {
-                                      ts = tData['date'];
-                                    } else if (tData['date'] is String) {
-                                      DateTime? d = DateTime.tryParse(tData['date']);
-                                      if (d != null) ts = Timestamp.fromDate(d);
-                                    }
-
-                                    if (ts != null) {
-                                      DateTime tDate = ts.toDate();
-                                      if (tDate.isAfter(todayStart) || tDate.isAtSameMomentAs(todayStart)) {
-                                        String type = tData['type'] ?? '';
-                                        double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                                        double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
-                                        if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due' || type == 'due') {
-                                          todayTotalBaki += amount;
-                                          todayTotalJama += paidAmount;
-                                        } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
-                                          todayTotalJama += amount;
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-
-                            return Container(
-                              margin: const EdgeInsets.all(12),
-                              padding: const EdgeInsets.all(12),
+                      return Container(
+                        margin: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Column(
+                              children: [
+                                Text(AppTranslations.get('today_total_baki'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Text('${AppTranslations.get('currency_symbol')} $todayTotalBaki', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+                              ],
+                            ),
+                            Container(height: 30, width: 1, color: Colors.blue.shade200),
+                            Column(
+                              children: [
+                                Text(AppTranslations.get('today_total_jama'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Text('${AppTranslations.get('currency_symbol')} $todayTotalJama', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: _selectedReportDate ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
+                              if (pickedDate != null) {
+                                setState(() {
+                                  _selectedReportDate = pickedDate;
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                border: Border.all(color: Colors.grey.shade400),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue.shade200),
+                                color: Colors.white.withOpacity(0.9),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    children: [
-                                      Text(AppTranslations.get('today_total_baki'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 4),
-                                      Text('${AppTranslations.get('currency_symbol')} $todayTotalBaki', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
-                                    ],
-                                  ),
-                                  Container(height: 30, width: 1, color: Colors.blue.shade200),
-                                  Column(
-                                    children: [
-                                      Text(AppTranslations.get('today_total_jama'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 4),
-                                      Text('${AppTranslations.get('currency_symbol')} $todayTotalJama', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                DateTime? pickedDate = await showDatePicker(
-                                  context: context,
-                                  initialDate: _selectedReportDate ?? DateTime.now(),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime.now(),
-                                );
-                                if (pickedDate != null) {
-                                  setState(() {
-                                    _selectedReportDate = pickedDate;
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade400),
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _selectedReportDate == null
-                                          ? AppTranslations.get('select_date_calendar')
-                                          : '${AppTranslations.get('date')}: ${DateFormat('dd MMM yyyy').format(_selectedReportDate!)}',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: _selectedReportDate == null ? Colors.grey.shade700 : const Color(0xFF0D47A1),
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  Text(
+                                    _selectedReportDate == null
+                                        ? AppTranslations.get('select_date_calendar')
+                                        : '${AppTranslations.get('date')}: ${DateFormat('dd MMM yyyy').format(_selectedReportDate!)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: _selectedReportDate == null ? Colors.grey.shade700 : const Color(0xFF0D47A1),
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    const Icon(Icons.calendar_month, color: Color(0xFF0D47A1), size: 20),
-                                  ],
-                                ),
+                                  ),
+                                  const Icon(Icons.calendar_month, color: Color(0xFF0D47A1), size: 20),
+                                ],
                               ),
                             ),
                           ),
-                          if (_selectedReportDate != null) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.red),
-                              onPressed: () {
-                                setState(() {
-                                  _selectedReportDate = null;
-                                });
-                              },
-                              tooltip: AppTranslations.get('reset_filter'),
-                            ),
-                          ],
+                        ),
+                        if (_selectedReportDate != null) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                _selectedReportDate = null;
+                              });
+                            },
+                            tooltip: AppTranslations.get('reset_filter'),
+                          ),
                         ],
-                      ),
+                      ],
                     ),
-                    if (_selectedReportDate != null) ...[
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collectionGroup('transactions')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          double customBaki = 0.0;
-                          double customJama = 0.0;
+                  ),
+                  if (_selectedReportDate != null) ...[
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collectionGroup('transactions')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        double customBaki = 0.0;
+                        double customJama = 0.0;
 
-                          if (snapshot.hasData) {
-                            DateTime sStart = DateTime(_selectedReportDate!.year, _selectedReportDate!.month, _selectedReportDate!.day);
-                            DateTime sEnd = sStart.add(const Duration(days: 1));
+                        if (snapshot.hasData) {
+                          DateTime sStart = DateTime(_selectedReportDate!.year, _selectedReportDate!.month, _selectedReportDate!.day);
+                          DateTime sEnd = sStart.add(const Duration(days: 1));
 
-                            for (var doc in snapshot.data!.docs) {
-                              // বর্তমান শপ বা ইউজারের ট্রানজেকশন কি না তা পাথ চেক করে নিশ্চিত করা
-                              if (!doc.reference.path.contains(shopId)) continue;
+                          for (var doc in snapshot.data!.docs) {
+                            if (!doc.reference.path.contains('/users/$shopId/customers/')) continue;
 
-                              var tData = doc.data() as Map<String, dynamic>;
-                              Timestamp? ts = _parseDate(tData['date']);
-                              if (ts != null) {
-                                DateTime tDate = ts.toDate();
-                                if ((tDate.isAtSameMomentAs(sStart) || tDate.isAfter(sStart)) && tDate.isBefore(sEnd)) {
-                                  String type = tData['type'] ?? '';
-                                  double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                                  double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                            var tData = doc.data() as Map<String, dynamic>;
+                            Timestamp? ts = _parseDate(tData['date']);
+                            if (ts != null) {
+                              DateTime tDate = ts.toDate();
+                              if ((tDate.isAtSameMomentAs(sStart) || tDate.isAfter(sStart)) && tDate.isBefore(sEnd)) {
+                                String type = tData['type'] ?? '';
+                                double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
+                                double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
 
-                                  if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
-                                    customBaki += amount;
-                                    customJama += paidAmount;
-                                  } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
-                                    customJama += amount;
-                                  }
+                                if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
+                                  customBaki += amount;
+                                  customJama += paidAmount;
+                                } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
+                                  customJama += amount;
                                 }
                               }
                             }
                           }
+                        }
 
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.amber.shade300),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Text('${AppTranslations.get('baki_of_date').replaceAll('@date', DateFormat('dd MMM').format(_selectedReportDate!))}: ${AppTranslations.get('currency_symbol')} $customBaki',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
-                                Text('${AppTranslations.get('jama')}: ${AppTranslations.get('currency_symbol')} $customJama',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ],
-                    const SizedBox(height: 6),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: TextField(
-                        onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
-                        decoration: InputDecoration(
-                          hintText: AppTranslations.get('search_customer_hint'),
-                          prefixIcon: const Icon(Icons.search, color: Color(0xFF0D47A1)),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.9),
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: shopId.isEmpty
-                          ? const Center(child: CircularProgressIndicator())
-                          : StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(shopId)
-                            .collection('customers')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-
-                          final docs = snapshot.data!.docs;
-                          final filteredDocs = docs.where((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final name = (data['name'] ?? '').toString().toLowerCase();
-                            final phone = (data['phone'] ?? '').toString().toLowerCase();
-                            return name.contains(searchQuery) || phone.contains(searchQuery);
-                          }).toList();
-
-                          if (filteredDocs.isEmpty) {
-                            return Center(child: Text(AppTranslations.get('no_customer_found'), style: const TextStyle(color: Colors.white)));
-                          }
-
-                          return ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: filteredDocs.length,
-                            itemBuilder: (context, index) {
-                              var doc = filteredDocs[index];
-                              var data = doc.data() as Map<String, dynamic>;
-                              double dueAmount = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
-
-                              return Card(
-                                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                color: _selectedCustomerIds.contains(doc.id) ? Colors.blue.shade50 : Colors.white.withValues(alpha: 0.9),
-                                child: ListTile(
-                                  onLongPress: () {
-                                    setState(() {
-                                      _isSelectionMode = true;
-                                      _toggleSelection(doc.id, data['phone'] ?? '');
-                                    });
-                                  },
-                                  onTap: () {
-                                    if (_isSelectionMode) {
-                                      _toggleSelection(doc.id, data['phone'] ?? '');
-                                    } else {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => CustomerScreen(
-                                            customerId: doc.id,
-                                            customerName: data['name'],
-                                            customerPhone: data['phone'],
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  leading: _isSelectionMode
-                                      ? Checkbox(
-                                          value: _selectedCustomerIds.contains(doc.id),
-                                          onChanged: (val) => _toggleSelection(doc.id, data['phone'] ?? ''),
-                                        )
-                                      : CircleAvatar(
-                                          backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
-                                          child: Text(data['name'] != null ? data['name'][0].toUpperCase() : 'C', style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
-                                        ),
-                                  title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('${AppTranslations.get('mobile')}: ${data['phone']}\n${AppTranslations.get('due')}: ${AppTranslations.get('currency_symbol')} $dueAmount'),
-                                  isThreeLine: true,
-                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.amber.shade300),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Text('${AppTranslations.get('baki_of_date').replaceAll('@date', DateFormat('dd MMM').format(_selectedReportDate!))}: ${AppTranslations.get('currency_symbol')} $customBaki',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
+                              Text('${AppTranslations.get('jama')}: ${AppTranslations.get('currency_symbol')} $customJama',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
+                ],
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: TextField(
+                    onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
+                    decoration: InputDecoration(
+                      hintText: AppTranslations.get('search_customer_hint'),
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF0D47A1)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.9),
+                      isDense: true,
+                    ),
+                  ),
                 ),
-              ),
+                Expanded(
+                  child: shopId.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(shopId)
+                        .collection('customers')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final docs = snapshot.data!.docs;
+                      final filteredDocs = docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = (data['name'] ?? '').toString().toLowerCase();
+                        final phone = (data['phone'] ?? '').toString().toLowerCase();
+                        return name.contains(searchQuery) || phone.contains(searchQuery);
+                      }).toList();
+
+                      if (filteredDocs.isEmpty) {
+                        return Center(child: Text(AppTranslations.get('no_customer_found'), style: const TextStyle(color: Colors.white)));
+                      }
+
+                      return ListView.builder(
+                        itemCount: filteredDocs.length,
+                        itemBuilder: (context, index) {
+                          var doc = filteredDocs[index];
+                          var data = doc.data() as Map<String, dynamic>;
+                          double dueAmount = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            color: _selectedCustomerIds.contains(doc.id) ? Colors.blue.shade50 : Colors.white.withValues(alpha: 0.9),
+                            child: ListTile(
+                              onLongPress: () {
+                                setState(() {
+                                  _isSelectionMode = true;
+                                  _toggleSelection(doc.id, data['phone'] ?? '');
+                                });
+                              },
+                              onTap: () {
+                                if (_isSelectionMode) {
+                                  _toggleSelection(doc.id, data['phone'] ?? '');
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CustomerScreen(
+                                        customerId: doc.id,
+                                        customerName: data['name'],
+                                        customerPhone: data['phone'],
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              leading: _isSelectionMode
+                                  ? Checkbox(
+                                      value: _selectedCustomerIds.contains(doc.id),
+                                      onChanged: (val) => _toggleSelection(doc.id, data['phone'] ?? ''),
+                                    )
+                                  : CircleAvatar(
+                                      backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
+                                      child: Text(data['name'] != null ? data['name'][0].toUpperCase() : 'C', style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
+                                    ),
+                              title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('${AppTranslations.get('mobile')}: ${data['phone']}\n${AppTranslations.get('due')}: ${AppTranslations.get('currency_symbol')} $dueAmount'),
+                              isThreeLine: true,
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
