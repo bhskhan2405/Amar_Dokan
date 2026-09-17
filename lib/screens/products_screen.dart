@@ -77,7 +77,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Future<void> _initializeData() async {
     _shopId = await ShopUtils.getShopId();
+    if (_shopId.isEmpty) {
+      await Future.delayed(const Duration(seconds: 1));
+      _shopId = await ShopUtils.getShopId();
+    }
     await _checkStaffPermissions();
+    if (mounted) setState(() {});
   }
 
   Future<void> _checkStaffPermissions() async {

@@ -31,6 +31,21 @@ class ShopUtils {
       return adminUid;
     }
     
-    return '';
+    // ৪. এক্সট্রিম ব্যাকআপ (যদি সব ফেইল করে, তবে FirebaseAuth এর লাস্ট সেশন চেক করা)
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await prefs.setString('admin_uid', user.uid);
+        return user.uid;
+      }
+    } catch (_) {}
+    
+    return adminUid ?? '';
+  }
+
+  // শপ আইডি সেভ করার জন্য একটি স্ট্যাটিক মেথড (যেকোনো জায়গা থেকে কল করা যাবে)
+  static Future<void> saveShopId(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('admin_uid', uid);
   }
 }

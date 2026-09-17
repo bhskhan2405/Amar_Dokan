@@ -52,6 +52,12 @@ class _CustomerScreenState extends State<CustomerScreen> {
   Future<void> _initializeShopIdAndPermissions() async {
     try {
       shopId = await ShopUtils.getShopId();
+      if (shopId.isEmpty) {
+        await Future.delayed(const Duration(seconds: 1));
+        shopId = await ShopUtils.getShopId();
+      }
+      
+      if (mounted) setState(() {});
       
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String role = prefs.getString('role') ?? 'admin';

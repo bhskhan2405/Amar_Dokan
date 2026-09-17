@@ -52,6 +52,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _initializeDashboard() async {
     _shopId = await ShopUtils.getShopId();
+    
+    // যদি শপ আইডি না পাওয়া যায়, তবে ৩ সেকেন্ড পর আবার ট্রাই করা (অফলাইন স্টার্টআপের জন্য)
+    if (_shopId.isEmpty) {
+      await Future.delayed(const Duration(seconds: 2));
+      _shopId = await ShopUtils.getShopId();
+    }
+
     if (_shopId.isNotEmpty) {
       _loadUserData();
       _checkTrialStatus();
@@ -128,9 +135,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ownerName = data['name'] ?? data['ownerName'] ?? 'Admin';
               _base64ImageString = data['photoBase64'];
             });
+            // অফলাইনের জন্য শপ আইডি ব্যাকআপ আপডেট করা
+            ShopUtils.saveShopId(_shopId);
           }
         }
-      } catch (_) {}
+      } catch (_) {
+        // অফলাইনে থাকলে ক্যাশ থেকে ডাটা না পেলে অন্তত ডিফল্ট ভ্যালু ঠিক রাখা
+      }
     }
   }
 

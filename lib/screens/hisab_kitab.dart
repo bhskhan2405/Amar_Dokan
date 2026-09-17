@@ -42,7 +42,11 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
 
   Future<void> _loadShopId() async {
     _shopId = await ShopUtils.getShopId();
-    setState(() {});
+    if (_shopId.isEmpty) {
+      await Future.delayed(const Duration(seconds: 1));
+      _shopId = await ShopUtils.getShopId();
+    }
+    if (mounted) setState(() {});
   }
 
   @override
