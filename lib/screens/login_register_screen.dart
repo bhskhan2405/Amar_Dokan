@@ -105,7 +105,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       if (didAuthenticate) {
         final prefs = await SharedPreferences.getInstance();
         String? savedPhone = prefs.getString('saved_phone');
+        String? docId = prefs.getString('admin_uid');
+
         if (savedPhone != null && savedPhone.isNotEmpty) {
+          setState(() => isLoading = true);
+          // ড্যাশবোর্ডে যাওয়ার আগে সাবস্ক্রিপশন ডাটা সিঙ্ক নিশ্চিত করা
+          if (docId != null && docId.isNotEmpty) {
+            await SubscriptionUtils.syncSubscriptionStatus(docId);
+          }
           if (mounted) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardScreen()));
           }
