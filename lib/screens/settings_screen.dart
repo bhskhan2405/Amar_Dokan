@@ -660,6 +660,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Card(
                         color: Colors.white.withOpacity(0.9),
                         child: ListTile(
+                          leading: const Icon(Icons.help_outline_rounded, color: Color(0xFF0D47A1)),
+                          title: Text(AppTranslations.get('help_support') ?? 'Help and Support'),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text(AppTranslations.get('help_support_title')),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.email, color: Color(0xFF0D47A1)),
+                                      title: const Text('Email Us'),
+                                      onTap: () async {
+                                        final url = Uri.parse('mailto:sup.amar.dokan@gmail.com');
+                                        if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.chat, color: Colors.green),
+                                      title: const Text('WhatsApp'),
+                                      onTap: () async {
+                                        final url = Uri.parse('https://wa.me/8801875787997');
+                                        if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.get('cancel')))],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
                           leading: const Icon(Icons.privacy_tip_outlined, color: Color(0xFF0D47A1)),
                           title: Text(AppTranslations.get('privacy_policy') ?? 'Privacy Policy'),
                           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
