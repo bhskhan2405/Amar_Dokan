@@ -424,6 +424,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
         if (savedPhone == phone && savedPin == pin) {
           await prefs.setBool('remember_phone', _rememberPhone);
+          
+          // ড্যাশবোর্ডে যাওয়ার আগে প্রিমিয়াম স্ট্যাটাস সিঙ্ক নিশ্চিত করা
+          String? docId = prefs.getString('admin_uid');
+          if (docId != null && docId.isNotEmpty) {
+            await SubscriptionUtils.syncSubscriptionStatus(docId);
+          }
+
           if (!_rememberPhone) {
             await prefs.remove('saved_phone');
           }

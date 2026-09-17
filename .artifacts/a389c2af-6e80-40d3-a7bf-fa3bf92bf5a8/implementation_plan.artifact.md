@@ -1,47 +1,32 @@
-# Implementation Plan - Robust Offline Support & Data Visibility
+# Implementation Plan - Persistent Session & Data Stability
 
-Fix offline data loading issues where shop details are missing on the dashboard and staff management screen shows "Not logged in".
+Fix the issue where logging out and re-logging via PIN/Fingerprint causes missing shop details and subscription status.
 
 ## User Review Required
 
 > [!NOTE]
-> We will implement a multi-layered fallback system using `SharedPreferences` to ensure that critical shop information (Name, Owner, ID) is always available, even when Firebase Auth is slow to respond or offline.
+> We will modify the logout logic to preserve essential identifiers (Shop ID, Shop Name, etc.) in `SharedPreferences`. This ensures that a subsequent offline or quick login (PIN/Biometric) has enough context to restore the user's environment immediately.
 
 ## Proposed Changes
 
-### [Component: Utilities]
+### [Component: Settings]
 
-#### [MODIFY] [shop_utils.dart](file:///C:/Users/bhskh/amardokan_new/lib/utils/shop_utils.dart)
-- Add static methods to save and retrieve shop details (name, owner, email) to/from `SharedPreferences`.
-- Enhance `getShopId` to be more resilient offline.
+#### [MODIFY] [settings_screen.dart](file:///C:/Users/bhskh/amardokan_new/lib/screens/settings_screen.dart)
+- Update the logout function to *NOT* remove critical background data like `admin_uid` and cached shop details.
+- Only clear sensitive data if `remember_phone` is false.
 
-### [Component: Dashboard]
+### [Component: Login]
 
-#### [MODIFY] [dashboard_screen.dart](file:///C:/Users/bhskh/amardokan_new/lib/screens/dashboard_screen.dart)
-- Load shop details from `SharedPreferences` immediately in `initState`.
-- Update local storage whenever data is successfully fetched from Firestore.
-- Wrap the main content in a `RefreshIndicator` for manual data sync.
-
-### [Component: Staff Management]
-
-#### [MODIFY] [manage_staffs_screen.dart](file:///C:/Users/bhskh/amardokan_new/lib/screens/manage_staffs_screen.dart)
-- Remove hard dependency on `FirebaseAuth.instance.currentUser` for building the UI. Use `ShopUtils.getShopId()` instead.
-
-### [Component: Customer Management]
-
-#### [MODIFY] [customers_screen.dart](file:///C:/Users/bhskh/amardokan_new/lib/screens/customers_screen.dart)
-- Ensure the summary box (Today's Baki/Jama) is robust offline.
-- Add `RefreshIndicator` support.
+#### [MODIFY] [login_register_screen.dart](file:///C:/Users/bhskh/amardokan_new/lib/screens/login_register_screen.dart)
+- Ensure that upon re-login, the app immediately re-validates the cached session data against Firestore.
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **Dashboard Persistence**:
-    - Open app online, verify shop details.
-    - Close app, turn off internet, open app. Verify shop details are still visible.
-2.  **Fingerprint/Quick Login**:
-    - Ensure dashboard details load instantly after biometric authentication.
-3.  **Offline Staff List**:
-    - Access Staff Management screen while offline. Verify it loads the list instead of "Not logged in".
-4.  **Offline Transaction Sync**:
-    - Add a transaction offline, turn on internet, and verify it appears on the admin panel/other devices.
+1.  **Persistent Logout**:
+    - Log in, verify premium status.
+    - Go to Settings -> Logout.
+    - Log back in using Fingerprint/PIN.
+    - Verify that the Dashboard loads shop details and Premium status instantly without infinite loading.
+2.  **Offline Verification**:
+    - Repeat the logout/login process while offline. Verify that cached data is displayed.

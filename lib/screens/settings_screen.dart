@@ -723,21 +723,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         onPressed: () async {
                           final prefs = await SharedPreferences.getInstance();
-                          
-                          // গুরুত্বপূর্ণ সেশন ডাটাগুলো মুছে ফেলা
-                          await prefs.remove('admin_uid');
-                          await prefs.remove('role');
-                          // 'app_pin' আর মুছে ফেলা হবে না যাতে অফলাইনে পুনরায় পিন দিয়ে ঢোকা যায়
-                          await prefs.remove('subscription_expiry_date');
-                          await prefs.remove('subscription_plan');
-                          await prefs.remove('extra_staff_slots');
-                          await prefs.remove('trial_start_date');
-                          
-                          // যদি ইউজার মনে রাখতে না চায়, তবে ফোন নম্বর এবং পিনও মুছে ফেলা
                           bool rememberPhone = prefs.getBool('remember_phone') ?? false;
+
+                          // গুরুত্বপূর্ণ সেশন ডাটাগুলো মুছে ফেলা
+                          // 'admin_uid' এবং সাবস্ক্রিপশন ডাটা আর মুছে ফেলা হবে না যাতে পিন/ফিঙ্গারপ্রিন্ট দিয়ে পুনরায় ঢোকার সময় সব ঠিক থাকে।
+                          await prefs.remove('role');
+                          
+                          // যদি ইউজার মনে রাখতে না চায়, তবেই সব ডাটা পুরোপুরি ক্লিয়ার হবে
                           if (!rememberPhone) {
                             await prefs.remove('saved_phone');
                             await prefs.remove('app_pin');
+                            await prefs.remove('admin_uid');
+                            await prefs.remove('subscription_expiry_date');
+                            await prefs.remove('subscription_plan');
+                            await prefs.remove('extra_staff_slots');
+                            await prefs.remove('trial_start_date');
+                            await prefs.remove(ShopUtils.KEY_SHOP_NAME);
+                            await prefs.remove(ShopUtils.KEY_OWNER_NAME);
+                            await prefs.remove(ShopUtils.KEY_EMAIL);
+                            await prefs.remove(ShopUtils.KEY_PHOTO);
                           }
 
                           await FirebaseAuth.instance.signOut();
