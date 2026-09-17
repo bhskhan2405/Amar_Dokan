@@ -1186,8 +1186,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
             ),
           ),
         ),
-        ),
-        ),
         floatingActionButton: _isSelectionMode 
             ? null 
             : FloatingActionButton(
