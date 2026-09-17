@@ -8,6 +8,7 @@ import '../utils/translations.dart';
 import '../widgets/custom_banner_ad.dart';
 import '../utils/subscription_utils.dart';
 import 'subscription_screen.dart';
+import '../utils/shop_utils.dart';
 
 class ManageStaffsScreen extends StatefulWidget {
   const ManageStaffsScreen({super.key});
@@ -19,6 +20,18 @@ class ManageStaffsScreen extends StatefulWidget {
 class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   final _isLoadingNotifier = ValueNotifier<bool>(false);
   final ImagePicker _picker = ImagePicker();
+  String _shopId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShopId();
+  }
+
+  Future<void> _loadShopId() async {
+    _shopId = await ShopUtils.getShopId();
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
@@ -407,14 +420,6 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      return Scaffold(
-        body: Center(child: Text(AppTranslations.get('not_logged_in'))),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(AppTranslations.get('staff'), style: const TextStyle(color: Colors.white)),
@@ -424,7 +429,11 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
-        onPressed: () => _showStaffDialog(context, user.uid),
+        onPressed: () {
+          if (_shopId.isNotEmpty) {
+            _showStaffDialog(context, _shopId);
+          }
+        },
         icon: const Icon(Icons.person_add),
         label: Text(AppTranslations.get('add_new_staff')),
       ),
@@ -441,10 +450,12 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
           children: [
             const CustomBannerAd(),
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
+              child: _shopId.isEmpty 
+                ? const Center(child: CircularProgressIndicator())
+                : StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('users')
-                    .doc(user.uid)
+                    .doc(_shopId)
                     .collection('staffs')
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
@@ -502,13 +513,13 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                               IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.blue),
                                 tooltip: AppTranslations.get('edit'),
-                                onPressed: () => _showStaffDialog(context, user.uid, staffData: staffData, staffId: staffId),
+                                onPressed: () => _showStaffDialog(context, _shopId, staffData: staffData, staffId: staffId),
                               ),
                               // ডিলিট বাটন
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 tooltip: AppTranslations.get('delete'),
-                                onPressed: () => _deleteStaff(context, user.uid, staffId),
+                                onPressed: () => _deleteStaff(context, _shopId, staffId),
                               ),
                             ],
                           ),

@@ -51,6 +51,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _initializeDashboard() async {
+    // অফলাইনের জন্য প্রথমে ক্যাশ ডাটা লোড করা
+    final cached = await ShopUtils.getCachedShopDetails();
+    if (mounted && cached['name']!.isNotEmpty) {
+      setState(() {
+        shopName = cached['name']!;
+        ownerName = cached['owner']!;
+        email = cached['email']!;
+        _base64ImageString = cached['photo']!;
+      });
+    }
+
     _shopId = await ShopUtils.getShopId();
     
     // যদি শপ আইডি না পাওয়া যায়, তবে ৩ সেকেন্ড পর আবার ট্রাই করা (অফলাইন স্টার্টআপের জন্য)
@@ -130,13 +141,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (doc.exists && mounted) {
           final data = doc.data();
           if (data != null) {
+            String sName = data['shopName'] ?? data['storeName'] ?? 'আমার দোকান';
+            String oName = data['name'] ?? data['ownerName'] ?? 'Admin';
+            String sEmail = user.email ?? '';
+            String? photo = data['photoBase64'];
+
             setState(() {
-              shopName = data['shopName'] ?? data['storeName'] ?? 'আমার দোকান';
-              ownerName = data['name'] ?? data['ownerName'] ?? 'Admin';
-              _base64ImageString = data['photoBase64'];
+              shopName = sName;
+              ownerName = oName;
+              email = sEmail;
+              _base64ImageString = photo;
             });
-            // অফলাইনের জন্য শপ আইডি ব্যাকআপ আপডেট করা
+            // অফলাইনের জন্য শপ ডিটেইলস এবং আইডি ব্যাকআপ আপডেট করা
             ShopUtils.saveShopId(_shopId);
+            ShopUtils.saveShopDetails(
+              name: sName,
+              owner: oName,
+              email: sEmail,
+              photoBase64: photo,
+            );
           }
         }
       } catch (_) {
@@ -245,10 +268,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: Stack(
           children: [
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  Padding(
+            RefreshIndicator(
+              onRefresh: () async {
+                await _initializeDashboard();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppTranslations.currentLanguage == 'bn' ? 'তথ্য আপডেট করা হচ্ছে...' : 'Syncing data...'), duration: const Duration(seconds: 1)),
+                );
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,7 +367,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-            if (!_isApproved) _buildPendingOverlay(),
+          ),
+          if (!_isApproved) _buildPendingOverlay(),
           ],
         ),
       ),

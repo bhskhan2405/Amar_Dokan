@@ -2,6 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ShopUtils {
+  static const String KEY_SHOP_NAME = 'cached_shop_name';
+  static const String KEY_OWNER_NAME = 'cached_owner_name';
+  static const String KEY_EMAIL = 'cached_email';
+  static const String KEY_PHOTO = 'cached_photo';
+
   static Future<String> getShopId() async {
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('role');
@@ -47,5 +52,32 @@ class ShopUtils {
   static Future<void> saveShopId(String uid) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('admin_uid', uid);
+  }
+
+  // শপের বিস্তারিত তথ্য লোকাল মেমোরিতে সেভ করা
+  static Future<void> saveShopDetails({
+    required String name,
+    required String owner,
+    required String email,
+    String? photoBase64,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(KEY_SHOP_NAME, name);
+    await prefs.setString(KEY_OWNER_NAME, owner);
+    await prefs.setString(KEY_EMAIL, email);
+    if (photoBase64 != null) {
+      await prefs.setString(KEY_PHOTO, photoBase64);
+    }
+  }
+
+  // লোকাল মেমোরি থেকে শপ ডিটেইলস পড়া
+  static Future<Map<String, String>> getCachedShopDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'name': prefs.getString(KEY_SHOP_NAME) ?? '',
+      'owner': prefs.getString(KEY_OWNER_NAME) ?? 'Admin',
+      'email': prefs.getString(KEY_EMAIL) ?? '',
+      'photo': prefs.getString(KEY_PHOTO) ?? '',
+    };
   }
 }
