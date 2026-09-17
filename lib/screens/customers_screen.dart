@@ -459,14 +459,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     newDue = currentDue + remainingDue;
                   }
 
-                  await FirebaseFirestore.instance
+                  // ১. কাস্টমার ব্যালেন্স আপডেট
+                  FirebaseFirestore.instance
                       .collection('users')
                       .doc(shopId)
                       .collection('customers')
                       .doc(customerId)
                       .update({'dueAmount': newDue});
 
-                  await FirebaseFirestore.instance
+                  // ২. ট্রানজেকশন হিস্ট্রি অ্যাড
+                  FirebaseFirestore.instance
                       .collection('users')
                       .doc(shopId)
                       .collection('customers')
@@ -483,8 +485,10 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   });
 
                   if (!context.mounted) return;
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppTranslations.get('transaction_saved_msg'))));
+                } catch (e) {
+                  debugPrint("Offline Sync Note: $e");
                 } finally {
                   if (mounted) {
                     setDialogState(() => _isLoading = false);
@@ -898,36 +902,26 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         return StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
                               .collectionGroup('transactions')
+                              .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)))
                               .snapshots(),
                           builder: (context, transSnapshot) {
                             double todayTotalBaki = 0.0;
                             double todayTotalJama = 0.0;
 
                             if (transSnapshot.hasData) {
-                              DateTime now = DateTime.now();
-                              DateTime todayStart = DateTime(now.year, now.month, now.day);
-
                               for (var doc in transSnapshot.data!.docs) {
-                                // বর্তমান শপ বা ইউজারের ট্রানজেকশন কি না তা পাথ চেক করে নিশ্চিত করা
                                 if (!doc.reference.path.contains(shopId)) continue;
 
                                 var tData = doc.data() as Map<String, dynamic>;
-                                Timestamp? ts = _parseDate(tData['date']);
+                                String type = tData['type'] ?? '';
+                                double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
+                                double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
 
-                                if (ts != null) {
-                                  DateTime tDate = ts.toDate();
-                                  if (tDate.isAfter(todayStart) || tDate.isAtSameMomentAs(todayStart)) {
-                                    String type = tData['type'] ?? '';
-                                    double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                                    double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
-                                    if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
-                                      todayTotalBaki += amount;
-                                      todayTotalJama += paidAmount;
-                                    } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
-                                      todayTotalJama += amount;
-                                    }
-                                  }
+                                if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
+                                  todayTotalBaki += amount;
+                                  todayTotalJama += paidAmount;
+                                } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
+                                  todayTotalJama += amount;
                                 }
                               }
                             }
