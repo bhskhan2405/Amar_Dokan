@@ -29,7 +29,16 @@ class SubscriptionUtils {
 
   static Future<bool> isPaidPremium() async {
     final prefs = await SharedPreferences.getInstance();
-    final expiryDateStr = prefs.getString('subscription_expiry_date');
+    String? expiryDateStr = prefs.getString('subscription_expiry_date');
+
+    // যদি লোকাল ক্যাশে না থাকে, তবে একবার ফায়ারবেস থেকে সিঙ্ক করার চেষ্টা করা
+    if (expiryDateStr == null) {
+      String uid = prefs.getString('admin_uid') ?? '';
+      if (uid.isNotEmpty) {
+        await syncSubscriptionStatus(uid);
+        expiryDateStr = prefs.getString('subscription_expiry_date');
+      }
+    }
 
     if (expiryDateStr != null) {
       try {

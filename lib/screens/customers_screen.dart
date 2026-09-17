@@ -901,45 +901,57 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
                         return StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
-                              .collectionGroup('transactions')
+                              .collection('users')
+                              .doc(shopId)
+                              .collection('customers')
                               .snapshots(),
-                          builder: (context, transSnapshot) {
-                            double todayTotalBaki = 0.0;
-                            double todayTotalJama = 0.0;
+                          builder: (context, customersSnapshot) {
+                            if (!customersSnapshot.hasData) return const SizedBox.shrink();
+                            
+                            // সব কাস্টমারের আজকের ট্রানজেকশন একসাথে ক্যালকুলেট করা
+                            return StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collectionGroup('transactions')
+                                  .snapshots(),
+                              builder: (context, transSnapshot) {
+                                double todayTotalBaki = 0.0;
+                                double todayTotalJama = 0.0;
 
-                            if (transSnapshot.hasData) {
-                              DateTime now = DateTime.now();
-                              DateTime todayStart = DateTime(now.year, now.month, now.day);
+                                if (transSnapshot.hasData) {
+                                  DateTime now = DateTime.now();
+                                  DateTime todayStart = DateTime(now.year, now.month, now.day);
 
-                              for (var doc in transSnapshot.data!.docs) {
-                                if (!doc.reference.path.contains(shopId)) continue;
+                                  for (var doc in transSnapshot.data!.docs) {
+                                    // বর্তমান শপের ট্রানজেকশন কি না তা কাস্টমার লিস্টের সাথে ম্যাচ করে নিশ্চিত করা
+                                    String path = doc.reference.path;
+                                    if (!path.contains('/users/$shopId/customers/')) continue;
 
-                                var tData = doc.data() as Map<String, dynamic>;
-                                Timestamp? ts;
-                                if (tData['date'] is Timestamp) {
-                                  ts = tData['date'];
-                                } else if (tData['date'] is String) {
-                                  DateTime? d = DateTime.tryParse(tData['date']);
-                                  if (d != null) ts = Timestamp.fromDate(d);
-                                }
+                                    var tData = doc.data() as Map<String, dynamic>;
+                                    Timestamp? ts;
+                                    if (tData['date'] is Timestamp) {
+                                      ts = tData['date'];
+                                    } else if (tData['date'] is String) {
+                                      DateTime? d = DateTime.tryParse(tData['date']);
+                                      if (d != null) ts = Timestamp.fromDate(d);
+                                    }
 
-                                if (ts != null) {
-                                  DateTime tDate = ts.toDate();
-                                  if (tDate.isAfter(todayStart) || tDate.isAtSameMomentAs(todayStart)) {
-                                    String type = tData['type'] ?? '';
-                                    double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                                    double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                                    if (ts != null) {
+                                      DateTime tDate = ts.toDate();
+                                      if (tDate.isAfter(todayStart) || tDate.isAtSameMomentAs(todayStart)) {
+                                        String type = tData['type'] ?? '';
+                                        double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
+                                        double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
 
-                                    if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due' || type == 'due') {
-                                      todayTotalBaki += amount;
-                                      todayTotalJama += paidAmount;
-                                    } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
-                                      todayTotalJama += amount;
+                                        if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due' || type == 'due') {
+                                          todayTotalBaki += amount;
+                                          todayTotalJama += paidAmount;
+                                        } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
+                                          todayTotalJama += amount;
+                                        }
+                                      }
                                     }
                                   }
                                 }
-                              }
-                            }
 
                             return Container(
                               margin: const EdgeInsets.all(12),
