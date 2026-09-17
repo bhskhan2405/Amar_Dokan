@@ -948,34 +948,36 @@ class _CustomerScreenState extends State<CustomerScreen> {
                             }
                           }
 
-                      return Container(
-                        margin: const EdgeInsets.all(12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Column(
+                          return Container(
+                            margin: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                Text(AppTranslations.get('today_total_baki'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text('${AppTranslations.get('currency_symbol')} $todayTotalBaki', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+                                Column(
+                                  children: [
+                                    Text(AppTranslations.get('today_total_baki'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text('${AppTranslations.get('currency_symbol')} $todayTotalBaki', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+                                  ],
+                                ),
+                                Container(height: 30, width: 1, color: Colors.blue.shade200),
+                                Column(
+                                  children: [
+                                    Text(AppTranslations.get('today_total_jama'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text('${AppTranslations.get('currency_symbol')} $todayTotalJama', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
+                                  ],
+                                ),
                               ],
                             ),
-                            Container(height: 30, width: 1, color: Colors.blue.shade200),
-                            Column(
-                              children: [
-                                Text(AppTranslations.get('today_total_jama'), style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text('${AppTranslations.get('currency_symbol')} $todayTotalJama', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
-                              ],
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       );
                     },
                   ),
