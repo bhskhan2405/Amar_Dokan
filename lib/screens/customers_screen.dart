@@ -472,7 +472,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       .collection('users')
                       .doc(shopId)
                       .collection('customers')
-                      .doc(widget.customerId!)
+                      .doc(customerId) // widget.customerId! এর বদলে প্যারামিটার customerId ব্যবহার করা হলো
                       .collection('transactions')
                       .add({
                     'type': isJama ? AppTranslations.get('jama') : AppTranslations.get('due'),
@@ -481,7 +481,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     'balance': newDue,
                     'previousDueBeforeTx': currentDue,
                     'note': noteController.text.trim(),
-                    'date': FieldValue.serverTimestamp(),
+                    'date': Timestamp.now(), // FieldValue.serverTimestamp() এর বদলে Timestamp.now() যাতে অফলাইনে সাথে সাথে দেখা যায়
                   });
 
                   if (!context.mounted) return;
@@ -902,26 +902,41 @@ class _CustomerScreenState extends State<CustomerScreen> {
                         return StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
                               .collectionGroup('transactions')
-                              .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)))
                               .snapshots(),
                           builder: (context, transSnapshot) {
                             double todayTotalBaki = 0.0;
                             double todayTotalJama = 0.0;
 
                             if (transSnapshot.hasData) {
+                              DateTime now = DateTime.now();
+                              DateTime todayStart = DateTime(now.year, now.month, now.day);
+
                               for (var doc in transSnapshot.data!.docs) {
                                 if (!doc.reference.path.contains(shopId)) continue;
 
                                 var tData = doc.data() as Map<String, dynamic>;
-                                String type = tData['type'] ?? '';
-                                double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                                double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+                                Timestamp? ts;
+                                if (tData['date'] is Timestamp) {
+                                  ts = tData['date'];
+                                } else if (tData['date'] is String) {
+                                  DateTime? d = DateTime.tryParse(tData['date']);
+                                  if (d != null) ts = Timestamp.fromDate(d);
+                                }
 
-                                if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
-                                  todayTotalBaki += amount;
-                                  todayTotalJama += paidAmount;
-                                } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
-                                  todayTotalJama += amount;
+                                if (ts != null) {
+                                  DateTime tDate = ts.toDate();
+                                  if (tDate.isAfter(todayStart) || tDate.isAtSameMomentAs(todayStart)) {
+                                    String type = tData['type'] ?? '';
+                                    double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
+                                    double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
+
+                                    if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due' || type == 'due') {
+                                      todayTotalBaki += amount;
+                                      todayTotalJama += paidAmount;
+                                    } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
+                                      todayTotalJama += amount;
+                                    }
+                                  }
                                 }
                               }
                             }
