@@ -267,7 +267,8 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                   // কে খরচটি এন্ট্রি করল তার নাম সংগ্রহ করা
                   String addedBy = await _getCurrentUserName();
 
-                  await FirebaseFirestore.instance
+                  // অফলাইনে ঝুলে থাকা রোধ করতে await সরিয়ে সরাসরি কল করা হলো
+                  FirebaseFirestore.instance
                       .collection('users')
                       .doc(userId)
                       .collection('expenses')
@@ -466,7 +467,8 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                     'createdAt': Timestamp.now(),
                   };
 
-                  await FirebaseFirestore.instance
+                  // অফলাইনে ঝুলে থাকা রোধ করতে await সরিয়ে সরাসরি কল করা হলো
+                  FirebaseFirestore.instance
                       .collection('users')
                       .doc(userId)
                       .collection('employees')
@@ -474,7 +476,7 @@ class _HisabKitabPageState extends State<HisabKitabPage> with SingleTickerProvid
                       .collection('payments')
                       .add(paymentData);
 
-                  await FirebaseFirestore.instance
+                  FirebaseFirestore.instance
                       .collection('users')
                       .doc(userId)
                       .collection('expenses')
