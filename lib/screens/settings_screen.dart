@@ -487,6 +487,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 20),
 
+                      Text('🌐 ${AppTranslations.get('language')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+                      const SizedBox(height: 10),
+                      Card(
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
+                          leading: const Icon(Icons.language, color: Color(0xFF0D47A1)),
+                          title: Text(AppTranslations.get('select_language')),
+                          trailing: DropdownButton<String>(
+                            value: AppTranslations.currentLanguage,
+                            items: const [
+                              DropdownMenuItem(value: 'en', child: Text('English')),
+                              DropdownMenuItem(value: 'bn', child: Text('বাংলা')),
+                            ],
+                            onChanged: (val) async {
+                              if (val != null) {
+                                await AppTranslations.saveLanguage(val);
+                                if (mounted) {
+                                  MyApp.setLocale(context, Locale(val));
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
                       Text('👤 ${AppTranslations.get('account_shop_settings')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
                       const SizedBox(height: 10),
                       
@@ -707,32 +733,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
 
                       const SizedBox(height: 24),
-
-                      const Divider(),
-                      Text('🌐 ${AppTranslations.get('language')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
-                      const SizedBox(height: 10),
-                      Card(
-                        color: Colors.white.withOpacity(0.9),
-                        child: ListTile(
-                          leading: const Icon(Icons.language, color: Color(0xFF0D47A1)),
-                          title: Text(AppTranslations.get('select_language')),
-                          trailing: DropdownButton<String>(
-                            value: AppTranslations.currentLanguage,
-                            items: const [
-                              DropdownMenuItem(value: 'en', child: Text('English')),
-                              DropdownMenuItem(value: 'bn', child: Text('বাংলা')),
-                            ],
-                            onChanged: (val) async {
-                              if (val != null) {
-                                await AppTranslations.saveLanguage(val);
-                                if (mounted) {
-                                  MyApp.setLocale(context, Locale(val));
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                      ),
 
                       if (_userRole == 'admin') ...[
                         const SizedBox(height: 24),
