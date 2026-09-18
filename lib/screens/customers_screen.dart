@@ -1436,7 +1436,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
                           String rawType = tData['type'] ?? '';
                           String type = AppTranslations.get(rawType);
                           double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                          double balance = (tData['balance'] as num?)?.toDouble() ?? 0.0;
+                          // যদি balance ফিল্ড না থাকে (পুরোনো ডাটা), তবে dueAmount চেক করা হবে
+                          double balance = (tData['balance'] as num?)?.toDouble() ?? (tData['dueAmount'] as num?)?.toDouble() ?? 0.0;
                           String note = tData['note'] ?? '';
                           Timestamp? ts = _parseDate(tData['date']);
                           String dateStr = ts != null ? DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate()) : '';

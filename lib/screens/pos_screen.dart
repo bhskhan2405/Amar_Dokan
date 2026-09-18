@@ -660,6 +660,7 @@ class _POSScreenState extends State<POSScreen> {
             'paidAmount': paidAmount,
             'cashPaid': paidAmount,
             'dueAmount': currentDue,
+            'balance': updatedDue, // চলমান ব্যালেন্স যোগ করা হলো
             'items': _cart.map((key, value) => MapEntry(key, value)),
             'subTotal': _subTotalAmount,
             'globalDiscountPercent': _globalDiscountPercent,
@@ -691,6 +692,7 @@ class _POSScreenState extends State<POSScreen> {
             'paidAmount': paidAmount,
             'cashPaid': paidAmount,
             'dueAmount': currentDue,
+            'balance': currentDue, // নতুন কাস্টমারের ক্ষেত্রে ব্যালেন্সই বকেয়া
             'items': _cart.map((key, value) => MapEntry(key, value)),
             'subTotal': _subTotalAmount,
             'globalDiscountPercent': _globalDiscountPercent,
