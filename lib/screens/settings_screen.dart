@@ -397,6 +397,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(AppTranslations.get('app_settings'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF0D47A1),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: AppTranslations.currentLanguage,
+                icon: const Icon(Icons.language, color: Colors.white, size: 18),
+                dropdownColor: const Color(0xFF1565C0),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                items: const [
+                  DropdownMenuItem(value: 'en', child: Text('English')),
+                  DropdownMenuItem(value: 'bn', child: Text('বাংলা')),
+                ],
+                onChanged: (val) async {
+                  if (val != null) {
+                    await AppTranslations.saveLanguage(val);
+                    if (mounted) {
+                      MyApp.setLocale(context, Locale(val));
+                      setState(() {});
+                    }
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -483,32 +514,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ],
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      Text('🌐 ${AppTranslations.get('language')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
-                      const SizedBox(height: 10),
-                      Card(
-                        color: Colors.white.withOpacity(0.9),
-                        child: ListTile(
-                          leading: const Icon(Icons.language, color: Color(0xFF0D47A1)),
-                          title: Text(AppTranslations.get('select_language')),
-                          trailing: DropdownButton<String>(
-                            value: AppTranslations.currentLanguage,
-                            items: const [
-                              DropdownMenuItem(value: 'en', child: Text('English')),
-                              DropdownMenuItem(value: 'bn', child: Text('বাংলা')),
-                            ],
-                            onChanged: (val) async {
-                              if (val != null) {
-                                await AppTranslations.saveLanguage(val);
-                                if (mounted) {
-                                  MyApp.setLocale(context, Locale(val));
-                                }
-                              }
-                            },
-                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
