@@ -273,25 +273,34 @@ class ReceiptUtils {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
-        header: (context) => pw.Column(children: [
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              if (logo != null) pw.Image(logo, width: 60, height: 60),
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
-                children: [
-                  pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-                  if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
-                  pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
-                ],
-              ),
+        header: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            if (logo != null) ...[
+              pw.Image(logo, width: 70, height: 70),
+              pw.SizedBox(height: 5),
             ],
-          ),
-          pw.SizedBox(height: 5),
-          pw.Divider(thickness: 1.5, color: PdfColors.blue900),
-          pw.SizedBox(height: 10),
-        ]),
+            pw.Text(
+              shopInfo['name']!, 
+              style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+              textAlign: pw.TextAlign.center,
+            ),
+            if (shopInfo['address']!.isNotEmpty) 
+              pw.Text(
+                shopInfo['address']!, 
+                style: const pw.TextStyle(fontSize: 12),
+                textAlign: pw.TextAlign.center,
+              ),
+            pw.Text(
+              'Mobile: ${shopInfo['phone']}', 
+              style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.SizedBox(height: 8),
+            pw.Divider(thickness: 2, color: PdfColors.blue900),
+            pw.SizedBox(height: 10),
+          ],
+        ),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
