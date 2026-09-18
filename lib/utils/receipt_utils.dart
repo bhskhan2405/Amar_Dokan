@@ -276,25 +276,38 @@ class ReceiptUtils {
         header: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            if (logo != null) ...[
-              pw.Image(logo, width: 70, height: 70),
-              pw.SizedBox(height: 5),
-            ],
-            pw.Text(
-              shopInfo['name']!, 
-              style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
-              textAlign: pw.TextAlign.center,
-            ),
-            if (shopInfo['address']!.isNotEmpty) 
-              pw.Text(
-                shopInfo['address']!, 
-                style: const pw.TextStyle(fontSize: 12),
-                textAlign: pw.TextAlign.center,
-              ),
-            pw.Text(
-              'Mobile: ${shopInfo['phone']}', 
-              style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-              textAlign: pw.TextAlign.center,
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.start,
+              children: [
+                if (logo != null) ...[
+                  pw.Image(logo, width: 85, height: 85), // লোগো বাম পাশে এবং সাইজ বড় (৮৫) করা হলো
+                  pw.SizedBox(width: 15),
+                ],
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Text(
+                        shopInfo['name']!, 
+                        style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                      if (shopInfo['address']!.isNotEmpty) 
+                        pw.Text(
+                          shopInfo['address']!, 
+                          style: const pw.TextStyle(fontSize: 12),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      pw.Text(
+                        'Mobile: ${shopInfo['phone']}', 
+                        style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(width: 85), // ডান পাশে ব্যালেন্স রাখার জন্য ফাঁকা জায়গা
+              ],
             ),
             pw.SizedBox(height: 8),
             pw.Divider(thickness: 2, color: PdfColors.blue900),
