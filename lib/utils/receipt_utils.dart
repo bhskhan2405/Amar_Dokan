@@ -356,8 +356,9 @@ class ReceiptUtils {
                 if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                // এই বিক্রিতে যদি কোনো বকেয়া থাকে তা 'Due' কলামে যোগ হবে
+                // বিক্রির বকেয়া 'Due' কলামে এবং নগদ টাকা 'Due Pmt.' কলামে যোগ হবে
                 dailyData[dateKey]![4] += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+                dailyData[dateKey]![5] += (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
               }
 
               for (var doc in expenses) {

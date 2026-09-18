@@ -486,8 +486,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     'date': timestamp,
                   });
 
-                  // ৩. কেন্দ্রীয় পেমেন্ট কালেকশনে অ্যাড (যাতে সামারি বক্সে ০ না দেখায় এবং পারমিশন এরর না হয়)
+                  // ৩. কেন্দ্রীয় কালেকশনে অ্যাড (যাতে সামারি বক্সে এবং রিপোর্টে সঠিক ডাটা আসে)
                   if (isJama) {
+                    // জমা দিলে manual_payments এ যাবে
                     FirebaseFirestore.instance
                         .collection('users')
                         .doc(shopId)
@@ -498,6 +499,22 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       'amount': amount,
                       'note': noteController.text.trim(),
                       'date': timestamp,
+                    });
+                  } else {
+                    // বকেয়া দিলে sales এ যাবে (যাতে রিপোর্টে Due কলামে দেখায়)
+                    FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(shopId)
+                        .collection('sales')
+                        .add({
+                      'customerName': widget.customerName ?? 'Customer',
+                      'customerPhone': widget.customerPhone ?? '',
+                      'totalAmount': amount,
+                      'cashPaid': paidAmount,
+                      'dueAmount': amount - paidAmount,
+                      'profit': 0.0, // ম্যানুয়াল বকেয়ায় লাভ ধরা হয় না
+                      'note': 'Manual Due: ${noteController.text.trim()}',
+                      'createdAt': timestamp,
                     });
                   }
 
@@ -1044,56 +1061,74 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   if (_selectedReportDate != null) ...[
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
-                          .collectionGroup('transactions')
+                          .collection('users')
+                          .doc(shopId)
+                          .collection('sales')
                           .snapshots(),
-                      builder: (context, snapshot) {
-                        double customBaki = 0.0;
-                        double customJama = 0.0;
+                      builder: (context, salesSnapshot) {
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(shopId)
+                              .collection('manual_payments')
+                              .snapshots(),
+                          builder: (context, manualPaySnapshot) {
+                            double customBaki = 0.0;
+                            double customJama = 0.0;
 
-                        if (snapshot.hasData) {
-                          DateTime sStart = DateTime(_selectedReportDate!.year, _selectedReportDate!.month, _selectedReportDate!.day);
-                          DateTime sEnd = sStart.add(const Duration(days: 1));
+                            if (salesSnapshot.hasData || manualPaySnapshot.hasData) {
+                              DateTime sStart = DateTime(_selectedReportDate!.year, _selectedReportDate!.month, _selectedReportDate!.day);
+                              DateTime sEnd = sStart.add(const Duration(days: 1));
 
-                          for (var doc in snapshot.data!.docs) {
-                            if (!doc.reference.path.contains('/users/$shopId/customers/')) continue;
+                              // ১. সেলস থেকে ওই তারিখের বকেয়া ও জমা
+                              if (salesSnapshot.hasData) {
+                                for (var doc in salesSnapshot.data!.docs) {
+                                  var data = doc.data() as Map<String, dynamic>;
+                                  Timestamp? ts = data['createdAt'] as Timestamp?;
+                                  if (ts != null) {
+                                    DateTime tDate = ts.toDate();
+                                    if ((tDate.isAtSameMomentAs(sStart) || tDate.isAfter(sStart)) && tDate.isBefore(sEnd)) {
+                                      customBaki += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+                                      customJama += (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                                    }
+                                  }
+                                }
+                              }
 
-                            var tData = doc.data() as Map<String, dynamic>;
-                            Timestamp? ts = _parseDate(tData['date']);
-                            if (ts != null) {
-                              DateTime tDate = ts.toDate();
-                              if ((tDate.isAtSameMomentAs(sStart) || tDate.isAfter(sStart)) && tDate.isBefore(sEnd)) {
-                                String type = tData['type'] ?? '';
-                                double amount = (tData['amount'] as num?)?.toDouble() ?? 0.0;
-                                double paidAmount = (tData['paidAmount'] as num?)?.toDouble() ?? 0.0;
-
-                                if (type == 'বাকি' || type == 'sale_due' || type == 'baki' || type == 'Due') {
-                                  customBaki += amount;
-                                  customJama += paidAmount;
-                                } else if (type == 'জমা' || type == 'jama' || type == 'Jama' || type == 'Payment') {
-                                  customJama += amount;
+                              // ২. ম্যানুয়াল পেমেন্ট থেকে ওই তারিখের জমা
+                              if (manualPaySnapshot.hasData) {
+                                for (var doc in manualPaySnapshot.data!.docs) {
+                                  var data = doc.data() as Map<String, dynamic>;
+                                  Timestamp? ts = data['date'] as Timestamp?;
+                                  if (ts != null) {
+                                    DateTime tDate = ts.toDate();
+                                    if ((tDate.isAtSameMomentAs(sStart) || tDate.isAfter(sStart)) && tDate.isBefore(sEnd)) {
+                                      customJama += (data['amount'] as num?)?.toDouble() ?? 0.0;
+                                    }
+                                  }
                                 }
                               }
                             }
-                          }
-                        }
 
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.amber.shade300),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              Text('${AppTranslations.get('baki_of_date').replaceAll('@date', DateFormat('dd MMM').format(_selectedReportDate!))}: ${AppTranslations.get('currency_symbol')} $customBaki',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
-                              Text('${AppTranslations.get('jama')}: ${AppTranslations.get('currency_symbol')} $customJama',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
-                            ],
-                          ),
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.amber.shade300),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Text('${AppTranslations.get('baki_of_date').replaceAll('@date', DateFormat('dd MMM').format(_selectedReportDate!))}: ${AppTranslations.get('currency_symbol')} $customBaki',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
+                                  Text('${AppTranslations.get('jama')}: ${AppTranslations.get('currency_symbol')} $customJama',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
+                                ],
+                              ),
+                            );
+                          },
                         );
                       },
                     ),
