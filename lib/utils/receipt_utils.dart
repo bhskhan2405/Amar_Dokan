@@ -293,7 +293,7 @@ class ReceiptUtils {
           pw.SizedBox(height: 10),
         ]),
         build: (context) => [
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, cross: pw.CrossAxisAlignment.start, children: [
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
               pw.Text('Customer: ${customerData['name']}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
