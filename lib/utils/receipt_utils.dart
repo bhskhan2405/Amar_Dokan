@@ -232,62 +232,108 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
+    
+    // লোগো লোড করা
+    pw.MemoryImage? logo;
+    try {
+      final logoData = await rootBundle.load('assets/images/ic_launcher.png');
+      logo = pw.MemoryImage(logoData.buffer.asUint8List());
+    } catch (_) {}
+
+    // পিরিয়ড সামারি ক্যালকুলেশন
+    double periodBaki = 0;
+    double periodJama = 0;
+
+    final dataList = transactions.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      double total = (data['totalAmount'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
+      double paid = (data['paidAmount'] as num?)?.toDouble() ?? (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+      double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+
+      if (data['type'] == 'জমা' || data['type'] == 'jama' || data['type'] == 'Payment') {
+        total = 0.0;
+        paid = (data['amount'] as num?)?.toDouble() ?? 0.0;
+        due = 0.0;
+        periodJama += paid;
+      } else {
+        periodBaki += total;
+        periodJama += paid;
+      }
+
+      return [
+        data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
+        data['note'] ?? data['type'] ?? '',
+        total > 0 ? total.toStringAsFixed(2) : '-',
+        paid > 0 ? paid.toStringAsFixed(2) : '-',
+        due > 0 ? due.toStringAsFixed(2) : '-',
+      ];
+    }).toList();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
-          pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-          if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
-          pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
-          pw.Divider(),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              if (logo != null) pw.Image(logo, width: 60, height: 60),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                  if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 5),
+          pw.Divider(thickness: 1.5, color: PdfColors.blue900),
           pw.SizedBox(height: 10),
         ]),
         build: (context) => [
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, cross: pw.CrossAxisAlignment.start, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('Customer: ${customerData['name']}', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.Text('Customer: ${customerData['name']}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
+              if (customerData['address'] != null && customerData['address'].toString().isNotEmpty)
+                pw.Text('Address: ${customerData['address']}', style: const pw.TextStyle(fontSize: 10)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text('STATEMENT', style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.Text('${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text('STATEMENT', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+              pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const pw.TextStyle(fontSize: 9)),
+              pw.SizedBox(height: 4),
+              pw.Text('Period Total Baki: Tk ${periodBaki.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.red700)),
+              pw.Text('Period Total Jama: Tk ${periodJama.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green700)),
             ]),
           ]),
           pw.SizedBox(height: 20),
           pw.TableHelper.fromTextArray(
             headers: const ['Date', 'Description', 'Total', 'Paid', 'Due'],
-            data: transactions.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              double total = (data['totalAmount'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
-              double paid = (data['paidAmount'] as num?)?.toDouble() ?? (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
-              double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
-
-              if (data['type'] == 'জমা' || data['type'] == 'jama' || data['type'] == 'Payment') {
-                total = 0.0;
-                paid = (data['amount'] as num?)?.toDouble() ?? 0.0;
-                due = 0.0;
-              }
-
-              return [
-                data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
-                data['note'] ?? data['type'] ?? '',
-                total > 0 ? total.toStringAsFixed(2) : '-',
-                paid > 0 ? paid.toStringAsFixed(2) : '-',
-                due > 0 ? due.toStringAsFixed(2) : '-',
-              ];
-            }).toList(),
-            headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            data: dataList,
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            cellStyle: const pw.TextStyle(fontSize: 9),
             cellAlignment: pw.Alignment.centerLeft,
+            columnWidths: {
+              0: const pw.FixedColumnWidth(60),
+              1: const pw.FlexColumnWidth(3),
+              2: const pw.FixedColumnWidth(60),
+              3: const pw.FixedColumnWidth(60),
+              4: const pw.FixedColumnWidth(60),
+            },
           ),
           pw.SizedBox(height: 20),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue)),
-              child: pw.Text('Total Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red)),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                border: pw.Border.all(color: PdfColors.blue900),
+                borderRadius: pw.BorderRadius.circular(5),
+              ),
+              child: pw.Text('Net Outstanding Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red900)),
             )
           ]),
         ],
