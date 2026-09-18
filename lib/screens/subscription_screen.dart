@@ -21,6 +21,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isSubmitting = false;
   bool _hasPendingRequest = false;
   Map<String, dynamic>? _pendingRequestData;
+  
+  bool _isPremium = false;
+  String _activationDate = '';
+  String _expiryDate = '';
 
   final String _paymentPhone = "01828424364";
   final String _whatsappPhone = "8801875787997";
@@ -29,6 +33,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void initState() {
     super.initState();
     _checkPendingRequest();
+    _checkPremiumStatus();
+  }
+
+  Future<void> _checkPremiumStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? expiryStr = prefs.getString('subscription_expiry_date');
+    String? startStr = prefs.getString('subscription_start_date');
+
+    if (expiryStr != null) {
+      DateTime expiry = DateTime.parse(expiryStr);
+      if (DateTime.now().isBefore(expiry)) {
+        setState(() {
+          _isPremium = true;
+          _expiryDate = _formatDate(expiry);
+          if (startStr != null) {
+            _activationDate = _formatDate(DateTime.parse(startStr));
+          }
+        });
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    if (AppTranslations.currentLanguage == 'bn') {
+      // বাংলা তারিখ ফরম্যাট (যেমন: ১৮ সেপ ২০২৬)
+      final day = date.day.toString();
+      final year = date.year.toString();
+      final months = ['জানু', 'ফেব্রু', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ', 'অক্টো', 'নভে', 'ডিসে'];
+      final month = months[date.month - 1];
+      return '$day $month $year';
+    } else {
+      return DateFormat('dd MMM yyyy').format(date);
+    }
   }
 
   Future<void> _checkPendingRequest() async {
@@ -165,6 +202,51 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_isPremium) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200, width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.verified_user_rounded, color: Colors.green, size: 24),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppTranslations.get('premium_active_status'),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 15),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    if (_activationDate.isNotEmpty)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(AppTranslations.get('subscribed_on'), style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                          Text(_activationDate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                        ],
+                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(AppTranslations.get('expires_on'), style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text(_expiryDate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const Icon(Icons.stars_rounded, size: 60, color: Color(0xFF0D47A1)),
             const SizedBox(height: 16),
             Text(

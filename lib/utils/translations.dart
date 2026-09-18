@@ -396,6 +396,9 @@ class AppTranslations {
     'transaction_id': {'en': 'Transaction ID', 'bn': 'ট্রানজেকশন আইডি'},
     'premium_feature': {'en': 'Premium Feature', 'bn': 'প্রিমিয়াম ফিচার'},
     'subscription_required': {'en': 'Subscription required!', 'bn': 'সাবস্ক্রিপশন প্রয়োজন!'},
+    'premium_active_status': {'en': 'Your Premium Plan is Active', 'bn': 'আপনার প্রিমিয়াম প্ল্যানটি সচল আছে'},
+    'subscribed_on': {'en': 'Activated on: ', 'bn': 'চালু হয়েছে: '},
+    'expires_on': {'en': 'Expires on: ', 'bn': 'মেয়াদ শেষ হবে: '},
 
     // --- Notifications ---
     'notifications': {'en': 'Notifications', 'bn': 'নোটিফিকেশন'},

@@ -97,6 +97,9 @@ class SubscriptionUtils {
           if (data.containsKey('subscriptionExpiryDate')) {
             await prefs.setString('subscription_expiry_date', (data['subscriptionExpiryDate'] as Timestamp).toDate().toIso8601String());
           }
+          if (data.containsKey('subscriptionStartDate')) {
+            await prefs.setString('subscription_start_date', (data['subscriptionStartDate'] as Timestamp).toDate().toIso8601String());
+          }
           // প্ল্যান এবং অতিরিক্ত স্টাফ স্লট সিঙ্ক করা
           if (data.containsKey('plan')) {
             await prefs.setString('subscription_plan', data['plan'].toString());
