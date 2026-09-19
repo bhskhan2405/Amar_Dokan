@@ -14,8 +14,6 @@ class ReceiptUtils {
   static Future<pw.Font> _loadFont(String path) async {
     final fontData = await rootBundle.load(path);
     return pw.Font.ttf(fontData);
-
-
   }
 
   static Future<Map<String, String>> getShopInfo() async {
@@ -26,7 +24,7 @@ class ReceiptUtils {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(shopId)
-          .get(const GetOptions(source: Source.serverAndCache)); // অফলাইন সাপোর্টের জন্য
+          .get(const GetOptions(source: Source.serverAndCache));
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         return {
@@ -39,14 +37,13 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. POS Bill Receipt (English UI, Bengali Content Support) ---
+  // --- 2. POS Bill Receipt ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
     bool isPrint = true,
   }) async {
     final pdf = pw.Document();
-
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
@@ -148,13 +145,11 @@ class ReceiptUtils {
               _buildSummaryRow('Due', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2)),
 
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-              
               pw.SizedBox(height: 5),
               pw.Text('THANK YOU!', style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 2),
               pw.Text('Sold items are not returnable.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800)),
               pw.SizedBox(height: 8),
-              
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: List.generate(24, (index) => pw.Container(
@@ -164,7 +159,6 @@ class ReceiptUtils {
                   margin: const pw.EdgeInsets.symmetric(horizontal: 0.5),
                 )),
               ),
-              
               pw.SizedBox(height: 5),
               pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
@@ -181,45 +175,6 @@ class ReceiptUtils {
     }
   }
 
-  static pw.Widget _buildRow(String key, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(key, style: const pw.TextStyle(fontSize: 8)),
-          pw.Text(value, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildRowLeft(String key, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.start,
-        children: [
-          pw.SizedBox(width: 45, child: pw.Text(key, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-          pw.Text(value, style: const pw.TextStyle(fontSize: 8)),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildSummaryRow(String label, String value, {bool isBold = false, double fontSize = 9}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          pw.Text(value, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-        ],
-      ),
-    );
-  }
-
   // --- 3. Customer Statement Report (A4) ---
 
   static Future<void> generateCustomerStatement({
@@ -233,14 +188,12 @@ class ReceiptUtils {
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
     
-    // লোগো লোড করা
     pw.MemoryImage? logo;
     try {
       final logoData = await rootBundle.load('assets/images/ic_launcher.png');
       logo = pw.MemoryImage(logoData.buffer.asUint8List());
     } catch (_) {}
 
-    // পিরিয়ড সামারি ক্যালকুলেশন
     double periodBaki = 0;
     double periodJama = 0;
 
@@ -280,33 +233,21 @@ class ReceiptUtils {
               mainAxisAlignment: pw.MainAxisAlignment.start,
               children: [
                 if (logo != null) ...[
-                  pw.Image(logo, width: 85, height: 85), // লোগো বাম পাশে এবং সাইজ বড় (৮৫) করা হলো
+                  pw.Image(logo, width: 85, height: 85),
                   pw.SizedBox(width: 15),
                 ],
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
-                      pw.Text(
-                        shopInfo['name']!, 
-                        style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
-                        textAlign: pw.TextAlign.center,
-                      ),
+                      pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900), textAlign: pw.TextAlign.center),
                       if (shopInfo['address']!.isNotEmpty) 
-                        pw.Text(
-                          shopInfo['address']!, 
-                          style: const pw.TextStyle(fontSize: 12),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      pw.Text(
-                        'Mobile: ${shopInfo['phone']}', 
-                        style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
-                        textAlign: pw.TextAlign.center,
-                      ),
+                        pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 12), textAlign: pw.TextAlign.center),
+                      pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
                     ],
                   ),
                 ),
-                pw.SizedBox(width: 85), // ডান পাশে ব্যালেন্স রাখার জন্য ফাঁকা জায়গা
+                pw.SizedBox(width: 85),
               ],
             ),
             pw.SizedBox(height: 8),
@@ -350,11 +291,7 @@ class ReceiptUtils {
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.grey100,
-                border: pw.Border.all(color: PdfColors.blue900),
-                borderRadius: pw.BorderRadius.circular(5),
-              ),
+              decoration: pw.BoxDecoration(color: PdfColors.grey100, border: pw.Border.all(color: PdfColors.blue900), borderRadius: pw.BorderRadius.circular(5)),
               child: pw.Text('Net Outstanding Due: Tk ${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red900)),
             )
           ]),
@@ -380,7 +317,6 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
 
-    // লোডিং স্পিড বাড়ানোর জন্য ফন্ট এবং শপ ইনফো একসাথে লোড করা
     final results = await Future.wait([
       _loadFont("assets/fonts/SolaimanLipi-Normal.ttf"),
       _loadFont("assets/fonts/SolaimanLipi-Bold.ttf"),
@@ -390,7 +326,6 @@ class ReceiptUtils {
     final fontRegular = results[0] as pw.Font;
     final fontBold = results[1] as pw.Font;
     final shopInfo = results[2] as Map<String, String>;
-    
     final currency = AppTranslations.get('currency_symbol');
 
     final double combinedSalary = totalSalary + totalBonus;
@@ -413,7 +348,6 @@ class ReceiptUtils {
           pw.TableHelper.fromTextArray(
             headers: const ['Date', 'Sale', 'Profit', 'Exp.', 'Salary', 'Due', 'Due Pmt.'],
             data: () {
-              // তারিখ অনুযায়ী সব ডেটা গ্রুপ করা [Sale, Profit, Expense, Salary (Basic+Bonus), Due, Due Pmt]
               Map<String, List<double>> dailyData = {};
               
               for (var doc in sales) {
@@ -424,7 +358,6 @@ class ReceiptUtils {
                 if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                // বিক্রির বকেয়া 'Due' কলামে এবং নগদ টাকা 'Due Pmt.' কলামে যোগ হবে
                 dailyData[dateKey]![4] += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![5] += (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
               }
@@ -438,7 +371,6 @@ class ReceiptUtils {
                 double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
                 String note = (data['note'] ?? '').toString().toLowerCase();
                 
-                // বেতন বা বোনাস দুইই স্যালারি কলামে যোগ হবে
                 if (note.contains('বেতন') || note.contains('salary') || note.contains('bonus') || note.contains('বোনাস')) {
                   dailyData[dateKey]![3] += amt;
                 } else {
@@ -453,8 +385,6 @@ class ReceiptUtils {
                 DateTime tDate = dateVal is Timestamp ? dateVal.toDate() : (DateTime.tryParse(dateVal.toString()) ?? DateTime.now());
                 final dateKey = DateFormat('dd/MM/yyyy').format(tDate);
                 if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
-                
-                // এটি ম্যানুয়াল জমা (Manual Payment) বা বকেয়া আদায়
                 double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![5] += amt;
               }
@@ -509,7 +439,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 6. Inventory Summary Report (A4) ---
+  // --- 5. Inventory Summary Report (A4) ---
 
   static Future<void> generateInventoryReport({
     required List<Map<String, dynamic>> logs,
@@ -531,12 +461,11 @@ class ReceiptUtils {
       ? (start == end ? DateFormat('dd/MM/yyyy').format(start) : "${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}")
       : "Full Inventory Summary";
 
-    // তারিখ অনুযায়ী ডাটা গ্রুপ করা
     Map<String, List<double>> dailyLogs = {};
     for (var log in logs) {
       Timestamp ts = log['date'] as Timestamp;
       String dateKey = DateFormat('dd/MM/yyyy').format(ts.toDate());
-      if (!dailyLogs.containsKey(dateKey)) dailyLogs[dateKey] = [0, 0, 0, 0]; // [ItemCount, Investment, SaleValue, Profit]
+      if (!dailyLogs.containsKey(dateKey)) dailyLogs[dateKey] = [0, 0, 0, 0];
       
       double qty = (log['addedQty'] as num?)?.toDouble() ?? 0.0;
       double cost = (log['costPrice'] as num?)?.toDouble() ?? 0.0;
@@ -621,23 +550,8 @@ class ReceiptUtils {
     );
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-  }
 
-  static pw.Widget _buildSummaryRowPDF(String label, String value, {bool isBold = false, PdfColor color = PdfColors.black}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 2),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          pw.Text(value, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: color)),
-        ],
-      ),
-    );
-  }
-
-  // --- 5. Single Voucher (A4) ---
+  // --- 6. Single Voucher (A4) ---
 
   static Future<void> generateSingleAccountPdf({
     required Map<String, dynamic> data, 
@@ -714,6 +628,58 @@ class ReceiptUtils {
         pw.Text(title, style: const pw.TextStyle(fontSize: 8)),
         pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color)),
       ]),
+    );
+  }
+
+  static pw.Widget _buildRow(String key, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(key, style: const pw.TextStyle(fontSize: 8)),
+          pw.Text(value, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildRowLeft(String key, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.start,
+        children: [
+          pw.SizedBox(width: 45, child: pw.Text(key, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+          pw.Text(value, style: const pw.TextStyle(fontSize: 8)),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildSummaryRow(String label, String value, {bool isBold = false, double fontSize = 9}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+          pw.Text(value, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildSummaryRowPDF(String label, String value, {bool isBold = false, PdfColor color = PdfColors.black}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: color)),
+        ],
+      ),
     );
   }
 
