@@ -648,6 +648,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         .collection('users')
                         .doc(_shopId)
                         .collection('products');
+                    
+                    final logsRef = FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(_shopId)
+                        .collection('inventory_logs');
 
                     if (barcode.isNotEmpty) {
                       final existingBarcodeQuery = await productsRef
@@ -698,8 +703,18 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       // নতুন প্রোডাক্ট অ্যাড করার সময় অ্যাড চেক
                       await AdManager.checkAndShowProductAd(() async {
                         productData['createdAt'] = FieldValue.serverTimestamp();
-                        // অফলাইনে থাকলে await অনেক সময় আটকে থাকে, তাই সরাসরি পরের ধাপে যাচ্ছি
-                        productsRef.add(productData); 
+                        // ১. প্রোডাক্ট সেভ করা
+                        DocumentReference newDoc = await productsRef.add(productData);
+                        
+                        // ২. ইনভেন্টরি লগ রাখা (যাতে রিপোর্টে তারিখ অনুযায়ী নির্ভুল হিসাব আসে)
+                        logsRef.add({
+                          'productId': newDoc.id,
+                          'productName': name,
+                          'addedQty': stock,
+                          'costPrice': costPrice,
+                          'salePrice': price,
+                          'date': Timestamp.now(),
+                        });
                         
                         if (dialogContext.mounted) {
                           Navigator.pop(dialogContext);
@@ -709,6 +724,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         }
                       });
                     } else {
+                      // এডিট করার ক্ষেত্রে স্টকের পরিবর্তন চেক করা
+                      final oldData = doc.data() as Map<String, dynamic>;
+                      double oldStock = (oldData['stock'] as num?)?.toDouble() ?? 0.0;
+                      
+                      // ৩. যদি স্টক বাড়ানো হয়, তবে তার লগ রাখা
+                      if (stock > oldStock) {
+                        double addedQty = stock - oldStock;
+                        logsRef.add({
+                          'productId': doc.id,
+                          'productName': name,
+                          'addedQty': addedQty,
+                          'costPrice': costPrice,
+                          'salePrice': price,
+                          'date': Timestamp.now(),
+                        });
+                      }
+
                       productsRef.doc(doc.id).update(productData);
                       if (dialogContext.mounted) {
                         Navigator.pop(dialogContext);
@@ -896,22 +928,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month, color: Colors.white),
-            onPressed: () async {
-              DateTimeRange? picked = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now().add(const Duration(days: 1)),
-                initialDateRange: _startDate != null && _endDate != null
-                    ? DateTimeRange(start: _startDate!, end: _endDate!)
-                    : null,
-              );
-              if (picked != null) {
-                setState(() {
-                  _startDate = picked.start;
-                  _endDate = picked.end;
-                });
-              }
-            },
+            onPressed: () => _showDateSelectionMode(),
           ),
           if (_startDate != null)
             IconButton(
@@ -1100,29 +1117,49 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildSummaryItem(AppTranslations.get('total_purchase'), '৳${totalCostPrice.toStringAsFixed(0)}', Colors.white),
+                          _buildSummaryItem(AppTranslations.get('investment'), '৳${totalCostPrice.toStringAsFixed(0)}', Colors.white),
                           Container(height: 30, width: 1, color: Colors.white54),
                           _buildSummaryItem(AppTranslations.get('will_be_sold'), '৳${totalSaleValue.toStringAsFixed(0)}', Colors.white),
                           Container(height: 30, width: 1, color: Colors.white54),
-                          _buildSummaryItem(AppTranslations.get('will_be_profit'), '৳${totalProfit.toStringAsFixed(0)}', Colors.greenAccent),
+                          _buildSummaryItem(AppTranslations.get('estimated_profit'), '৳${totalProfit.toStringAsFixed(0)}', Colors.greenAccent),
                         ],
                       ),
                       if (_startDate != null) ...[
                         const Divider(color: Colors.white24),
-                        TextButton.icon(
-                          onPressed: () {
-                            List<Map<String, dynamic>> productDataList = products.map((doc) => doc.data() as Map<String, dynamic>).toList();
-                            ReceiptUtils.generateInventoryReport(
-                              products: productDataList,
-                              totalCost: totalCostPrice,
-                              totalSaleValue: totalSaleValue,
-                              totalProfit: totalProfit,
-                              start: _startDate,
-                              end: _endDate,
+                        FutureBuilder<QuerySnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(_shopId)
+                              .collection('inventory_logs')
+                              .get(),
+                          builder: (context, logSnapshot) {
+                            return TextButton.icon(
+                              onPressed: () {
+                                if (logSnapshot.hasData) {
+                                  final allLogs = logSnapshot.data!.docs;
+                                  final filteredLogs = allLogs.where((doc) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    Timestamp? ts = data['date'] as Timestamp?;
+                                    if (ts == null) return false;
+                                    DateTime logDate = ts.toDate();
+                                    DateTime cleanLogDate = DateTime(logDate.year, logDate.month, logDate.day);
+                                    DateTime cleanStart = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+                                    DateTime cleanEnd = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+                                    return (cleanLogDate.isAtSameMomentAs(cleanStart) || cleanLogDate.isAfter(cleanStart)) &&
+                                           (cleanLogDate.isAtSameMomentAs(cleanEnd) || cleanLogDate.isBefore(cleanEnd));
+                                  }).map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+                                  ReceiptUtils.generateInventoryReport(
+                                    logs: filteredLogs,
+                                    start: _startDate,
+                                    end: _endDate,
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 18),
+                              label: Text(AppTranslations.get('download_pdf_range'), style: const TextStyle(color: Colors.white, fontSize: 12)),
                             );
-                          },
-                          icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 18),
-                          label: Text(AppTranslations.get('download_pdf_range'), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          }
                         ),
                       ],
                     ],
@@ -1235,6 +1272,60 @@ class _ProductsScreenState extends State<ProductsScreen> {
         backgroundColor: const Color(0xFF0D47A1),
         onPressed: () => _showProductDialog(),
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  void _showDateSelectionMode() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(AppTranslations.get('select_date_type'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.today, color: Color(0xFF0D47A1)),
+            title: Text(AppTranslations.get('single_date')),
+            onTap: () async {
+              Navigator.pop(context);
+              DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: _startDate ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                setState(() {
+                  _startDate = picked;
+                  _endDate = picked;
+                });
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.date_range, color: Color(0xFF0D47A1)),
+            title: Text(AppTranslations.get('date_range_picker')),
+            onTap: () async {
+              Navigator.pop(context);
+              DateTimeRange? picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                setState(() {
+                  _startDate = picked.start;
+                  _endDate = picked.end;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }

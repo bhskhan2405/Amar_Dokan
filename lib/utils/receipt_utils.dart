@@ -512,10 +512,7 @@ class ReceiptUtils {
   // --- 6. Inventory Summary Report (A4) ---
 
   static Future<void> generateInventoryReport({
-    required List<Map<String, dynamic>> products,
-    required double totalCost,
-    required double totalSaleValue,
-    required double totalProfit,
+    required List<Map<String, dynamic>> logs,
     required DateTime? start,
     required DateTime? end,
   }) async {
@@ -524,7 +521,6 @@ class ReceiptUtils {
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
     
-    // লোগো লোড করা
     pw.MemoryImage? logo;
     try {
       final logoData = await rootBundle.load('assets/images/ic_launcher.png');
@@ -532,80 +528,99 @@ class ReceiptUtils {
     } catch (_) {}
 
     String dateRange = (start != null && end != null) 
-      ? "${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}"
+      ? (start == end ? DateFormat('dd/MM/yyyy').format(start) : "${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}")
       : "Full Inventory Summary";
+
+    // তারিখ অনুযায়ী ডাটা গ্রুপ করা
+    Map<String, List<double>> dailyLogs = {};
+    for (var log in logs) {
+      Timestamp ts = log['date'] as Timestamp;
+      String dateKey = DateFormat('dd/MM/yyyy').format(ts.toDate());
+      if (!dailyLogs.containsKey(dateKey)) dailyLogs[dateKey] = [0, 0, 0, 0]; // [ItemCount, Investment, SaleValue, Profit]
+      
+      double qty = (log['addedQty'] as num?)?.toDouble() ?? 0.0;
+      double cost = (log['costPrice'] as num?)?.toDouble() ?? 0.0;
+      double sale = (log['salePrice'] as num?)?.toDouble() ?? 0.0;
+      
+      dailyLogs[dateKey]![0] += qty;
+      dailyLogs[dateKey]![1] += (cost * qty);
+      dailyLogs[dateKey]![2] += (sale * qty);
+      dailyLogs[dateKey]![3] += ((sale - cost) * qty);
+    }
+
+    double grandCost = 0;
+    double grandSale = 0;
+    double grandProfit = 0;
+
+    var sortedDates = dailyLogs.keys.toList()..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
-        header: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
-          children: [
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.start,
-              children: [
-                if (logo != null) ...[
-                  pw.Image(logo, width: 70, height: 70),
-                  pw.SizedBox(width: 15),
-                ],
-                pw.Expanded(
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.center,
-                    children: [
-                      pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-                      if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
-                      pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
-                    ],
-                  ),
+        header: (context) => pw.Column(children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.start,
+            children: [
+              if (logo != null) ...[pw.Image(logo, width: 75, height: 75), pw.SizedBox(width: 15)],
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                    if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+                  ],
                 ),
-                pw.SizedBox(width: 70), 
-              ],
-            ),
-            pw.Divider(thickness: 1.5, color: PdfColors.blue900),
-            pw.SizedBox(height: 10),
-          ],
-        ),
+              ),
+              pw.SizedBox(width: 75),
+            ],
+          ),
+          pw.Divider(thickness: 1.5, color: PdfColors.blue900),
+          pw.SizedBox(height: 10),
+        ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('INVENTORY / STOCK REPORT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+            pw.Text('INVENTORY SUMMARY REPORT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
             pw.Text('Period: $dateRange', style: const pw.TextStyle(fontSize: 9)),
           ]),
           pw.SizedBox(height: 15),
           pw.TableHelper.fromTextArray(
-            headers: const ['Product Name', 'Category', 'Stock', 'Cost Price', 'Sale Price'],
-            data: products.map((p) => [
-              p['name'] ?? '',
-              p['category'] ?? '',
-              "${p['stock']} ${p['unit'] ?? ''}",
-              p['costPrice']?.toStringAsFixed(2) ?? '0.00',
-              p['price']?.toStringAsFixed(2) ?? '0.00',
-            ]).toList(),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
+            headers: const ['Date', 'Items Added', 'Investment', 'Potential Sale', 'Est. Profit'],
+            data: sortedDates.map((date) {
+              final vals = dailyLogs[date]!;
+              grandCost += vals[1];
+              grandSale += vals[2];
+              grandProfit += vals[3];
+              return [
+                date,
+                vals[0].toStringAsFixed(0),
+                vals[1].toStringAsFixed(2),
+                vals[2].toStringAsFixed(2),
+                vals[3].toStringAsFixed(2),
+              ];
+            }).toList(),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: const pw.TextStyle(fontSize: 8),
+            cellStyle: const pw.TextStyle(fontSize: 9),
             cellAlignment: pw.Alignment.centerLeft,
           ),
           pw.SizedBox(height: 25),
           pw.Container(
             padding: const pw.EdgeInsets.all(15),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.grey50,
-              border: pw.Border.all(color: PdfColors.blue900),
-              borderRadius: pw.BorderRadius.circular(8),
-            ),
-            child: pw.Column(
-              children: [
-                _buildSummaryRowPDF('Total Investment (Purchase Cost):', 'Tk ${totalCost.toStringAsFixed(2)}'),
-                _buildSummaryRowPDF('Total Potential Sale Value:', 'Tk ${totalSaleValue.toStringAsFixed(2)}'),
-                pw.Divider(color: PdfColors.grey300),
-                _buildSummaryRowPDF('Estimated Potential Profit:', 'Tk ${totalProfit.toStringAsFixed(2)}', isBold: true, color: PdfColors.green900),
-              ],
-            ),
+            decoration: pw.BoxDecoration(color: PdfColors.grey50, border: pw.Border.all(color: PdfColors.blue900), borderRadius: pw.BorderRadius.circular(8)),
+            child: pw.Column(children: [
+              _buildSummaryRowPDF('Total Period Investment:', 'Tk ${grandCost.toStringAsFixed(2)}'),
+              _buildSummaryRowPDF('Total Period Sale Value:', 'Tk ${grandSale.toStringAsFixed(2)}'),
+              pw.Divider(color: PdfColors.grey300),
+              _buildSummaryRowPDF('Total Estimated Potential Profit:', 'Tk ${grandProfit.toStringAsFixed(2)}', isBold: true, color: PdfColors.green900),
+            ]),
           ),
         ],
       )
     );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
