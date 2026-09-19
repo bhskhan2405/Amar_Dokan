@@ -358,8 +358,15 @@ class ReceiptUtils {
                 if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                 dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                 dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                dailyData[dateKey]![4] += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
-                dailyData[dateKey]![5] += (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                
+                double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+                double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                
+                // শুধুমাত্র বকেয়া সংশ্লিষ্ট লেনদেন হলে 'Due' এবং 'Due Pmt.' এ যোগ হবে
+                if (due > 0) {
+                  dailyData[dateKey]![4] += due;
+                  dailyData[dateKey]![5] += paid;
+                }
               }
 
               for (var doc in expenses) {

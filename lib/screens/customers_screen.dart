@@ -944,12 +944,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                               var data = doc.data() as Map<String, dynamic>;
                               Timestamp? ts = data['createdAt'] as Timestamp?;
                               if (ts != null && ts.toDate().isAfter(todayStart)) {
-                                double total = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
-                                double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
                                 double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+                                double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
 
-                                todayTotalBaki += due;
-                                todayTotalJama += paid;
+                                // শুধুমাত্র বকেয়া সংশ্লিষ্ট লেনদেন হলে এখানে আসবে
+                                if (due > 0) {
+                                  todayTotalBaki += due;
+                                  todayTotalJama += paid;
+                                }
                               }
                             }
                           }
@@ -1088,8 +1090,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                                   if (ts != null) {
                                     DateTime tDate = ts.toDate();
                                     if ((tDate.isAtSameMomentAs(sStart) || tDate.isAfter(sStart)) && tDate.isBefore(sEnd)) {
-                                      customBaki += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
-                                      customJama += (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                                      double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+                                      double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                                      
+                                      // শুধুমাত্র বকেয়া সংশ্লিষ্ট লেনদেন হলে এখানে আসবে
+                                      if (due > 0) {
+                                        customBaki += due;
+                                        customJama += paid;
+                                      }
                                     }
                                   }
                                 }

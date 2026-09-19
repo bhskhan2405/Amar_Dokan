@@ -47,12 +47,17 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
       try {
         String? imageUrl;
         if (imageFile != null) {
-          final ref = FirebaseStorage.instance
+          final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final Reference storageRef = FirebaseStorage.instance
               .ref()
-              .child('staff_images')
-              .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-          await ref.putFile(imageFile);
-          imageUrl = await ref.getDownloadURL();
+              .child('staff_profiles')
+              .child(adminUid)
+              .child(fileName);
+          
+          // আপলোড শুরু
+          await storageRef.putFile(imageFile);
+          // আপলোড শেষ হওয়ার পর ইউআরএল সংগ্রহ
+          imageUrl = await storageRef.getDownloadURL();
         }
 
         await FirebaseFirestore.instance
@@ -99,12 +104,15 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
       try {
         String? imageUrl = existingImageUrl;
         if (imageFile != null) {
-          final ref = FirebaseStorage.instance
+          final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final Reference storageRef = FirebaseStorage.instance
               .ref()
-              .child('staff_images')
-              .child('$staffId.jpg');
-          await ref.putFile(imageFile);
-          imageUrl = await ref.getDownloadURL();
+              .child('staff_profiles')
+              .child(adminUid)
+              .child(fileName);
+          
+          await storageRef.putFile(imageFile);
+          imageUrl = await storageRef.getDownloadURL();
         }
 
         await FirebaseFirestore.instance
