@@ -270,7 +270,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                   child: Text(AppTranslations.get('cancel')),
                 ),
                 ValueListenableBuilder<bool>(
-                  value_listenable: _isLoadingNotifier,
+                  valueListenable: _isLoadingNotifier,
                   builder: (context, isLoading, child) {
                     return ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
