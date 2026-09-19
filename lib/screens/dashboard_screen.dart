@@ -286,6 +286,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         _buildTrialBanner(),
                         _buildLowStockAlert(),
+                        _buildExpiryAlert(),
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -478,6 +479,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   MaterialPageRoute(builder: (context) => const ProductsScreen(showLowStockOnly: true))
                 ), 
                 child: Text(AppTranslations.get('view'))
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildExpiryAlert() {
+    if (_shopId.isEmpty) return const SizedBox.shrink();
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(_shopId).collection('products').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final now = DateTime.now();
+        final expiredProducts = snapshot.data!.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          Timestamp? exp = data['expiryDate'] as Timestamp?;
+          if (exp == null) return false;
+          return exp.toDate().isBefore(now);
+        }).toList();
+        
+        if (expiredProducts.isEmpty) return const SizedBox.shrink();
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50, 
+            borderRadius: BorderRadius.circular(12), 
+            border: Border.all(color: Colors.orange.shade200)
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.event_busy_rounded, color: Colors.orange),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(AppTranslations.get('expiry_alert'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                    Text(AppTranslations.get('expired_msg').replaceAll('@count', expiredProducts.length.toString()), style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (context) => const ProductsScreen(showExpiredOnly: true))
+                ), 
+                child: Text(AppTranslations.get('view'), style: const TextStyle(color: Colors.orange))
               ),
             ],
           ),

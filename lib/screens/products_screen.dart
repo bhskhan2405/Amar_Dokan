@@ -17,7 +17,8 @@ import 'subscription_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   final bool showLowStockOnly;
-  const ProductsScreen({super.key, this.showLowStockOnly = false});
+  final bool showExpiredOnly;
+  const ProductsScreen({super.key, this.showLowStockOnly = false, this.showExpiredOnly = false});
 
   @override
   State<ProductsScreen> createState() => _ProductsScreenState();
@@ -57,6 +58,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   bool _isSaving = false;
   late String _selectedCategoryFilter;
   String _discountType = '%';
+  DateTime? _expiryDate;
 
   DateTime? _startDate;
   DateTime? _endDate;
@@ -72,7 +74,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedCategoryFilter = widget.showLowStockOnly ? 'Low Stock' : AppTranslations.get('all');
+    if (widget.showLowStockOnly) {
+      _selectedCategoryFilter = 'Low Stock';
+    } else if (widget.showExpiredOnly) {
+      _selectedCategoryFilter = 'Expired';
+    } else {
+      _selectedCategoryFilter = AppTranslations.get('all');
+    }
     _allAvailableCategories = List.from(_categoryList);
     _priceController.addListener(_calculateDiscountAmount);
     _discountController.addListener(_calculateDiscountAmount);
@@ -286,6 +294,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       _unitController.text = data['unit'] ?? 'Pcs';
       _lowStockLimitController.text = (data['lowStockLimit'] ?? '5').toString();
       _imageBase64String = data['imageBase64'] ?? '';
+      _expiryDate = data['expiryDate'] != null ? (data['expiryDate'] as Timestamp).toDate() : null;
     } else {
       _nameController.clear();
       _priceController.clear();
@@ -300,6 +309,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       _lowStockLimitController.text = '5';
       _calculatedDiscountText = '';
       _imageBase64String = '';
+      _expiryDate = null;
     }
 
     showDialog(
@@ -529,6 +539,41 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _expiryDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        dialogSetState(() {
+                          _expiryDate = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _expiryDate == null
+                                ? AppTranslations.get('expiry_date')
+                                : '${AppTranslations.get('expiry_date')}: ${DateFormat('dd MMM yyyy').format(_expiryDate!)}',
+                            style: TextStyle(color: _expiryDate == null ? Colors.grey.shade600 : Colors.black87),
+                          ),
+                          const Icon(Icons.calendar_today, size: 18, color: Color(0xFF0D47A1)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -643,6 +688,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       'barcode': barcode,
                       'discount': discount,
                       'discountType': _discountType,
+                      'expiryDate': _expiryDate != null ? Timestamp.fromDate(_expiryDate!) : null,
                       'imageBase64': _imageBase64String ?? '',
                       'updatedAt': FieldValue.serverTimestamp(),
                     };
@@ -958,6 +1004,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
                 return stock <= limit;
               }
+              if (_selectedCategoryFilter == 'Expired') {
+                Timestamp? exp = data['expiryDate'] as Timestamp?;
+                if (exp == null) return false;
+                return exp.toDate().isBefore(DateTime.now());
+              }
               return data['category'] == _selectedCategoryFilter;
             }).toList();
 
@@ -1091,6 +1142,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       final category = data['category'] ?? AppTranslations.get('others');
                       final size = data['size'] ?? '';
                       final imageBase64 = data['imageBase64'] ?? '';
+                      final Timestamp? expTimestamp = data['expiryDate'] as Timestamp?;
 
                       String discountDisplay = '';
                       if (discountVal > 0) {
@@ -1109,12 +1161,20 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       final double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
                       bool isLowStock = stock <= limit;
 
+                      bool isExpired = false;
+                      String expiryDisplay = '';
+                      if (expTimestamp != null) {
+                        final expDate = expTimestamp.toDate();
+                        isExpired = expDate.isBefore(DateTime.now());
+                        expiryDisplay = '\n${AppTranslations.get('expiry_date')}: ${DateFormat('dd MMM yyyy').format(expDate)}';
+                      }
+
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         color: Colors.white.withOpacity(0.85), // কার্ড স্বচ্ছ করা হলো
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: isLowStock ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
+                          side: (isLowStock || isExpired) ? BorderSide(color: isExpired ? Colors.orange : Colors.red, width: 1.5) : BorderSide.none,
                         ),
                         child: ListTile(
                           leading: ClipRRect(
@@ -1143,7 +1203,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           ),
                           title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(
-                            '${AppTranslations.get('category')}: $category$sizeDisplay\n${AppTranslations.get('price')}: ৳$price / $unit $discountDisplay\n${AppTranslations.get('stock')}: ${data['stock']} $unit | ${AppTranslations.get('barcode')}: ${data['barcode'] ?? AppTranslations.get('none')}',
+                            '${AppTranslations.get('category')}: $category$sizeDisplay\n${AppTranslations.get('price')}: ৳$price / $unit $discountDisplay\n${AppTranslations.get('stock')}: ${data['stock']} $unit | ${AppTranslations.get('barcode')}: ${data['barcode'] ?? AppTranslations.get('none')}$expiryDisplay',
+                            style: TextStyle(color: isExpired ? Colors.red.shade900 : null, fontWeight: isExpired ? FontWeight.bold : null),
                           ),
                           isThreeLine: true,
                           trailing: Row(
