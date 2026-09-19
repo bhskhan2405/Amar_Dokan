@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart' as ap;
 import '../utils/translations.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
@@ -259,7 +260,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
                   isScanned = true;
-                  SystemSound.play(SystemSoundType.click);
+                  
+                  // সফল স্ক্যানে অডিও প্লে করা
+                  ap.AudioPlayer().play(ap.AssetSource('audio/beep.mp3'));
                   HapticFeedback.mediumImpact();
 
                   setState(() {

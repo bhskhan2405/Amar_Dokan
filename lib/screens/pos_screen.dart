@@ -8,6 +8,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:audioplayers/audioplayers.dart' as ap;
 import '../utils/translations.dart';
 import '../utils/shop_utils.dart';
 import '../utils/subscription_utils.dart';
@@ -148,7 +149,8 @@ class _POSScreenState extends State<POSScreen> {
                       isScanned = true;
                       final scannedCode = barcode.rawValue!.trim();
 
-                      SystemSound.play(SystemSoundType.click);
+                      // সফল স্ক্যানে অডিও প্লে করা
+                      ap.AudioPlayer().play(ap.AssetSource('audio/beep.mp3'));
                       HapticFeedback.mediumImpact();
 
                       try {
