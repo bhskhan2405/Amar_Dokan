@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../utils/translations.dart';
 import '../widgets/custom_banner_ad.dart';
@@ -40,26 +40,11 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   }
 
   // নতুন স্টাফ ফায়ারস্টোরে যোগ করার ফাংশন
-  void _addStaff(BuildContext context, String adminUid, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer, File? imageFile) async {
+  void _addStaff(BuildContext context, String adminUid, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer, String? imageBase64) async {
     if (formKey.currentState!.validate()) {
       _isLoadingNotifier.value = true;
 
       try {
-        String? imageUrl;
-        if (imageFile != null) {
-          final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final Reference storageRef = FirebaseStorage.instance
-              .ref()
-              .child('staff_profiles')
-              .child(adminUid)
-              .child(fileName);
-          
-          // আপলোড শুরু
-          await storageRef.putFile(imageFile);
-          // আপলোড শেষ হওয়ার পর ইউআরএল সংগ্রহ
-          imageUrl = await storageRef.getDownloadURL();
-        }
-
         await FirebaseFirestore.instance
             .collection('users')
             .doc(adminUid)
@@ -69,7 +54,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
           'phone': phoneCtrl.text.trim(),
           'username': usernameCtrl.text.trim(),
           'password': passwordCtrl.text.trim(),
-          'profileImage': imageUrl,
+          'profileImage': imageBase64, // এখন সরাসরি Base64 স্ট্রিং সেভ হবে
           'role': 'staff',
           'permissions': {
             'product_list': pList,
@@ -97,24 +82,11 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
   }
 
   // স্টাফের তথ্য ও পারমিশন আপডেট (এডিট) করার ফাংশন
-  void _updateStaff(BuildContext context, String adminUid, String staffId, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer, File? imageFile, String? existingImageUrl) async {
+  void _updateStaff(BuildContext context, String adminUid, String staffId, GlobalKey<FormState> formKey, TextEditingController nameCtrl, TextEditingController phoneCtrl, TextEditingController usernameCtrl, TextEditingController passwordCtrl, bool pList, bool pSale, bool accounts, bool customer, String? imageBase64) async {
     if (formKey.currentState!.validate()) {
       _isLoadingNotifier.value = true;
 
       try {
-        String? imageUrl = existingImageUrl;
-        if (imageFile != null) {
-          final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final Reference storageRef = FirebaseStorage.instance
-              .ref()
-              .child('staff_profiles')
-              .child(adminUid)
-              .child(fileName);
-          
-          await storageRef.putFile(imageFile);
-          imageUrl = await storageRef.getDownloadURL();
-        }
-
         await FirebaseFirestore.instance
             .collection('users')
             .doc(adminUid)
@@ -125,13 +97,13 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
           'phone': phoneCtrl.text.trim(),
           'username': usernameCtrl.text.trim(),
           'password': passwordCtrl.text.trim(),
-          'profileImage': imageUrl,
+          'profileImage': imageBase64,
           'permissions': {
             'product_list': pList,
             'pos_sale': pSale,
             'accounts': accounts,
             'customer': customer,
-            'can_customer': customer, // কোডের সামঞ্জস্যতার জন্য উভয় কি (key) আপডেট করা হলো
+            'can_customer': customer, 
           },
           'updatedAt': Timestamp.now(),
         });
@@ -180,8 +152,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
     final usernameController = TextEditingController(text: staffData?['username'] ?? '');
     final passwordController = TextEditingController(text: staffData?['password'] ?? '');
 
-    File? selectedImage;
-    String? existingImageUrl = staffData?['profileImage'];
+    String? currentImageBase64 = staffData?['profileImage'];
 
     var permissions = staffData?['permissions'] ?? {};
     bool canProductList = permissions['product_list'] ?? true;
@@ -207,22 +178,28 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                         onTap: () async {
                           final XFile? image = await _picker.pickImage(
                             source: ImageSource.gallery,
-                            imageQuality: 50, // কোয়ালিটি কমিয়ে সাইজ কমানো হলো
-                            maxWidth: 600,   // প্রস্থ কমিয়ে সাইজ কমানো হলো
+                            imageQuality: 50,
+                            maxWidth: 400,
+                            maxHeight: 400,
                           );
                           if (image != null) {
+                            File imageFile = File(image.path);
+                            List<int> imageBytes = await imageFile.readAsBytes();
+                            String base64 = base64Encode(imageBytes);
                             setDialogState(() {
-                              selectedImage = File(image.path);
+                              currentImageBase64 = base64;
                             });
                           }
                         },
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.grey.shade200,
-                          backgroundImage: selectedImage != null 
-                              ? FileImage(selectedImage!) 
-                              : (existingImageUrl != null ? NetworkImage(existingImageUrl!) : null) as ImageProvider?,
-                          child: (selectedImage == null && existingImageUrl == null) 
+                          backgroundImage: (currentImageBase64 != null && currentImageBase64!.isNotEmpty)
+                              ? (currentImageBase64!.startsWith('http') 
+                                  ? NetworkImage(currentImageBase64!) 
+                                  : MemoryImage(base64Decode(currentImageBase64!))) as ImageProvider?
+                              : null,
+                          child: (currentImageBase64 == null || currentImageBase64!.isEmpty) 
                               ? const Icon(Icons.camera_alt, size: 30, color: Colors.grey) 
                               : null,
                         ),
@@ -293,7 +270,7 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                   child: Text(AppTranslations.get('cancel')),
                 ),
                 ValueListenableBuilder<bool>(
-                  valueListenable: _isLoadingNotifier,
+                  value_listenable: _isLoadingNotifier,
                   builder: (context, isLoading, child) {
                     return ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
@@ -301,9 +278,9 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                           ? null
                           : () {
                         if (isEditing) {
-                          _updateStaff(context, adminUid, staffId, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer, selectedImage, existingImageUrl);
+                          _updateStaff(context, adminUid, staffId, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer, currentImageBase64);
                         } else {
-                          _addStaff(context, adminUid, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer, selectedImage);
+                          _addStaff(context, adminUid, formKey, nameController, phoneController, usernameController, passwordController, canProductList, canPosSale, canAccounts, canCustomer, currentImageBase64);
                         }
                       },
                       child: isLoading
@@ -508,8 +485,12 @@ class _ManageStaffsScreenState extends State<ManageStaffsScreen> {
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: Colors.blue.shade100,
-                            backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
-                            child: profileImage == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
+                            backgroundImage: (profileImage != null && profileImage.isNotEmpty)
+                                ? (profileImage.startsWith('http') 
+                                    ? NetworkImage(profileImage) 
+                                    : MemoryImage(base64Decode(profileImage))) as ImageProvider?
+                                : null,
+                            child: (profileImage == null || profileImage.isEmpty) ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
                           ),
                           title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('${AppTranslations.get('username_label')} $username\n${AppTranslations.get('mobile_short') ?? 'Mobile'}: $phone\n${AppTranslations.get('access_label')} ${allowedFeatures.join(', ')}'),
