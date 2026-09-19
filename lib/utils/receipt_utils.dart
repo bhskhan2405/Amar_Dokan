@@ -509,6 +509,119 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
+  // --- 6. Inventory Summary Report (A4) ---
+
+  static Future<void> generateInventoryReport({
+    required List<Map<String, dynamic>> products,
+    required double totalCost,
+    required double totalSaleValue,
+    required double totalProfit,
+    required DateTime? start,
+    required DateTime? end,
+  }) async {
+    final pdf = pw.Document();
+    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shopInfo = await getShopInfo();
+    
+    // লোগো লোড করা
+    pw.MemoryImage? logo;
+    try {
+      final logoData = await rootBundle.load('assets/images/ic_launcher.png');
+      logo = pw.MemoryImage(logoData.buffer.asUint8List());
+    } catch (_) {}
+
+    String dateRange = (start != null && end != null) 
+      ? "${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}"
+      : "Full Inventory Summary";
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
+        header: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.start,
+              children: [
+                if (logo != null) ...[
+                  pw.Image(logo, width: 70, height: 70),
+                  pw.SizedBox(width: 15),
+                ],
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                      if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(width: 70), 
+              ],
+            ),
+            pw.Divider(thickness: 1.5, color: PdfColors.blue900),
+            pw.SizedBox(height: 10),
+          ],
+        ),
+        build: (context) => [
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Text('INVENTORY / STOCK REPORT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+            pw.Text('Period: $dateRange', style: const pw.TextStyle(fontSize: 9)),
+          ]),
+          pw.SizedBox(height: 15),
+          pw.TableHelper.fromTextArray(
+            headers: const ['Product Name', 'Category', 'Stock', 'Cost Price', 'Sale Price'],
+            data: products.map((p) => [
+              p['name'] ?? '',
+              p['category'] ?? '',
+              "${p['stock']} ${p['unit'] ?? ''}",
+              p['costPrice']?.toStringAsFixed(2) ?? '0.00',
+              p['price']?.toStringAsFixed(2) ?? '0.00',
+            ]).toList(),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            cellAlignment: pw.Alignment.centerLeft,
+          ),
+          pw.SizedBox(height: 25),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(15),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey50,
+              border: pw.Border.all(color: PdfColors.blue900),
+              borderRadius: pw.BorderRadius.circular(8),
+            ),
+            child: pw.Column(
+              children: [
+                _buildSummaryRowPDF('Total Investment (Purchase Cost):', 'Tk ${totalCost.toStringAsFixed(2)}'),
+                _buildSummaryRowPDF('Total Potential Sale Value:', 'Tk ${totalSaleValue.toStringAsFixed(2)}'),
+                pw.Divider(color: PdfColors.grey300),
+                _buildSummaryRowPDF('Estimated Potential Profit:', 'Tk ${totalProfit.toStringAsFixed(2)}', isBold: true, color: PdfColors.green900),
+              ],
+            ),
+          ),
+        ],
+      )
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
+  static pw.Widget _buildSummaryRowPDF(String label, String value, {bool isBold = false, PdfColor color = PdfColors.black}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
   // --- 5. Single Voucher (A4) ---
 
   static Future<void> generateSingleAccountPdf({

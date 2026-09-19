@@ -399,6 +399,10 @@ class AppTranslations {
     'premium_active_status': {'en': 'Your Premium Plan is Active', 'bn': 'আপনার প্রিমিয়াম প্ল্যানটি সচল আছে'},
     'subscribed_on': {'en': 'Activated on: ', 'bn': 'চালু হয়েছে: '},
     'expires_on': {'en': 'Expires on: ', 'bn': 'মেয়াদ শেষ হবে: '},
+    'inventory_report': {'en': 'Inventory Report', 'bn': 'স্টক রিপোর্ট'},
+    'total_investment': {'en': 'Total Investment', 'bn': 'মোট ইনভেস্টমেন্ট'},
+    'potential_profit': {'en': 'Potential Profit', 'bn': 'সম্ভাব্য লাভ'},
+    'stock_value_report': {'en': 'Stock Value Report', 'bn': 'স্টক ভ্যালু রিপোর্ট'},
 
     // --- Notifications ---
     'notifications': {'en': 'Notifications', 'bn': 'নোটিফিকেশন'},

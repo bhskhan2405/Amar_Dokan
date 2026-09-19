@@ -57,6 +57,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
   late String _selectedCategoryFilter;
   String _discountType = '%';
 
+  DateTime? _startDate;
+  DateTime? _endDate;
+
   File? _imageFile;
   String? _imageBase64String;
 
@@ -842,6 +845,35 @@ class _ProductsScreenState extends State<ProductsScreen> {
         title: Text(AppTranslations.get('product_management'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF0D47A1),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month, color: Colors.white),
+            onPressed: () async {
+              DateTimeRange? picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now().add(const Duration(days: 1)),
+                initialDateRange: _startDate != null && _endDate != null
+                    ? DateTimeRange(start: _startDate!, end: _endDate!)
+                    : null,
+              );
+              if (picked != null) {
+                setState(() {
+                  _startDate = picked.start;
+                  _endDate = picked.end;
+                });
+              }
+            },
+          ),
+          if (_startDate != null)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.white),
+              onPressed: () => setState(() {
+                _startDate = null;
+                _endDate = null;
+              }),
+            ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -900,10 +932,38 @@ class _ProductsScreenState extends State<ProductsScreen> {
             }
             _allAvailableCategories = dynamicCategories.toList();
 
+            final products = allProducts.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              
+              // ১. তারিখ ফিল্টার
+              if (_startDate != null && _endDate != null) {
+                Timestamp? createdAt = data['createdAt'] as Timestamp?;
+                if (createdAt == null) return false;
+                DateTime productDate = createdAt.toDate();
+                // শুধু তারিখ তুলনা করার জন্য সময় বাদ দেওয়া হলো
+                DateTime cleanProductDate = DateTime(productDate.year, productDate.month, productDate.day);
+                DateTime cleanStart = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+                DateTime cleanEnd = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+                
+                if (cleanProductDate.isBefore(cleanStart) || cleanProductDate.isAfter(cleanEnd)) {
+                  return false;
+                }
+              }
+
+              // ২. ক্যাটাগরি ফিল্টার
+              if (_selectedCategoryFilter == AppTranslations.get('all')) return true;
+              if (_selectedCategoryFilter == 'Low Stock') {
+                double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
+                double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
+                return stock <= limit;
+              }
+              return data['category'] == _selectedCategoryFilter;
+            }).toList();
+
             double totalCostPrice = 0.0;
             double totalSaleValue = 0.0;
 
-            for (var doc in allProducts) {
+            for (var doc in products) { // ফিল্টার করা প্রোডাক্টের ওপর ক্যালকুলেশন হবে
               final data = doc.data() as Map<String, dynamic>;
               final stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
               final costPrice = double.tryParse((data['costPrice'] ?? 0).toString()) ?? 0.0;
@@ -926,17 +986,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
             }
 
             double totalProfit = totalSaleValue - totalCostPrice;
-
-            final products = allProducts.where((doc) {
-              if (_selectedCategoryFilter == AppTranslations.get('all')) return true;
-              final data = doc.data() as Map<String, dynamic>;
-              if (_selectedCategoryFilter == 'Low Stock') {
-                double stock = double.tryParse((data['stock'] ?? 0).toString()) ?? 0.0;
-                double limit = double.tryParse((data['lowStockLimit'] ?? 5).toString()) ?? 5.0;
-                return stock <= limit;
-              }
-              return data['category'] == _selectedCategoryFilter;
-            }).toList();
 
             return Column(
               children: [
@@ -983,7 +1032,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   margin: const EdgeInsets.all(10),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D47A1).withOpacity(0.85), // কিছুটা স্বচ্ছ করা হলো
+                    color: const Color(0xFF0D47A1).withOpacity(0.85), 
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -993,14 +1042,36 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                     ],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  child: Column(
                     children: [
-                      _buildSummaryItem(AppTranslations.get('total_purchase'), '৳${totalCostPrice.toStringAsFixed(0)}', Colors.white),
-                      Container(height: 30, width: 1, color: Colors.white54),
-                      _buildSummaryItem(AppTranslations.get('will_be_sold'), '৳${totalSaleValue.toStringAsFixed(0)}', Colors.white),
-                      Container(height: 30, width: 1, color: Colors.white54),
-                      _buildSummaryItem(AppTranslations.get('will_be_profit'), '৳${totalProfit.toStringAsFixed(0)}', Colors.greenAccent),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildSummaryItem(AppTranslations.get('total_purchase'), '৳${totalCostPrice.toStringAsFixed(0)}', Colors.white),
+                          Container(height: 30, width: 1, color: Colors.white54),
+                          _buildSummaryItem(AppTranslations.get('will_be_sold'), '৳${totalSaleValue.toStringAsFixed(0)}', Colors.white),
+                          Container(height: 30, width: 1, color: Colors.white54),
+                          _buildSummaryItem(AppTranslations.get('will_be_profit'), '৳${totalProfit.toStringAsFixed(0)}', Colors.greenAccent),
+                        ],
+                      ),
+                      if (_startDate != null) ...[
+                        const Divider(color: Colors.white24),
+                        TextButton.icon(
+                          onPressed: () {
+                            List<Map<String, dynamic>> productDataList = products.map((doc) => doc.data() as Map<String, dynamic>).toList();
+                            ReceiptUtils.generateInventoryReport(
+                              products: productDataList,
+                              totalCost: totalCostPrice,
+                              totalSaleValue: totalSaleValue,
+                              totalProfit: totalProfit,
+                              start: _startDate,
+                              end: _endDate,
+                            );
+                          },
+                          icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 18),
+                          label: Text(AppTranslations.get('download_pdf_range'), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        ),
+                      ],
                     ],
                   ),
                 ),
