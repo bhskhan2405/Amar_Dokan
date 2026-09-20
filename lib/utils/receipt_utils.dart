@@ -17,8 +17,15 @@ class ReceiptUtils {
     return pw.Font.ttf(fontData);
   }
 
-  static Future<ShapedFont> _loadShapedFont(String path, {required String name}) async {
-    return await BanglaFontManager.instance.loadAsset(path, name: name);
+  // ShapedFont loader for bangla_pdf_fixer 3.x.
+  static Future<ShapedFont> _loadShapedFont(
+    String path, {
+    required String name,
+  }) async {
+    return await BanglaFontManager.instance.loadAsset(
+      path,
+      name: name,
+    );
   }
 
   static Future<Map<String, String>> getShopInfo() async {
@@ -42,7 +49,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. POS Bill Receipt (80mm - Unified Design) ---
+  // --- 2. POS Bill Receipt (80mm) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -51,8 +58,10 @@ class ReceiptUtils {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolRegular");
+    
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
+    
     final shopInfo = await getShopInfo();
 
     String formattedDate = DateFormat('d/M/yyyy h:mm a').format(DateTime.now());
@@ -66,6 +75,7 @@ class ReceiptUtils {
     pdf.addPage(
       pw.Page(
         pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, double.infinity, marginAll: 5 * PdfPageFormat.mm),
+        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -146,7 +156,6 @@ class ReceiptUtils {
               _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10),
               pw.SizedBox(height: 5),
               
-              // বারকোড (উভয় ভাষার জন্যই)
               pw.BarcodeWidget(
                 barcode: pw.Barcode.code128(),
                 data: saleData['customerPhone'] ?? '0123456789',
@@ -329,6 +338,7 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -371,16 +381,24 @@ class ReceiptUtils {
                 for (var doc in sales) {
                   final data = doc.data() as Map<String, dynamic>;
                   final dateKey = DateFormat('dd/MM/yyyy').format((data['createdAt'] as Timestamp).toDate());
-                  if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
+                  if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                  
                   dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                   dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                  dailyData[dateKey]![4] += (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
-                  dailyData[dateKey]![5] += (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                  
+                  double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
+                  double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
+                  
+                  // শুধুমাত্র বকেয়া সংশ্লিষ্ট লেনদেন হলে 'বাকি' ও 'জমা' কলামে যোগ হবে
+                  if (due > 0) {
+                    dailyData[dateKey]![4] += due;
+                    dailyData[dateKey]![5] += paid;
+                  }
                 }
                 for (var doc in expenses) {
                   final data = doc.data() as Map<String, dynamic>;
                   final dateKey = DateFormat('dd/MM/yyyy').format((data['createdAt'] as Timestamp).toDate());
-                  if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
+                  if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                   double amt = (data['amount'] as num?)?.toDouble() ?? 0.0;
                   String note = (data['note'] ?? '').toString().toLowerCase();
                   if (note.contains('বেতন') || note.contains('salary') || note.contains('bonus') || note.contains('বোনাস')) {
@@ -394,27 +412,29 @@ class ReceiptUtils {
                   final ts = data['date'] ?? data['timestamp'] ?? data['createdAt'];
                   if (ts == null) continue;
                   final dateKey = DateFormat('dd/MM/yyyy').format((ts as Timestamp).toDate());
-                  if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0, 0];
-                  dailyData[dateKey]![6] += (data['amount'] as num?)?.toDouble() ?? 0.0;
+                  if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                  
+                  // ম্যানুয়াল পেমেন্ট সরাসরি 'জমা' কলামে যোগ হবে
+                  dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
                 }
                 var sortedKeys = dailyData.keys.toList()..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
                 return sortedKeys.map((date) => pw.TableRow(children: [
-                  _cell(date, flex: 1, font: shapedRegular),
-                  _cell(dailyData[date]![0].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![1].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![2].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![3].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![4].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![5].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(date, flex: 1, font: fontRegular),
+                  _cell(dailyData[date]![0].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![1].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![2].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![3].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![4].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![5].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
                 ])).toList();
               }(),
             ],
           ),
           pw.SizedBox(height: 30),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBoxSmallWithFont('মোট বিক্রি', '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, shapedBold),
-            _summaryBoxSmallWithFont('মোট লাভ', '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, shapedBold),
-            _summaryBoxSmallWithFont('মোট খরচ', '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, shapedBold),
+            _summaryBoxWithFont('মোট বিক্রি', '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, shapedBold),
+            _summaryBoxWithFont('মোট লাভ', '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, shapedBold),
+            _summaryBoxWithFont('মোট খরচ', '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, shapedBold),
           ]),
           pw.SizedBox(height: 20),
           pw.Center(child: pw.Container(
@@ -440,6 +460,7 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -607,7 +628,7 @@ class ReceiptUtils {
     ]));
   }
 
-  static pw.Widget _summaryBoxSmallWithFont(String title, String value, PdfColor color, ShapedFont font) {
+  static pw.Widget _summaryBoxWithFont(String title, String value, PdfColor color, ShapedFont font) {
     return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
       _bt(title, font: font, fontSize: 8), _bt(value, font: font, fontSize: 10, color: color),
     ]));
@@ -629,7 +650,7 @@ class ReceiptUtils {
     String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
     pdf.addPage(pw.Page(pageFormat: const PdfPageFormat(400, 520, marginAll: 20), build: (context) => pw.Container(decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)), padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
       pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [pw.Image(image, width: 40, height: 40), pw.SizedBox(width: 10), _bt('Amar Dokan', font: shapedBold, fontSize: 22)]),
-      pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontRegular)),
+      pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
       pw.SizedBox(height: 20), _buildBillRow('মালিক:', name, shapedBold), _buildBillRow('দোকান:', shopName, shapedBold), _buildBillRow('মোবাইল:', phone, shapedBold),
       pw.Spacer(), _bt('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', font: shapedRegular, fontSize: 9),
     ]))));
