@@ -433,6 +433,7 @@ class ReceiptUtils {
             _summaryBoxWithFont('মোট বিক্রি', '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, shapedBold),
             _summaryBoxWithFont('মোট লাভ', '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, shapedBold),
             _summaryBoxWithFont('মোট খরচ', '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, shapedBold),
+            _summaryBoxWithFont('মোট বেতন', '৳${combinedSalary.toStringAsFixed(0)}', PdfColors.orange, shapedBold),
           ]),
           pw.SizedBox(height: 20),
           pw.Center(child: pw.Container(
