@@ -493,7 +493,7 @@ class ReceiptUtils {
         header: (context) => pw.Column(children: [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.start, children: [
             if (logo != null) ...[pw.Image(logo, width: 75, height: 75), pw.SizedBox(width: 20)],
-            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.Center, children: [
+            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 28, color: PdfColors.blue900),
               if (shopInfo['address']!.isNotEmpty) _bt(shopInfo['address']!, font: shapedRegular, fontSize: 10),
               _bt('মোবাইল: ${shopInfo['phone']}', font: shapedBold, fontSize: 10),
