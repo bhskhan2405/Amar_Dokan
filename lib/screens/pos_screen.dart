@@ -137,65 +137,78 @@ class _POSScreenState extends State<POSScreen> {
               ),
             ],
           ),
-          body: Stack(
-            children: [
-              MobileScanner(
-                controller: controller,
-                onDetect: (capture) {
-                  if (isScanned) return;
-                  final List<Barcode> barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                      isScanned = true;
-                      final scannedCode = barcode.rawValue!.trim();
+          body: Container(
+            color: Colors.black, // পুরো ব্যাকগ্রাউন্ড কালো করা হলো
+            child: Stack(
+              children: [
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.85,
+                        height: 180, // ক্যামেরার উচ্চতা ফিক্স করা হলো
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.red, width: 2.5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: MobileScanner(
+                            controller: controller,
+                            onDetect: (capture) {
+                              if (isScanned) return;
+                              final List<Barcode> barcodes = capture.barcodes;
+                              for (final barcode in barcodes) {
+                                if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+                                  isScanned = true;
+                                  final scannedCode = barcode.rawValue!.trim();
 
-                      // সফল স্ক্যানে অডিও প্লে করা
-                      ap.AudioPlayer().play(ap.AssetSource('audio/beep.mp3'));
-                      HapticFeedback.mediumImpact();
+                                  // সফল স্ক্যানে অডিও প্লে করা
+                                  ap.AudioPlayer().play(ap.AssetSource('audio/beep.mp3'));
+                                  HapticFeedback.mediumImpact();
 
-                      try {
-                        final matchedProduct = allProducts.firstWhere((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return (data['barcode'] ?? '').toString().trim() == scannedCode;
-                        });
+                                  try {
+                                    final matchedProduct = allProducts.firstWhere((doc) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      return (data['barcode'] ?? '').toString().trim() == scannedCode;
+                                    });
 
-                        final pData = matchedProduct.data() as Map<String, dynamic>;
-                        _addToCart(matchedProduct.id, pData);
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${AppTranslations.get('barcode')}: $scannedCode - ${AppTranslations.get('no_product_found')}')),
-                        );
-                      }
+                                    final pData = matchedProduct.data() as Map<String, dynamic>;
+                                    _addToCart(matchedProduct.id, pData);
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('${AppTranslations.get('barcode')}: $scannedCode - ${AppTranslations.get('no_product_found')}')),
+                                    );
+                                  }
 
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                      break;
-                    }
-                  }
-                },
-              ),
-              Center(
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.80,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.redAccent, width: 2),
-                    borderRadius: BorderRadius.circular(8),
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                  break;
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          AppTranslations.get('barcode_box_hint') ?? 'Align barcode inside the box',
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 50,
-                left: 0,
-                right: 0,
-                child: Text(
-                  AppTranslations.get('barcode_box_hint'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 16, backgroundColor: Colors.black54),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

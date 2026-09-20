@@ -252,30 +252,63 @@ class _ProductsScreenState extends State<ProductsScreen> {
               ),
             ],
           ),
-          body: MobileScanner(
-            controller: controller,
-            onDetect: (capture) {
-              if (isScanned) return;
-              final barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                  isScanned = true;
-                  
-                  // সফল স্ক্যানে অডিও প্লে করা
-                  ap.AudioPlayer().play(ap.AssetSource('audio/beep.mp3'));
-                  HapticFeedback.mediumImpact();
+          body: Container(
+            color: Colors.black, // পুরো ব্যাকগ্রাউন্ড কালো করা হলো
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.85,
+                    height: 180, // ক্যামেরা শুধুমাত্র এই বক্সের ভেতরে থাকবে
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.red, width: 2.5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: MobileScanner(
+                        controller: controller,
+                        onDetect: (capture) {
+                          if (isScanned) return;
+                          final barcodes = capture.barcodes;
+                          for (final barcode in barcodes) {
+                            if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+                              isScanned = true;
+                              
+                              // সফল স্ক্যানে অডিও প্লে করা
+                              ap.AudioPlayer().play(ap.AssetSource('audio/beep.mp3'));
+                              HapticFeedback.mediumImpact();
 
-                  setState(() {
-                    _barcodeController.text = barcode.rawValue!.trim();
-                  });
+                              setState(() {
+                                _barcodeController.text = barcode.rawValue!.trim();
+                              });
 
-                  if (scannerContext.mounted) {
-                    Navigator.pop(scannerContext);
-                  }
-                  break;
-                }
-              }
-            },
+                              if (scannerContext.mounted) {
+                                Navigator.pop(scannerContext);
+                              }
+                              break;
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      AppTranslations.get('barcode_box_hint') ?? 'Align barcode inside the box',
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
