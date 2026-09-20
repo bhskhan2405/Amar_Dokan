@@ -59,30 +59,29 @@ class ReceiptUtils {
     pdf.addPage(
       pw.Page(
         pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, double.infinity, marginAll: 5 * PdfPageFormat.mm),
-        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              _b(shopInfo['name']!, fontSize: 16, font: fontBold),
-              _b('মোবাইল: ${shopInfo['phone']}', fontSize: 9, font: fontRegular),
+              BanglaText(shopInfo['name']!, font: fontBold, fontSize: 16),
+              pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 9, font: fontRegular)),
               pw.SizedBox(height: 5),
               pw.Divider(thickness: 0.5),
               
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
-                _buildRowBill('কাস্টমার:', saleData['customerName'], fontRegular),
+                _buildBillRow('কাস্টমার:', saleData['customerName'], fontRegular),
               
               pw.SizedBox(height: 4),
-              _b(saleData['type'] == 'sale_due' ? 'বাকি বিক্রয়' : 'নগদ রিসিট', fontSize: 11, font: fontBold),
-              _b(formattedDate, fontSize: 7, font: fontRegular),
+              BanglaText(saleData['type'] == 'sale_due' ? 'বাকি বিক্রয়' : 'নগদ রিসিট', font: fontBold, fontSize: 11),
+              pw.Text(formattedDate, style: pw.TextStyle(fontSize: 7, font: fontRegular)),
               pw.Divider(thickness: 0.5),
 
               if (items.isNotEmpty) ...[
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    _b('বিবরণ', fontSize: 8, font: fontBold),
-                    _b('মোট', fontSize: 8, font: fontBold),
+                    BanglaText('বিবরণ', font: fontBold, fontSize: 8),
+                    BanglaText('মোট', font: fontBold, fontSize: 8),
                   ],
                 ),
                 pw.SizedBox(height: 2),
@@ -96,8 +95,8 @@ class ReceiptUtils {
                     child: pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Expanded(child: _b('${item['name']} ($qty ${item['unit']})', fontSize: 8, font: fontRegular)),
-                        _b((price * qty).toStringAsFixed(2), fontSize: 8, font: fontRegular),
+                        pw.Expanded(child: BanglaText('${item['name']} ($qty ${item['unit']})', font: fontRegular, fontSize: 8)),
+                        pw.Text((price * qty).toStringAsFixed(2), style: pw.TextStyle(fontSize: 8, font: fontRegular)),
                       ],
                     ),
                   );
@@ -105,14 +104,14 @@ class ReceiptUtils {
                 pw.Divider(thickness: 0.5),
               ],
 
-              _buildRowBill('মোট টাকা:', (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), fontBold),
-              _buildRowBill('পরিশোধিত:', (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2), fontBold),
-              _buildRowBill('বকেয়া:', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), fontBold, isRed: true),
+              _buildBillRow('মোট টাকা:', (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), fontBold),
+              _buildBillRow('পরিশোধিত:', (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2), fontBold),
+              _buildBillRow('বকেয়া:', (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), fontBold, isRed: true),
 
               pw.SizedBox(height: 10),
-              _b('ধন্যবাদ, আবার আসবেন!', fontSize: 9, font: fontBold),
+              BanglaText('ধন্যবাদ, আবার আসবেন!', font: fontBold, fontSize: 9),
               pw.SizedBox(height: 5),
-              _b('Powered by Amar Dokan App', fontSize: 6, font: fontRegular, color: PdfColors.grey700),
+              pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
           );
         },
@@ -175,28 +174,27 @@ class ReceiptUtils {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(35),
-        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.start,
             children: [
-              if (logo != null) ...[pw.Image(logo, width: 75, height: 75), pw.SizedBox(width: 20)],
+              if (logo != null) ...[pw.Image(logo, width: 80, height: 80), pw.SizedBox(width: 20)],
               pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    _b(shopInfo['name']!, fontSize: 32, font: fontBold, color: PdfColors.blue900),
+                    BanglaText(shopInfo['name']!, font: fontBold, fontSize: 32, color: PdfColors.blue900),
                     if (shopInfo['address']!.isNotEmpty) 
-                      _b(shopInfo['address']!, fontSize: 10, font: fontRegular, color: PdfColors.grey900),
-                    _b('মোবাইল: ${shopInfo['phone']}', fontSize: 11, font: fontBold),
+                      BanglaText(shopInfo['address']!, font: fontRegular, fontSize: 10, color: PdfColors.grey900),
+                    BanglaText('মোবাইল: ${shopInfo['phone']}', font: fontBold, fontSize: 11),
                   ],
                 ),
               ),
-              pw.SizedBox(width: 75),
+              pw.SizedBox(width: 80),
             ],
           ),
-          pw.SizedBox(height: 10),
-          pw.Divider(thickness: 1.5, color: PdfColors.blue900),
+          pw.SizedBox(height: 8),
+          pw.Divider(thickness: 2, color: PdfColors.blue900),
           pw.SizedBox(height: 15),
         ]),
         build: (context) => [
@@ -207,34 +205,34 @@ class ReceiptUtils {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  _b('কাস্টমার: ${customerData['name']}', fontSize: 12, font: fontBold),
-                  _b('মোবাইল: ${customerData['phone']}', fontSize: 9, font: fontRegular),
+                  BanglaText('কাস্টমার: ${customerData['name']}', font: fontBold, fontSize: 12),
+                  pw.Text('Mobile: ${customerData['phone']}', style: pw.TextStyle(fontSize: 10, font: fontRegular)),
                   if (customerData['address'] != null && customerData['address'].toString().isNotEmpty)
-                    _b('ঠিকানা: ${customerData['address']}', fontSize: 9, font: fontRegular),
+                    BanglaText('ঠিকানা: ${customerData['address']}', font: fontRegular, fontSize: 9),
                 ],
               ),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  _b('হিসাব বিবরণী', fontSize: 15, font: fontBold, color: PdfColors.blue800),
-                  _b('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', fontSize: 9, font: fontRegular),
+                  BanglaText('হিসাব বিবরণী', font: fontBold, fontSize: 15, color: PdfColors.blue800),
+                  BanglaText('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', font: fontRegular, fontSize: 9),
                   pw.SizedBox(height: 5),
-                  _b('পিরিয়ড মোট বাকি: ৳${periodBaki.toStringAsFixed(0)}', fontSize: 9, font: fontBold, color: PdfColors.red700),
-                  _b('পিরিয়ড মোট জমা: ৳${periodJama.toStringAsFixed(0)}', fontSize: 9, font: fontBold, color: PdfColors.green700),
+                  BanglaText('পিরিয়ড মোট বাকি: ৳${periodBaki.toStringAsFixed(0)}', font: fontBold, fontSize: 9, color: PdfColors.red700),
+                  BanglaText('পিরিয়ড মোট জমা: ৳${periodJama.toStringAsFixed(0)}', font: fontBold, fontSize: 9, color: PdfColors.green700),
                 ],
               ),
             ],
           ),
           pw.SizedBox(height: 20),
 
-          // Karbar Style Table
+          // Karbar Style Table using BanglaText for cells
           pw.Table(
             border: const pw.TableBorder(
               horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
               bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
             ),
             children: [
-              // Table Header
+              // Header
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
@@ -245,7 +243,7 @@ class ReceiptUtils {
                   _cell('বাকি', flex: 1, font: fontBold, isHeader: true, align: pw.TextAlign.right),
                 ],
               ),
-              // Table Rows
+              // Data Rows
               ...dataRows.map((row) => pw.TableRow(
                 children: [
                   _cell(row[0], flex: 1, font: fontRegular),
@@ -264,8 +262,8 @@ class ReceiptUtils {
             children: [
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                decoration: pw.BoxDecoration(color: PdfColors.blue50, border: pw.Border.all(color: PdfColors.blue900), borderRadius: pw.BorderRadius.circular(5)),
-                child: _b('বর্তমান মোট বকেয়া: ৳${customerData['dueAmount']?.toStringAsFixed(2)}', fontSize: 13, font: fontBold, color: PdfColors.red900),
+                decoration: pw.BoxDecoration(color: PdfColors.blue50, border: pw.Border.all(color: PdfColors.blue900, width: 1), borderRadius: pw.BorderRadius.circular(5)),
+                child: BanglaText('বর্তমান মোট বকেয়া: ৳${customerData['dueAmount']?.toStringAsFixed(2)}', font: fontBold, fontSize: 13, color: PdfColors.red900),
               ),
             ],
           ),
@@ -293,6 +291,7 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shopInfo = await getShopInfo();
+    final currency = AppTranslations.get('currency_symbol');
 
     final double combinedSalary = totalSalary + totalBonus;
     final double netProfit = totalProfit - totalExpense - combinedSalary;
@@ -300,16 +299,15 @@ class ReceiptUtils {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
-          _b(shopInfo['name']!, fontSize: 22, font: fontBold, color: PdfColors.blue900),
-          _b('হিসাব নিকাশ রিপোর্ট', fontSize: 14, font: fontBold),
-          _b('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', fontSize: 10, font: fontRegular),
+          BanglaText(shopInfo['name']!, font: fontBold, fontSize: 22, color: PdfColors.blue900),
+          BanglaText('হিসাব নিকাশ রিপোর্ট', font: fontBold, fontSize: 14),
+          BanglaText('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', font: fontRegular, fontSize: 10),
           pw.Divider(thickness: 1, color: PdfColors.blue900),
           pw.SizedBox(height: 10),
         ]),
         build: (context) => [
-          _b('দৈনিক লেনদেন সারসংক্ষেপ', fontSize: 12, font: fontBold),
+          BanglaText('দৈনিক লেনদেন সারসংক্ষেপ', font: fontBold, fontSize: 12),
           pw.SizedBox(height: 8),
           pw.Table(
             border: const pw.TableBorder(horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
@@ -371,20 +369,18 @@ class ReceiptUtils {
             ],
           ),
           pw.SizedBox(height: 30),
-          _b('চূড়ান্ত সারসংক্ষেপ', fontSize: 12, font: fontBold),
-          pw.SizedBox(height: 10),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBoxSmallWithFont('মোট বিক্রি', '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, fontBold),
-            _summaryBoxSmallWithFont('মোট লাভ', '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, fontBold),
-            _summaryBoxSmallWithFont('মোট খরচ', '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, fontBold),
+            _summaryBoxWithFont('মোট বিক্রি', '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, fontBold),
+            _summaryBoxWithFont('মোট লাভ', '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, fontBold),
+            _summaryBoxWithFont('মোট খরচ', '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, fontBold),
           ]),
           pw.SizedBox(height: 20),
           pw.Center(child: pw.Container(
             padding: const pw.EdgeInsets.all(15),
             decoration: pw.BoxDecoration(color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50, border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2), borderRadius: pw.BorderRadius.circular(10)),
             child: pw.Column(children: [
-              _b('নিট লাভ', fontSize: 14, font: fontBold, color: PdfColors.green900),
-              _b('৳${netProfit.toStringAsFixed(2)}', fontSize: 20, font: fontBold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900),
+              BanglaText('নিট লাভ', font: fontBold, fontSize: 14, color: PdfColors.green900),
+              BanglaText('৳${netProfit.toStringAsFixed(2)}', font: fontBold, fontSize: 20, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900),
             ]),
           )),
         ],
@@ -430,14 +426,13 @@ class ReceiptUtils {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.start, children: [
             if (logo != null) ...[pw.Image(logo, width: 75, height: 75), pw.SizedBox(width: 20)],
             pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              _b(shopInfo['name']!, fontSize: 28, font: fontBold, color: PdfColors.blue900),
-              if (shopInfo['address']!.isNotEmpty) _b(shopInfo['address']!, fontSize: 10, font: fontRegular),
-              _b('মোবাইল: ${shopInfo['phone']}', fontSize: 10, font: fontBold),
+              BanglaText(shopInfo['name']!, font: fontBold, fontSize: 28, color: PdfColors.blue900),
+              if (shopInfo['address']!.isNotEmpty) BanglaText(shopInfo['address']!, font: fontRegular, fontSize: 10),
+              BanglaText('মোবাইল: ${shopInfo['phone']}', font: fontBold, fontSize: 10),
             ])),
             pw.SizedBox(width: 75),
           ]),
@@ -446,8 +441,8 @@ class ReceiptUtils {
         ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            _b('স্টক ইনভেন্টরি রিপোর্ট', fontSize: 14, font: fontBold, color: PdfColors.blue800),
-            _b('সময়সীমা: $dateRange', fontSize: 9, font: fontRegular),
+            BanglaText('স্টক ইনভেন্টরি রিপোর্ট', font: fontBold, fontSize: 14, color: PdfColors.blue800),
+            BanglaText('সময়সীমা: $dateRange', font: fontRegular, fontSize: 9),
           ]),
           pw.SizedBox(height: 15),
           pw.Table(
@@ -500,32 +495,31 @@ class ReceiptUtils {
 
     pdf.addPage(pw.Page(
       pageFormat: PdfPageFormat.a4,
-      theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
       build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            _b(shopInfo['name']!, fontSize: 22, font: fontBold, color: PdfColors.blue900),
-            _b('Mobile: ${shopInfo['phone']}', fontSize: 10, font: fontRegular),
+            BanglaText(shopInfo['name']!, font: fontBold, fontSize: 22, color: PdfColors.blue900),
+            pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10, font: fontRegular)),
           ]),
-          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: _b(title.toUpperCase(), fontSize: 12, font: fontBold)),
+          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: BanglaText(title.toUpperCase(), font: fontBold, fontSize: 12)),
         ]),
         pw.SizedBox(height: 30), pw.Divider(),
         _buildVoucherRowWithFont('তারিখ:', timeString, fontBold),
         _buildVoucherRowWithFont('ক্যাটাগরি:', isSalary ? 'কর্মচারীর বেতন' : 'দোকান খরচ', fontBold),
         if (isSalary) ...[
           if (data['empName'] != null) _buildVoucherRowWithFont('কর্মচারী:', data['empName'], fontBold),
-          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont('মোবাইল:', data['empPhone'], fontBold),
+          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont('মোাবাইল:', data['empPhone'], fontBold),
           _buildVoucherRowWithFont('মূল বেতন:', '৳${basicSalary.toStringAsFixed(2)}', fontBold),
         ],
         _buildVoucherRowWithFont('বিবরণ:', note, fontBold),
         pw.Divider(), pw.SizedBox(height: 10),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: _b('মোট: ৳${totalAmount.toStringAsFixed(2)}', fontSize: 16, font: fontBold, color: PdfColors.red900)),
+          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: BanglaText('মোট: ৳${totalAmount.toStringAsFixed(2)}', font: fontBold, fontSize: 16, color: PdfColors.red900)),
         ]),
         pw.Spacer(),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), _b('কর্তৃপক্ষ', fontSize: 10, font: fontBold)]),
-          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), _b('প্রাপক', fontSize: 10, font: fontBold)]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), BanglaText('কর্তৃপক্ষ', font: fontBold, fontSize: 10)]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), BanglaText('প্রাপক', font: fontBold, fontSize: 10)]),
         ]),
       ]),
     ));
@@ -534,44 +528,37 @@ class ReceiptUtils {
 
   // --- Static Helpers ---
 
-  static pw.Widget _b(String text, {required double fontSize, required pw.Font font, PdfColor color = PdfColors.black}) {
-    return pw.Text(
-      text,
-      style: pw.TextStyle(font: font, fontSize: fontSize, color: color),
-      textDirection: pw.TextDirection.ltr, // অত্যন্ত গুরুত্বপূর্ণ
-    );
-  }
-
   static pw.Widget _cell(String text, {required int flex, required pw.Font font, pw.TextAlign align = pw.TextAlign.left, bool isHeader = false}) {
     return pw.Expanded(
       flex: flex,
       child: pw.Padding(
         padding: const pw.EdgeInsets.all(5),
-        child: pw.Text(
+        child: BanglaText(
           text,
-          textAlign: align,
-          style: pw.TextStyle(font: font, fontSize: isHeader ? 10 : 9, color: isHeader ? PdfColors.white : PdfColors.black),
-          textDirection: pw.TextDirection.ltr,
+          font: font,
+          fontSize: isHeader ? 10 : 9,
+          color: isHeader ? PdfColors.white : PdfColors.black,
+          align: align,
         ),
       ),
     );
   }
 
-  static pw.Widget _buildRowBill(String key, String value, pw.Font font, {bool isRed = false}) {
+  static pw.Widget _buildBillRow(String key, String value, pw.Font font, {bool isRed = false}) {
     return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 1), child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-      _b(key, fontSize: 8, font: font), _b(value, fontSize: 8, font: font, color: isRed ? PdfColors.red : PdfColors.black),
+      BanglaText(key, font: font, fontSize: 8), BanglaText(value, font: font, fontSize: 8, color: isRed ? PdfColors.red : PdfColors.black),
     ]));
   }
 
-  static pw.Widget _summaryBoxSmallWithFont(String title, String value, PdfColor color, pw.Font font) {
+  static pw.Widget _summaryBoxWithFont(String title, String value, PdfColor color, pw.Font font) {
     return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
-      _b(title, fontSize: 8, font: font), _b(value, fontSize: 10, font: font, color: color),
+      BanglaText(title, font: font, fontSize: 8), BanglaText(value, font: font, fontSize: 10, color: color),
     ]));
   }
 
   static pw.Widget _buildVoucherRowWithFont(String label, String value, pw.Font font) {
     return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 6), child: pw.Row(children: [
-      pw.SizedBox(width: 90, child: _b(label, fontSize: 10, font: font)), pw.Expanded(child: _b(value, fontSize: 10, font: font)),
+      pw.SizedBox(width: 90, child: BanglaText(label, font: font, fontSize: 10)), pw.Expanded(child: BanglaText(value, font: font, fontSize: 10)),
     ]));
   }
 
@@ -582,11 +569,11 @@ class ReceiptUtils {
     final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
     final image = pw.MemoryImage(imageByte.buffer.asUint8List());
     String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
-    pdf.addPage(pw.Page(pageFormat: const PdfPageFormat(400, 520, marginAll: 20), theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold), build: (context) => pw.Container(decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)), padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
-      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [pw.Image(image, width: 40, height: 40), pw.SizedBox(width: 10), pw.Text('Amar Dokan', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: fontBold))]),
+    pdf.addPage(pw.Page(pageFormat: const PdfPageFormat(400, 520, marginAll: 20), build: (context) => pw.Container(decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)), padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
+      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [pw.Image(image, width: 40, height: 40), pw.SizedBox(width: 10), BanglaText('Amar Dokan', font: fontBold, fontSize: 22)]),
       pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
-      pw.SizedBox(height: 20), _buildRowBill('মালিক:', name, fontBold), _buildRowBill('দোকান:', shopName, fontBold), _buildRowBill('মোবাইল:', phone, fontBold),
-      pw.Spacer(), _b('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', fontSize: 9, font: fontRegular),
+      pw.SizedBox(height: 20), _buildBillRow('মালিক:', name, fontBold), _buildBillRow('দোকান:', shopName, fontBold), _buildBillRow('মোবাইল:', phone, fontBold),
+      pw.Spacer(), BanglaText('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', font: fontRegular, fontSize: 9),
     ]))));
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
   }
