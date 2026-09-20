@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/shop_utils.dart';
 import 'translations.dart';
+import 'package:bangla_pdf_fixer/bangla_pdf_fixer.dart';
 
 class ReceiptUtils {
   // --- 1. Load Fonts & Shop Info ---
@@ -68,15 +69,15 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.Text(shopInfo['name']!.fix, style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
               
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
-                _buildRowLeft('Customer:', saleData['customerName']),
+                _buildRowLeft('Customer:', (saleData['customerName'] as String).fix),
               if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
-                _buildRowLeft('Mobile:', saleData['customerPhone']),
+                _buildRowLeft('Mobile:', (saleData['customerPhone'] as String).fix),
               if (saleData['customerAddress'] != null && (saleData['customerAddress'] as String).isNotEmpty)
-                _buildRowLeft('Address:', saleData['customerAddress']),
+                _buildRowLeft('Address:', (saleData['customerAddress'] as String).fix),
 
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
@@ -119,19 +120,19 @@ class ReceiptUtils {
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Expanded(flex: 3, child: pw.Text(item['name'] ?? '', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                            pw.Expanded(flex: 3, child: pw.Text((item['name'] ?? '').toString().fix, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                             pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}% (${itemDiscountTk.toStringAsFixed(0)})' : '-', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 7))),
                             pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
                           ],
                         ),
-                        pw.Text('Qty: $qty $unit', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Text('Qty: $qty ${(item['unit'] ?? 'Pcs').toString().fix}', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
                       ],
                     ),
                   );
                 }),
                 pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               ] else if (saleData['note'] != null) ...[
-                pw.Text('Note: ${saleData['note']}', style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('Note: ${(saleData['note'] as String).fix}', style: const pw.TextStyle(fontSize: 8)),
                 pw.SizedBox(height: 5),
               ],
 
@@ -215,7 +216,7 @@ class ReceiptUtils {
 
       return [
         data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
-        data['note'] ?? data['type'] ?? '',
+        (data['note'] ?? data['type'] ?? '').toString().fix,
         total > 0 ? total.toStringAsFixed(2) : '-',
         paid > 0 ? paid.toStringAsFixed(2) : '-',
         due > 0 ? due.toStringAsFixed(2) : '-',
@@ -258,10 +259,10 @@ class ReceiptUtils {
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('Customer: ${customerData['name']}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+              pw.Text('Customer: ${(customerData['name'] ?? '').toString().fix}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
               pw.Text('Mobile: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
               if (customerData['address'] != null && customerData['address'].toString().isNotEmpty)
-                pw.Text('Address: ${customerData['address']}', style: const pw.TextStyle(fontSize: 10)),
+                pw.Text('Address: ${(customerData['address'] ?? '').toString().fix}', style: const pw.TextStyle(fontSize: 10)),
             ]),
             pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
               pw.Text('STATEMENT', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
@@ -336,7 +337,7 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
-          pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.Text(shopInfo['name']!.fix, style: const pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
           pw.Text('ACCOUNTS REPORT'),
           pw.Text('Period: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
           pw.Divider(),
@@ -503,8 +504,8 @@ class ReceiptUtils {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(shopInfo['name']!, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-                    if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!, style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(shopInfo['name']!.fix, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                    if (shopInfo['address']!.isNotEmpty) pw.Text(shopInfo['address']!.fix, style: const pw.TextStyle(fontSize: 10)),
                     pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
@@ -585,7 +586,7 @@ class ReceiptUtils {
       build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text(shopInfo['name']!, style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+            pw.Text(shopInfo['name']!.fix, style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
             pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
           ]),
           pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(title.toUpperCase(), style: const pw.TextStyle(fontWeight: pw.FontWeight.bold))),
@@ -595,13 +596,13 @@ class ReceiptUtils {
         _buildVoucherRow('Date:', timeString),
         _buildVoucherRow('Category:', isSalary ? 'Employee Salary' : 'Business Expense'),
         if (isSalary) ...[
-          if (data['empName'] != null) _buildVoucherRow('Employee:', data['empName']),
+          if (data['empName'] != null) _buildVoucherRow('Employee:', (data['empName'] as String).fix),
           if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRow('Mobile:', data['empPhone']),
-          if (data['empDesignation'] != null && data['empDesignation'].toString().isNotEmpty) _buildVoucherRow('Designation:', data['empDesignation']),
+          if (data['empDesignation'] != null && data['empDesignation'].toString().isNotEmpty) _buildVoucherRow('Designation:', (data['empDesignation'] as String).fix),
           _buildVoucherRow('Basic Salary:', 'Tk ${basicSalary.toStringAsFixed(2)}'),
           _buildVoucherRow('Bonus:', 'Tk ${bonus.toStringAsFixed(2)}'),
         ],
-        _buildVoucherRow('Description:', note),
+        _buildVoucherRow('Description:', note.toString().fix),
         pw.Divider(),
         pw.SizedBox(height: 10),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
@@ -658,7 +659,7 @@ class ReceiptUtils {
         mainAxisAlignment: pw.MainAxisAlignment.start,
         children: [
           pw.SizedBox(width: 45, child: pw.Text(key, style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-          pw.Text(value, style: const pw.TextStyle(fontSize: 8)),
+          pw.Text(value.fix, style: const pw.TextStyle(fontSize: 8)),
         ],
       ),
     );
@@ -724,8 +725,8 @@ class ReceiptUtils {
           pw.Divider(),
           pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: titleColor)),
           pw.SizedBox(height: 20),
-          _buildRow('Owner Name', name),
-          _buildRow('Shop Name', shopName),
+          _buildRow('Owner Name', name.fix),
+          _buildRow('Shop Name', shopName.fix),
           _buildRow('Mobile', phone),
           if (!isApproval) _buildRow('Plan', planDisplay),
           pw.Spacer(),
