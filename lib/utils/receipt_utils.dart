@@ -17,9 +17,15 @@ class ReceiptUtils {
     return pw.Font.ttf(fontData);
   }
 
-  // ShapedFont লোড করার জন্য নতুন মেথড (bangla_pdf_fixer 3.x এর জন্য)
-  static Future<ShapedFont> _loadShapedFont(String path) async {
-    return await BanglaFontManager.loadFont(path);
+  // ShapedFont loader for bangla_pdf_fixer 3.x.
+  static Future<ShapedFont> _loadShapedFont(
+    String path, {
+    required String name,
+  }) async {
+    return await BanglaFontManager.instance.loadAsset(
+      path,
+      name: name,
+    );
   }
 
   static Future<Map<String, String>> getShopInfo() async {
@@ -53,9 +59,8 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     
-    // Shaped fonts for BanglaText
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolaimanLipi Regular");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolaimanLipi Bold");
     
     final shopInfo = await getShopInfo();
 
@@ -137,7 +142,7 @@ class ReceiptUtils {
     }
   }
 
-  // --- 3. Customer Statement Report (Professional A4) ---
+  // --- 3. Customer Statement Report ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -149,9 +154,8 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     
-    // Shaped fonts for BanglaText
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolaimanLipi Regular");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolaimanLipi Bold");
 
     final shopInfo = await getShopInfo();
     
@@ -241,14 +245,12 @@ class ReceiptUtils {
           ),
           pw.SizedBox(height: 20),
 
-          // Karbar Style Table using BanglaText for cells
           pw.Table(
             border: const pw.TableBorder(
               horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
               bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
             ),
             children: [
-              // Header
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
@@ -259,7 +261,6 @@ class ReceiptUtils {
                   _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
                 ],
               ),
-              // Data Rows
               ...dataRows.map((row) => pw.TableRow(
                 children: [
                   _cell(row[0], flex: 1, font: shapedRegular),
@@ -289,7 +290,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 4. Accounts Summary Report (Professional A4) ---
+  // --- 4. Accounts Summary Report ---
 
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
@@ -305,11 +306,9 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     
-    // Shaped fonts for BanglaText
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolaimanLipi Regular");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolaimanLipi Bold");
 
     final shopInfo = await getShopInfo();
     final currency = AppTranslations.get('currency_symbol');
@@ -410,7 +409,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 5. Inventory Summary Report (Professional A4) ---
+  // --- 5. Inventory Summary Report ---
 
   static Future<void> generateInventoryReport({
     required List<Map<String, dynamic>> logs,
@@ -419,11 +418,9 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     
-    // Shaped fonts for BanglaText
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolaimanLipi Regular");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolaimanLipi Bold");
 
     final shopInfo = await getShopInfo();
     pw.MemoryImage? logo;
@@ -500,7 +497,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 6. Single Voucher (A4) ---
+  // --- 6. Single Voucher ---
 
   static Future<void> generateSingleAccountPdf({
     required Map<String, dynamic> data, 
@@ -510,11 +507,8 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     
-    // Shaped fonts for BanglaText
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolaimanLipi Bold");
 
     final shopInfo = await getShopInfo();
     final note = data['note'] ?? '';
@@ -598,9 +592,8 @@ class ReceiptUtils {
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     
-    // Shaped fonts for BanglaText
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolaimanLipi Regular");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolaimanLipi Bold");
 
     final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
     final image = pw.MemoryImage(imageByte.buffer.asUint8List());
