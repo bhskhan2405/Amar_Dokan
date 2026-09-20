@@ -38,21 +38,11 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // ভাষা অনুযায়ী টেক্সট প্রসেসিং
-  static String _t(String key) {
-    String text = AppTranslations.get(key);
-    if (AppTranslations.currentLanguage == 'bn') {
-      return text.fix;
-    }
-    return text;
-  }
-
-  static String _fixText(String? text) {
+  // প্রফেশনাল বাংলা রিশেপার
+  static String _fix(String? text) {
     if (text == null || text.isEmpty) return '';
-    if (AppTranslations.currentLanguage == 'bn') {
-      return text.fix;
-    }
-    return text;
+    // লজিক: শুধুমাত্র বাংলা থাকলে ফিক্স করবে, ইংরেজি থাকলে করবে না
+    return text.fix;
   }
 
   // --- 2. POS Bill Receipt ---
@@ -72,7 +62,7 @@ class ReceiptUtils {
     }
 
     final items = saleData['items'] as Map<String, dynamic>? ?? {};
-    const divider = '****************************************';
+    const divider = '---------------------------------------------------';
 
     pdf.addPage(
       pw.Page(
@@ -82,84 +72,54 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(_fixText(shopInfo['name']), style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: fontBold)),
-              pw.Text('${_t('mobile')}: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text(_fix(shopInfo['name']), style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: fontBold)),
+              pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 9)),
+              pw.SizedBox(height: 5),
+              pw.Text(divider),
               
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
-                _buildRowLeft(_t('customer'), _fixText(saleData['customerName']), fontBold),
-              if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
-                _buildRowLeft(_t('mobile'), saleData['customerPhone'], fontBold),
-              if (saleData['customerAddress'] != null && (saleData['customerAddress'] as String).isNotEmpty)
-                _buildRowLeft(_t('address'), _fixText(saleData['customerAddress']), fontBold),
-
+                _buildRowSmall(_fix('কাস্টমার:'), _fix(saleData['customerName']), fontRegular),
+              
               pw.SizedBox(height: 4),
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-              
-              pw.Text(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title'), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, font: fontBold)),
+              pw.Text(_fix(saleData['type'] == 'sale_due' ? 'বাকি বিক্রয়' : 'নগদ রিসিট'), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, font: fontBold)),
               pw.Text(formattedDate, style: const pw.TextStyle(fontSize: 7)),
-              
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-
-              _buildRow(_t('payment_type'), _fixText(saleData['paymentType'] ?? 'Cash'), fontBold),
-              _buildRow(_t('sell_by'), _fixText(saleData['staffName'] ?? 'Admin'), fontBold),
-              
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.Text(divider),
 
               if (items.isNotEmpty) ...[
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Expanded(flex: 3, child: pw.Text(_t('description'), style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
-                    pw.Expanded(flex: 2, child: pw.Text(_t('discount_label'), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
-                    pw.Expanded(flex: 2, child: pw.Text(_t('total'), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
+                    pw.Expanded(flex: 3, child: pw.Text(_fix('বিবরণ'), style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
+                    pw.Expanded(flex: 2, child: pw.Text(_fix('মোট'), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
                   ],
                 ),
-                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+                pw.Divider(thickness: 0.5),
 
                 ...items.entries.map((entry) {
                   final item = entry.value;
                   final double qty = (item['qty'] ?? 1.0).toDouble();
-                  final unit = item['unit'] ?? 'Pcs';
-                  final discount = (item['discount'] ?? 0.0).toDouble();
                   final price = (item['price'] ?? 0.0).toDouble();
-
                   return pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    padding: const pw.EdgeInsets.symmetric(vertical: 1),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Expanded(flex: 3, child: pw.Text(_fixText(item['name'] ?? ''), style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
-                            pw.Expanded(flex: 2, child: pw.Text(discount > 0 ? '${discount.toStringAsFixed(0)}%' : '-', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 7))),
-                            pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: fontBold))),
-                          ],
-                        ),
-                        pw.Text('${_t('qty_hint')}: $qty ${_fixText(unit)}', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
+                        pw.Expanded(flex: 3, child: pw.Text(_fix('${item['name']} ($qty ${item['unit']})'), style: pw.TextStyle(fontSize: 8, font: fontRegular))),
+                        pw.Expanded(flex: 2, child: pw.Text((price * qty).toStringAsFixed(2), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 8, font: fontRegular))),
                       ],
                     ),
                   );
                 }),
-                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-              ] else if (saleData['note'] != null) ...[
-                pw.Text('${_t('note')}: ${_fixText(saleData['note'])}', style: const pw.TextStyle(fontSize: 8)),
-                pw.SizedBox(height: 5),
+                pw.Text(divider),
               ],
 
-              _buildSummaryRow(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), fontBold),
-              if ((saleData['globalDiscountTk'] ?? 0) > 0)
-                _buildSummaryRow(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', fontBold),
-              if ((saleData['vatAmount'] ?? 0) > 0)
-                _buildSummaryRow('${_t('vat')} (${(saleData['vatPercent'] as num).toStringAsFixed(0)}%)', '+${(saleData['vatAmount'] as num).toStringAsFixed(2)}', fontBold),
-              _buildSummaryRow(_t('total_amount'), (saleData['totalAmount'] ?? saleData['amount'] ?? 0.0).toStringAsFixed(2), fontBold, isBold: true, fontSize: 10),
-              _buildSummaryRow(_t('paid_amount'), (saleData['cashPaid'] ?? saleData['paidAmount'] ?? 0.0).toStringAsFixed(2), fontBold),
-              _buildSummaryRow(_t('due'), (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), fontBold),
+              _buildSummaryRowSmall(_fix('মোট টাকা:'), (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), fontBold),
+              _buildSummaryRowSmall(_fix('পরিশোধিত:'), (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2), fontBold),
+              _buildSummaryRowSmall(_fix('বকেয়া:'), (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), fontBold, isRed: true),
 
-              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(height: 10),
+              pw.Text(_fix('ধন্যবাদ, আবার আসবেন!'), style: pw.TextStyle(fontSize: 9, font: fontBold)),
               pw.SizedBox(height: 5),
-              pw.Text(_t('thank_you_msg'), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, font: fontBold)),
-              pw.SizedBox(height: 8),
               pw.Text('Powered by Amar Dokan App', style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700)),
             ],
           );
@@ -175,7 +135,7 @@ class ReceiptUtils {
     }
   }
 
-  // --- 3. Customer Statement Report (A4) ---
+  // --- 3. Customer Statement Report (The Main One) ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -197,7 +157,7 @@ class ReceiptUtils {
     double periodBaki = 0;
     double periodJama = 0;
 
-    final dataList = transactions.map((doc) {
+    final dataRows = transactions.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
       double total = (data['totalAmount'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
       double paid = (data['paidAmount'] as num?)?.toDouble() ?? (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
@@ -214,10 +174,10 @@ class ReceiptUtils {
 
       return [
         data['date'] != null ? DateFormat('dd/MM/yy').format((data['date'] as Timestamp).toDate()) : '',
-        _fixText(data['note'] ?? data['type'] ?? ''),
-        total > 0 ? total.toStringAsFixed(2) : '-',
-        paid > 0 ? paid.toStringAsFixed(2) : '-',
-        due > 0 ? due.toStringAsFixed(2) : '-',
+        _fix(data['note'] ?? data['type'] ?? ''),
+        total > 0 ? total.toStringAsFixed(0) : '-',
+        paid > 0 ? paid.toStringAsFixed(0) : '-',
+        due > 0 ? due.toStringAsFixed(0) : '-',
       ];
     }).toList();
 
@@ -226,81 +186,106 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.start,
               children: [
                 if (logo != null) ...[
-                  pw.Image(logo, width: 85, height: 85),
-                  pw.SizedBox(width: 15),
+                  pw.Image(logo, width: 80, height: 80),
+                  pw.SizedBox(width: 20),
                 ],
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
-                      pw.Text(_fixText(shopInfo['name']), style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold), textAlign: pw.TextAlign.center),
+                      pw.Text(_fix(shopInfo['name']), style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
                       if (shopInfo['address']!.isNotEmpty) 
-                        pw.Text(_fixText(shopInfo['address']), style: const pw.TextStyle(fontSize: 12), textAlign: pw.TextAlign.center),
-                      pw.Text('${_t('mobile')}: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold), textAlign: pw.TextAlign.center),
+                        pw.Text(_fix(shopInfo['address']), style: pw.TextStyle(fontSize: 11, font: fontRegular)),
+                      pw.Text(_fix('মোবাইল: ${shopInfo['phone']}'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold)),
                     ],
                   ),
                 ),
-                pw.SizedBox(width: 85),
+                pw.SizedBox(width: 80),
               ],
             ),
             pw.SizedBox(height: 8),
             pw.Divider(thickness: 2, color: PdfColors.blue900),
-            pw.SizedBox(height: 10),
+            pw.SizedBox(height: 15),
           ],
         ),
         build: (context) => [
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('${_t('customer')}: ${_fixText(customerData['name'])}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold)),
-              pw.Text('${_t('mobile')}: ${customerData['phone']}', style: const pw.TextStyle(fontSize: 10)),
-              if (customerData['address'] != null && customerData['address'].toString().isNotEmpty)
-                pw.Text('${_t('address')}: ${_fixText(customerData['address'])}', style: const pw.TextStyle(fontSize: 10)),
-            ]),
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text(_t('statement'), style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800, font: fontBold)),
-              pw.Text('${_t('date_range')}: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', style: const pw.TextStyle(fontSize: 9)),
-              pw.SizedBox(height: 4),
-              pw.Text('${_t('total_period_baki')} ৳${periodBaki.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, color: PdfColors.red700, font: fontBold)),
-              pw.Text('${_t('total_period_jama')} ৳${periodJama.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, color: PdfColors.green700, font: fontBold)),
-            ]),
-          ]),
-          pw.SizedBox(height: 20),
-          pw.TableHelper.fromTextArray(
-            headers: [_t('date'), _t('description'), _t('total'), _t('paid_label'), _t('due_label')],
-            data: dataList,
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10, font: fontBold),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: const pw.TextStyle(fontSize: 9),
-            cellAlignment: pw.Alignment.centerLeft,
-            columnWidths: {
-              0: const pw.FixedColumnWidth(60),
-              1: const pw.FlexColumnWidth(3),
-              2: const pw.FixedColumnWidth(60),
-              3: const pw.FixedColumnWidth(60),
-              4: const pw.FixedColumnWidth(60),
-            },
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(_fix('কাস্টমার: ${customerData['name']}'), style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, font: fontBold)),
+                  pw.Text(_fix('মোবাইল: ${customerData['phone']}'), style: pw.TextStyle(fontSize: 10, font: fontRegular)),
+                  if (customerData['address'] != null && customerData['address'].toString().isNotEmpty)
+                    pw.Text(_fix('ঠিকানা: ${customerData['address']}'), style: pw.TextStyle(fontSize: 10, font: fontRegular)),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(_fix('হিসাব বিবরণী'), style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800, font: fontBold)),
+                  pw.Text(_fix('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}'), style: pw.TextStyle(fontSize: 9, font: fontRegular)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(_fix('পিরিয়ড মোট বাকি: ৳${periodBaki.toStringAsFixed(0)}'), style: pw.TextStyle(fontSize: 10, color: PdfColors.red700, font: fontBold)),
+                  pw.Text(_fix('পিরিয়ড মোট জমা: ৳${periodJama.toStringAsFixed(0)}'), style: pw.TextStyle(fontSize: 10, color: PdfColors.green700, font: fontBold)),
+                ],
+              ),
+            ],
           ),
           pw.SizedBox(height: 20),
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-            pw.Container(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              decoration: pw.BoxDecoration(color: PdfColors.grey100, border: pw.Border.all(color: PdfColors.blue900), borderRadius: pw.BorderRadius.circular(5)),
-              child: pw.Text('${_t('net_outstanding_due')} ৳${customerData['dueAmount']?.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red900, font: fontBold)),
-            )
-          ]),
+          
+          // কাস্টম টেবিল (Karbar Style)
+          pw.TableHelper.fromTextArray(
+            headers: [_fix('তারিখ'), _fix('বিবরণ'), _fix('মোট'), _fix('জমা'), _fix('বাকি')],
+            data: dataRows,
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 11, font: fontBold),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+            cellStyle: pw.TextStyle(fontSize: 10, font: fontRegular),
+            cellAlignment: pw.Alignment.centerLeft,
+            columnWidths: {
+              0: const pw.FixedColumnWidth(65),
+              1: const pw.FlexColumnWidth(3),
+              2: const pw.FixedColumnWidth(55),
+              3: const pw.FixedColumnWidth(55),
+              4: const pw.FixedColumnWidth(55),
+            },
+            border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+            headerPadding: const pw.EdgeInsets.all(5),
+            cellPadding: const pw.EdgeInsets.all(5),
+          ),
+          
+          pw.SizedBox(height: 25),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  border: pw.Border.all(color: PdfColors.blue900, width: 1),
+                  borderRadius: pw.BorderRadius.circular(5),
+                ),
+                child: pw.Text(
+                  _fix('বর্তমান মোট বকেয়া: ৳${customerData['dueAmount']?.toStringAsFixed(2)}'),
+                  style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.red900, font: fontBold),
+                ),
+              ),
+            ],
+          ),
         ],
       )
     );
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 4. Accounts Summary Report (A4) ---
+  // --- 4. Accounts Summary Report ---
 
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
@@ -315,16 +300,9 @@ class ReceiptUtils {
     required DateTime end,
   }) async {
     final pdf = pw.Document();
-    final results = await Future.wait([
-      _loadFont("assets/fonts/SolaimanLipi-Normal.ttf"),
-      _loadFont("assets/fonts/SolaimanLipi-Bold.ttf"),
-      getShopInfo(),
-    ]);
-
-    final fontRegular = results[0] as pw.Font;
-    final fontBold = results[1] as pw.Font;
-    final shopInfo = results[2] as Map<String, String>;
-    final currency = AppTranslations.get('currency_symbol');
+    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    final shopInfo = await getShopInfo();
 
     final double combinedSalary = totalSalary + totalBonus;
     final double netProfit = totalProfit - totalExpense - combinedSalary;
@@ -334,17 +312,17 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(children: [
-          pw.Text(_fixText(shopInfo['name']), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: fontBold)),
-          pw.Text(_t('accounts_report_title')),
-          pw.Text('${_t('date_range')}: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', style: const pw.TextStyle(fontSize: 10)),
-          pw.Divider(),
+          pw.Text(_fix(shopInfo['name']), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: fontBold, color: PdfColors.blue900)),
+          pw.Text(_fix('হিসাব নিকাশ রিপোর্ট'), style: pw.TextStyle(fontSize: 14, font: fontBold)),
+          pw.Text(_fix('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}'), style: const pw.TextStyle(fontSize: 10)),
+          pw.Divider(thickness: 1, color: PdfColors.blue900),
+          pw.SizedBox(height: 10),
         ]),
         build: (context) => [
-          pw.SizedBox(height: 10),
-          pw.Text(_t('daily_trans_summary'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold)),
-          pw.SizedBox(height: 5),
+          pw.Text(_fix('দৈনিক লেনদেন সারসংক্ষেপ'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold)),
+          pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
-            headers: [_t('date'), _t('products'), _t('profit'), _t('total_expense'), _t('salary'), _t('due_label'), _t('paid_label')],
+            headers: [_fix('তারিখ'), _fix('বিক্রি'), _fix('লাভ'), _fix('খরচ'), _fix('বেতন'), _fix('বাকি'), _fix('জমা')],
             data: () {
               Map<String, List<double>> dailyData = {};
               for (var doc in sales) {
@@ -395,20 +373,16 @@ class ReceiptUtils {
             }(),
             headerStyle: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.white, font: fontBold),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: const pw.TextStyle(fontSize: 7),
+            cellStyle: pw.TextStyle(fontSize: 8, font: fontRegular),
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
           ),
           pw.SizedBox(height: 30),
-          pw.Divider(),
-          pw.Text(_t('final_summary'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold)),
+          pw.Text(_fix('চূড়ান্ত সারসংক্ষেপ'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, font: fontBold)),
           pw.SizedBox(height: 10),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBox(_t('total_sales'), '$currency ${totalSale.toStringAsFixed(2)}', PdfColors.blue, fontBold),
-            _summaryBox(_t('total_profit'), '$currency ${totalProfit.toStringAsFixed(2)}', PdfColors.green, fontBold),
-          ]),
-          pw.SizedBox(height: 10),
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBox(_t('total_expense'), '$currency ${totalExpense.toStringAsFixed(2)}', PdfColors.red, fontBold),
-            _summaryBox(_t('salary'), '$currency ${combinedSalary.toStringAsFixed(2)}', PdfColors.orange, fontBold),
+            _summaryBoxWithFont(_fix('মোট বিক্রি'), '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, fontBold),
+            _summaryBoxWithFont(_fix('মোট লাভ'), '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, fontBold),
+            _summaryBoxWithFont(_fix('মোট খরচ'), '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, fontBold),
           ]),
           pw.SizedBox(height: 20),
           pw.Center(child: pw.Container(
@@ -419,8 +393,8 @@ class ReceiptUtils {
               borderRadius: pw.BorderRadius.circular(10),
             ),
             child: pw.Column(children: [
-              pw.Text(_t('profit'), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green900, font: fontBold)),
-              pw.Text('$currency ${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900, font: fontBold)),
+              pw.Text(_fix('নিট লাভ'), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green900, font: fontBold)),
+              pw.Text('৳${netProfit.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900, font: fontBold)),
             ]),
           )),
         ],
@@ -449,7 +423,7 @@ class ReceiptUtils {
 
     String dateRange = (start != null && end != null) 
       ? (start == end ? DateFormat('dd/MM/yyyy').format(start) : "${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}")
-      : _t("Full Inventory Summary");
+      : "Full Inventory Summary";
 
     Map<String, List<double>> dailyLogs = {};
     for (var log in logs) {
@@ -483,9 +457,9 @@ class ReceiptUtils {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(_fixText(shopInfo['name']), style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
-                    if (shopInfo['address']!.isNotEmpty) pw.Text(_fixText(shopInfo['address']), style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('${_t('mobile')}: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, font: fontBold)),
+                    pw.Text(_fix(shopInfo['name']), style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
+                    if (shopInfo['address']!.isNotEmpty) pw.Text(_fix(shopInfo['address']), style: pw.TextStyle(fontSize: 10, font: fontRegular)),
+                    pw.Text(_fix('মোবাইল: ${shopInfo['phone']}'), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, font: fontBold)),
                   ],
                 ),
               ),
@@ -497,12 +471,12 @@ class ReceiptUtils {
         ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text(_t('inventory_report'), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800, font: fontBold)),
-            pw.Text('${_t('date_range')}: $dateRange', style: const pw.TextStyle(fontSize: 9)),
+            pw.Text(_fix('স্টক ইনভেন্টরি রিপোর্ট'), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800, font: fontBold)),
+            pw.Text(_fix('সময়সীমা: $dateRange'), style: pw.TextStyle(fontSize: 9, font: fontRegular)),
           ]),
           pw.SizedBox(height: 15),
           pw.TableHelper.fromTextArray(
-            headers: [_t('date'), _t('items_added'), _t('investment'), _t('potential_sale'), _t('potential_profit')],
+            headers: [_fix('তারিখ'), _fix('যুক্ত পণ্য'), _fix('বিনিয়োগ'), _fix('বিক্রয়মূল্য'), _fix('সম্ভাব্য লাভ')],
             data: sortedDates.map((date) {
               final vals = dailyLogs[date]!;
               grandCost += vals[1];
@@ -511,25 +485,25 @@ class ReceiptUtils {
               return [
                 date,
                 vals[0].toStringAsFixed(0),
-                vals[1].toStringAsFixed(2),
-                vals[2].toStringAsFixed(2),
-                vals[3].toStringAsFixed(2),
+                vals[1].toStringAsFixed(0),
+                vals[2].toStringAsFixed(0),
+                vals[3].toStringAsFixed(0),
               ];
             }).toList(),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10, font: fontBold),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-            cellStyle: const pw.TextStyle(fontSize: 9),
-            cellAlignment: pw.Alignment.centerLeft,
+            cellStyle: pw.TextStyle(fontSize: 9, font: fontRegular),
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
           ),
           pw.SizedBox(height: 25),
           pw.Container(
             padding: const pw.EdgeInsets.all(15),
             decoration: pw.BoxDecoration(color: PdfColors.grey50, border: pw.Border.all(color: PdfColors.blue900), borderRadius: pw.BorderRadius.circular(8)),
             child: pw.Column(children: [
-              _buildSummaryRowPDF('${_t('total_investment')}:', '৳${grandCost.toStringAsFixed(2)}', fontBold),
-              _buildSummaryRowPDF('${_t('potential_sale')}:', '৳${grandSale.toStringAsFixed(2)}', fontBold),
+              _buildSummaryRowPDFWithFont(_fix('মোট পিরিয়ড বিনিয়োগ:'), '৳${grandCost.toStringAsFixed(0)}', fontBold),
+              _buildSummaryRowPDFWithFont(_fix('মোট পিরিয়ড বিক্রয়মূল্য:'), '৳${grandSale.toStringAsFixed(0)}', fontBold),
               pw.Divider(color: PdfColors.grey300),
-              _buildSummaryRowPDF('${_t('potential_profit')}:', '৳${grandProfit.toStringAsFixed(2)}', fontBold, isBold: true, color: PdfColors.green900),
+              _buildSummaryRowPDFWithFont(_fix('মোট সম্ভাব্য নিট লাভ:'), '৳${grandProfit.toStringAsFixed(0)}', fontBold, isBold: true, color: PdfColors.green900),
             ]),
           ),
         ],
@@ -557,7 +531,7 @@ class ReceiptUtils {
     final double bonus = (data['bonus'] as num?)?.toDouble() ?? 0.0;
     final double totalAmount = (data['amount'] as num?)?.toDouble() ?? (basicSalary + bonus);
 
-    final String title = _t(isSalary ? 'salary_voucher' : 'expense_voucher');
+    final String title = isSalary ? 'স্যালারি ভাউচার' : 'খরচ ভাউচার';
 
     pdf.addPage(pw.Page(
       pageFormat: PdfPageFormat.a4,
@@ -565,32 +539,32 @@ class ReceiptUtils {
       build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text(_fixText(shopInfo['name']), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
-            pw.Text('${_t('mobile')}: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
+            pw.Text(_fix(shopInfo['name']), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
+            pw.Text('Mobile: ${shopInfo['phone']}', style: const pw.TextStyle(fontSize: 10)),
           ]),
-          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(_fixText(title.toUpperCase()), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: fontBold))),
+          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: pw.Text(_fix(title.toUpperCase()), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: fontBold))),
         ]),
         pw.SizedBox(height: 30),
         pw.Divider(),
-        _buildVoucherRow(_t('date'), timeString, fontBold),
-        _buildVoucherRow(_t('category'), _t(isSalary ? 'emp_salary_cat' : 'shop_expense_cat'), fontBold),
+        _buildVoucherRowWithFont(_fix('তারিখ:'), timeString, fontBold),
+        _buildVoucherRowWithFont(_fix('ক্যাটাগরি:'), _fix(isSalary ? 'কর্মচারীর বেতন' : 'দোকান খরচ'), fontBold),
         if (isSalary) ...[
-          if (data['empName'] != null) _buildVoucherRow(_t('employee'), _fixText(data['empName']), fontBold),
-          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRow(_t('mobile'), data['empPhone'], fontBold),
-          if (data['empDesignation'] != null && data['empDesignation'].toString().isNotEmpty) _buildVoucherRow(_t('designation'), _fixText(data['empDesignation']), fontBold),
-          _buildVoucherRow(_t('salary'), '৳${basicSalary.toStringAsFixed(2)}', fontBold),
-          _buildVoucherRow(_t('bonus'), '৳${bonus.toStringAsFixed(2)}', fontBold),
+          if (data['empName'] != null) _buildVoucherRowWithFont(_fix('কর্মচারী:'), _fix(data['empName']), fontBold),
+          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont(_fix('মোবাইল:'), data['empPhone'], fontBold),
+          if (data['empDesignation'] != null && data['empDesignation'].toString().isNotEmpty) _buildVoucherRowWithFont(_fix('পদবী:'), _fix(data['empDesignation']), fontBold),
+          _buildVoucherRowWithFont(_fix('মূল বেতন:'), '৳${basicSalary.toStringAsFixed(2)}', fontBold),
+          _buildVoucherRowWithFont(_fix('বোনাস:'), '৳${bonus.toStringAsFixed(2)}', fontBold),
         ],
-        _buildVoucherRow(_t('description'), _fixText(note), fontBold),
+        _buildVoucherRowWithFont(_fix('বিবরণ:'), _fix(note), fontBold),
         pw.Divider(),
         pw.SizedBox(height: 10),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('${_t('total')}: ৳${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900, font: fontBold))),
+          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: pw.Text('${_fix('মোট:')} ৳${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.red900, font: fontBold))),
         ]),
         pw.Spacer(),
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), pw.Text(_t('authorized_sign'))]),
-          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), pw.Text(_t('receiver_sign'))]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), pw.Text(_fix('কর্তৃপক্ষ'), style: pw.TextStyle(font: fontBold))]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), pw.Text(_fix('প্রাপক'), style: pw.TextStyle(font: fontBold))]),
         ]),
       ]),
     ));
@@ -605,75 +579,85 @@ class ReceiptUtils {
     }
   }
 
-  // --- Helper Widgets ---
-
-  static pw.Widget _summaryBox(String title, String value, PdfColor color, pw.Font font) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(10),
-      decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)),
-      child: pw.Column(children: [
-        pw.Text(title, style: pw.TextStyle(fontSize: 8, font: font)),
-        pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: color, font: font)),
-      ]),
-    );
-  }
-
-  static pw.Widget _buildRow(String key, String value, pw.Font font) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(key, style: pw.TextStyle(fontSize: 8, font: font)),
-          pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: font)),
-        ],
-      ),
-    );
-  }
+  // --- Helpers ---
 
   static pw.Widget _buildRowLeft(String key, String value, pw.Font font) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.start,
         children: [
-          pw.SizedBox(width: 45, child: pw.Text(key, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: font))),
+          pw.SizedBox(width: 60, child: pw.Text(key, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, font: font))),
           pw.Text(value, style: pw.TextStyle(fontSize: 8, font: font)),
         ],
       ),
     );
   }
 
+  static pw.Widget _buildRowSmall(String key, String value, pw.Font font) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(key, style: pw.TextStyle(fontSize: 8, font: font)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 8, font: font, fontWeight: pw.FontWeight.bold)),
+      ],
+    );
+  }
+
+  static pw.Widget _buildRow(String key, String value, pw.Font font) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(key, style: pw.TextStyle(fontSize: 8, font: font)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 8, font: font, fontWeight: pw.FontWeight.bold)),
+      ],
+    );
+  }
+
+  static pw.Widget _buildSummaryRowSmall(String label, String value, pw.Font font, {bool isRed = false}) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 8, font: font)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 8, font: font, fontWeight: pw.FontWeight.bold, color: isRed ? PdfColors.red : null)),
+      ],
+    );
+  }
+
   static pw.Widget _buildSummaryRow(String label, String value, pw.Font font, {bool isBold = false, double fontSize = 9}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, font: font)),
-          pw.Text(value, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, font: font)),
-        ],
-      ),
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, font: font)),
+        pw.Text(value, style: pw.TextStyle(fontSize: fontSize, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, font: font)),
+      ],
     );
   }
 
-  static pw.Widget _buildSummaryRowPDF(String label, String value, pw.Font font, {bool isBold = false, PdfColor color = PdfColors.black}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 2),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, font: font)),
-          pw.Text(value, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: color, font: font)),
-        ],
-      ),
+  static pw.Widget _summaryBoxWithFont(String title, String value, PdfColor color, pw.Font font) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)),
+      child: pw.Column(children: [
+        pw.Text(title, style: pw.TextStyle(fontSize: 8, font: font)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: color, font: font)),
+      ]),
     );
   }
 
-  static pw.Widget _buildVoucherRow(String label, String value, pw.Font font) {
-    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 8), child: pw.Row(children: [
-      pw.SizedBox(width: 100, child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font))),
-      pw.Expanded(child: pw.Text(value, style: pw.TextStyle(font: font))),
+  static pw.Widget _buildSummaryRowPDFWithFont(String label, String value, pw.Font font, {bool isBold = false, PdfColor color = PdfColors.black}) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, font: font)),
+        pw.Text(value, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: color, font: font)),
+      ],
+    );
+  }
+
+  static pw.Widget _buildVoucherRowWithFont(String label, String value, pw.Font font) {
+    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 6), child: pw.Row(children: [
+      pw.SizedBox(width: 90, child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font, fontSize: 10))),
+      pw.Expanded(child: pw.Text(value, style: pw.TextStyle(font: font, fontSize: 10))),
     ]));
   }
 
@@ -684,10 +668,8 @@ class ReceiptUtils {
     final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
     final image = pw.MemoryImage(imageByte.buffer.asUint8List());
 
-    final planDisplay = plan?.replaceAll('_', ' ').toUpperCase() ?? 'N/A';
     String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
-    PdfColor titleColor = isRejection ? PdfColors.red700 : (isActivation ? PdfColors.green700 : PdfColors.orange900);
-
+    
     pdf.addPage(pw.Page(
       pageFormat: const PdfPageFormat(400, 520, marginAll: 20),
       theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
@@ -702,15 +684,13 @@ class ReceiptUtils {
           ]),
           pw.SizedBox(height: 10),
           pw.Divider(),
-          pw.Text(_fixText(title), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: titleColor, font: fontBold)),
+          pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
           pw.SizedBox(height: 20),
-          _buildRow(_t('owner_name'), _fixText(name), fontBold),
-          _buildRow(_t('shop_name'), _fixText(shopName), fontBold),
-          _buildRow(_t('mobile'), phone, fontBold),
-          if (!isApproval) _buildRow(_t('plan'), planDisplay, fontBold),
+          _buildRow(_fix('মালিক:'), _fix(name), fontBold),
+          _buildRow(_fix('দোকান:'), _fix(shopName), fontBold),
+          _buildRow(_fix('মোবাইল:'), phone, fontBold),
           pw.Spacer(),
           pw.Text('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 9)),
-          pw.Text('Thank you for choosing Amar Dokan', style: const pw.TextStyle(fontSize: 8)),
         ]),
       ),
     ));
