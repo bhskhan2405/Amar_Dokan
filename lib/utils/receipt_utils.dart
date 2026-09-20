@@ -75,18 +75,19 @@ class ReceiptUtils {
     pdf.addPage(
       pw.Page(
         pageFormat: const PdfPageFormat(80 * PdfPageFormat.mm, double.infinity, marginAll: 5 * PdfPageFormat.mm),
-        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 16),
               pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 9, font: fontRegular)),
+              pw.SizedBox(height: 5),
+              pw.Divider(thickness: 0.5),
               
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
-                _buildRowPos(_t('customer'), saleData['customerName'], shapedRegular),
+                _buildBillRow('কাস্টমার:', saleData['customerName'], shapedRegular),
               if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
-                _buildRowPos(_t('mobile'), saleData['customerPhone'], shapedRegular),
+                _buildBillRow('মোবাইল:', saleData['customerPhone'], shapedRegular),
               
               pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
@@ -146,7 +147,7 @@ class ReceiptUtils {
               _buildRowPos(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               if ((saleData['globalDiscountTk'] ?? 0) > 0)
                 _buildRowPos(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', shapedRegular),
-              _buildRowPos(_t('total_amount'), (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedBold, isBold: true),
+              _buildRowPos(_t('total_amount'), (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedBold),
               _buildRowPos(_t('paid_amount'), (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               _buildRowPos(_t('due'), (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), shapedBold),
 
@@ -190,6 +191,7 @@ class ReceiptUtils {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -339,6 +341,7 @@ class ReceiptUtils {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -382,14 +385,11 @@ class ReceiptUtils {
                   final data = doc.data() as Map<String, dynamic>;
                   final dateKey = DateFormat('dd/MM/yyyy').format((data['createdAt'] as Timestamp).toDate());
                   if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
-                  
                   dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                   dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
                   
                   double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
                   double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
-                  
-                  // শুধুমাত্র বকেয়া সংশ্লিষ্ট লেনদেন হলে 'বাকি' ও 'জমা' কলামে যোগ হবে
                   if (due > 0) {
                     dailyData[dateKey]![4] += due;
                     dailyData[dateKey]![5] += paid;
@@ -413,19 +413,17 @@ class ReceiptUtils {
                   if (ts == null) continue;
                   final dateKey = DateFormat('dd/MM/yyyy').format((ts as Timestamp).toDate());
                   if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
-                  
-                  // ম্যানুয়াল পেমেন্ট সরাসরি 'জমা' কলামে যোগ হবে
                   dailyData[dateKey]![5] += (data['amount'] as num?)?.toDouble() ?? 0.0;
                 }
                 var sortedKeys = dailyData.keys.toList()..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
                 return sortedKeys.map((date) => pw.TableRow(children: [
-                  _cell(date, flex: 1, font: fontRegular),
-                  _cell(dailyData[date]![0].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![1].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![2].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![3].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![4].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
-                  _cell(dailyData[date]![5].toStringAsFixed(0), flex: 1, font: fontRegular, align: ShapedTextAlign.end),
+                  _cell(date, flex: 1, font: shapedRegular),
+                  _cell(dailyData[date]![0].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![1].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![2].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![3].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![4].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![5].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
                 ])).toList();
               }(),
             ],
@@ -461,6 +459,7 @@ class ReceiptUtils {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
     final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -494,7 +493,7 @@ class ReceiptUtils {
         header: (context) => pw.Column(children: [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.start, children: [
             if (logo != null) ...[pw.Image(logo, width: 75, height: 75), pw.SizedBox(width: 20)],
-            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.Center, children: [
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 28, color: PdfColors.blue900),
               if (shopInfo['address']!.isNotEmpty) _bt(shopInfo['address']!, font: shapedRegular, fontSize: 10),
               _bt('মোবাইল: ${shopInfo['phone']}', font: shapedBold, fontSize: 10),
@@ -539,7 +538,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 6. Single Voucher (A4) ---
+  // --- 6. Single Voucher ---
 
   static Future<void> generateSingleAccountPdf({
     required Map<String, dynamic> data, 
@@ -549,7 +548,10 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
+
     final shopInfo = await getShopInfo();
     final note = data['note'] ?? '';
     final isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
@@ -573,7 +575,7 @@ class ReceiptUtils {
         _buildVoucherRowWithFont('ক্যাটাগরি:', isSalary ? 'কর্মচারীর বেতন' : 'দোকান খরচ', shapedBold),
         if (isSalary) ...[
           if (data['empName'] != null) _buildVoucherRowWithFont('কর্মচারী:', data['empName'], shapedBold),
-          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont('মোবাইল:', data['empPhone'], shapedBold),
+          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont('মোাবাইল:', data['empPhone'], shapedBold),
           _buildVoucherRowWithFont('মূল বেতন:', '৳${basicSalary.toStringAsFixed(2)}', shapedBold),
         ],
         _buildVoucherRowWithFont('বিবরণ:', note, shapedBold),
@@ -643,8 +645,11 @@ class ReceiptUtils {
   static Future<void> shareSubscriptionCard({required String name, required String shopName, required String phone, String? plan, String? txId, String? senderDigits, String? rejectionReason, bool isActivation = false, bool isApproval = false, bool isRejection = false}) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
+    
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
+
     final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
     final image = pw.MemoryImage(imageByte.buffer.asUint8List());
     String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
