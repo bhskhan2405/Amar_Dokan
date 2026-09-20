@@ -256,18 +256,18 @@ class ReceiptUtils {
                 children: [
                   _cell('তারিখ', flex: 1, font: shapedBold, isHeader: true),
                   _cell('বিবরণ', flex: 3, font: shapedBold, isHeader: true),
-                  _cell('মোট', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('জমা', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
+                  _cell('মোট', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('জমা', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
                 ],
               ),
               ...dataRows.map((row) => pw.TableRow(
                 children: [
                   _cell(row[0], flex: 1, font: shapedRegular),
                   _cell(row[1], flex: 3, font: shapedRegular),
-                  _cell(row[2], flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(row[3], flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(row[4], flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
+                  _cell(row[2], flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(row[3], flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(row[4], flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
                 ],
               )),
             ],
@@ -336,12 +336,12 @@ class ReceiptUtils {
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
                   _cell('তারিখ', flex: 1, font: shapedBold, isHeader: true),
-                  _cell('বিক্রি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('লাভ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('খরচ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('বেতন', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('জমা', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
+                  _cell('বিক্রি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('লাভ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('খরচ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('বেতন', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('জমা', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
                 ],
               ),
               ...() {
@@ -378,12 +378,12 @@ class ReceiptUtils {
                 var sortedKeys = dailyData.keys.toList()..sort((a, b) => DateFormat('dd/MM/yyyy').parse(b).compareTo(DateFormat('dd/MM/yyyy').parse(a)));
                 return sortedKeys.map((date) => pw.TableRow(children: [
                   _cell(date, flex: 1, font: shapedRegular),
-                  _cell(dailyData[date]![0].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(dailyData[date]![1].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(dailyData[date]![2].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(dailyData[date]![3].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(dailyData[date]![4].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                  _cell(dailyData[date]![5].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
+                  _cell(dailyData[date]![0].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![1].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![2].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![3].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![4].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                  _cell(dailyData[date]![5].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
                 ])).toList();
               }(),
             ],
@@ -475,18 +475,18 @@ class ReceiptUtils {
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
                   _cell('তারিখ', flex: 1, font: shapedBold, isHeader: true),
-                  _cell('যুক্ত পণ্য', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('বিনিয়োগ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('বিক্রয়মূল্য', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
-                  _cell('সম্ভাব্য লাভ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.right),
+                  _cell('যুক্ত পণ্য', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('বিনিয়োগ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('বিক্রয়মূল্য', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell('সম্ভাব্য লাভ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
                 ],
               ),
               ...sortedDates.map((date) => pw.TableRow(children: [
                 _cell(date, flex: 1, font: shapedRegular),
-                _cell(dailyLogs[date]![0].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                _cell(dailyLogs[date]![1].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                _cell(dailyLogs[date]![2].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
-                _cell(dailyLogs[date]![3].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.right),
+                _cell(dailyLogs[date]![0].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                _cell(dailyLogs[date]![1].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                _cell(dailyLogs[date]![2].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
+                _cell(dailyLogs[date]![3].toStringAsFixed(0), flex: 1, font: shapedRegular, align: ShapedTextAlign.end),
               ])),
             ],
           ),
@@ -553,7 +553,7 @@ class ReceiptUtils {
 
   // --- Static Helpers ---
 
-  static pw.Widget _cell(String text, {required int flex, required ShapedFont font, ShapedTextAlign align = ShapedTextAlign.left, bool isHeader = false}) {
+  static pw.Widget _cell(String text, {required int flex, required ShapedFont font, ShapedTextAlign align = ShapedTextAlign.start, bool isHeader = false}) {
     return pw.Expanded(
       flex: flex,
       child: pw.Padding(
