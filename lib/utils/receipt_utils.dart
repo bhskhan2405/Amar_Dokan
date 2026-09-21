@@ -155,6 +155,8 @@ class ReceiptUtils {
               
               pw.SizedBox(height: 5),
               _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10),
+              _bt(_t('return_policy'), font: shapedRegular, fontSize: 7, color: PdfColors.grey800),
+              
               pw.SizedBox(height: 5),
               
               // Barcode (Same for both versions)
@@ -166,7 +168,7 @@ class ReceiptUtils {
               ),
               
               pw.SizedBox(height: 5),
-              pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 6, font: fontRegular, color: PdfColors.grey700)),
+              pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 5, font: fontRegular, color: PdfColors.grey700)),
             ],
           );
         },
