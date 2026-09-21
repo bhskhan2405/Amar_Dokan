@@ -16,8 +16,15 @@ class ReceiptUtils {
     return pw.Font.ttf(fontData);
   }
 
-  static Future<ShapedFont> _loadShapedFont(String path, {required String name}) async {
-    return await BanglaFontManager.instance.loadAsset(path, name: name);
+  // ShapedFont loader for bangla_pdf_fixer 3.x.
+  static Future<ShapedFont> _loadShapedFont(
+    String path, {
+    required String name,
+  }) async {
+    return await BanglaFontManager.instance.loadAsset(
+      path,
+      name: name,
+    );
   }
 
   static Future<Map<String, String>> getShopInfo() async {
@@ -41,7 +48,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. POS Bill Receipt (80mm - Professional Unified Design) ---
+  // --- 2. POS Bill Receipt (80mm - Unified Design) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -68,7 +75,6 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              // Header (Unified Style)
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 16),
               if (shopInfo['address']!.isNotEmpty)
                 _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800),
@@ -77,7 +83,6 @@ class ReceiptUtils {
               pw.SizedBox(height: 5),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              // Customer Section (100% same as English design)
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
                 _buildRowPos(_t('customer'), saleData['customerName'], shapedRegular),
               if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
@@ -98,7 +103,6 @@ class ReceiptUtils {
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Table Headers
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -109,7 +113,6 @@ class ReceiptUtils {
               ),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Items List
               if (items.isNotEmpty) ...[
                 ...items.entries.map((entry) {
                   final item = entry.value;
@@ -130,7 +133,6 @@ class ReceiptUtils {
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
                             pw.Expanded(flex: 3, child: _bt(item['name'] ?? '', font: shapedBold, fontSize: 8)),
-                            // ডিসকাউন্ট কলাম: এখন % এবং টাকা (৳) উভয়ই দেখাবে
                             pw.Expanded(flex: 2, child: _bt(discountPercent > 0 ? '${discountPercent.toStringAsFixed(0)}% (${discountAmountTk.toStringAsFixed(0)}tk)' : '-', align: ShapedTextAlign.center, font: shapedRegular, fontSize: 7)),
                             pw.Expanded(flex: 2, child: _bt((itemTotalBeforeDiscount - discountAmountTk).toStringAsFixed(2), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
                           ],
@@ -143,7 +145,6 @@ class ReceiptUtils {
                 pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               ],
 
-              // Totals Section
               _buildRowPos(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               if ((saleData['globalDiscountTk'] ?? 0) > 0)
                 _buildRowPos(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', shapedRegular),
@@ -159,7 +160,6 @@ class ReceiptUtils {
               
               pw.SizedBox(height: 5),
               
-              // Barcode (Same for both versions)
               pw.BarcodeWidget(
                 barcode: pw.Barcode.code128(),
                 data: saleData['customerPhone'] ?? '0123456789',
@@ -530,6 +530,58 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
+  // --- 6. Single Voucher (A4) ---
+
+  static Future<void> generateSingleAccountPdf({
+    required Map<String, dynamic> data, 
+    required String timeString, 
+    bool isExpense = false,
+    bool isShare = false,
+  }) async {
+    final pdf = pw.Document();
+    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
+    final shopInfo = await getShopInfo();
+    final note = data['note'] ?? '';
+    final isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
+    final double basicSalary = (data['basicSalary'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
+    final double bonus = (data['bonus'] as num?)?.toDouble() ?? 0.0;
+    final double totalAmount = (data['amount'] as num?)?.toDouble() ?? (basicSalary + bonus);
+    final String title = isSalary ? 'salary_voucher' : 'expense_voucher';
+
+    pdf.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            _bt(shopInfo['name']!, font: shapedBold, fontSize: 22, color: PdfColors.blue900),
+            pw.Text('${_t('mobile')}: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10, font: fontRegular)),
+          ]),
+          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: _bt(_t(title).toUpperCase(), font: shapedBold, fontSize: 12)),
+        ]),
+        pw.SizedBox(height: 30), pw.Divider(),
+        _buildVoucherRowWithFont(_t('date'), timeString, shapedBold),
+        _buildVoucherRowWithFont(_t('category'), _t(isSalary ? 'emp_salary_cat' : 'shop_expense_cat'), shapedBold),
+        if (isSalary) ...[
+          if (data['empName'] != null) _buildVoucherRowWithFont(_t('employee'), data['empName'], shapedBold),
+          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont(_t('mobile'), data['empPhone'], shapedBold),
+          _buildVoucherRowWithFont(_t('salary'), '৳${basicSalary.toStringAsFixed(2)}', shapedBold),
+        ],
+        _buildVoucherRowWithFont(_t('description'), note, shapedBold),
+        pw.Divider(), pw.SizedBox(height: 10),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
+          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: _bt('${_t('total')}: ৳${totalAmount.toStringAsFixed(2)}', font: shapedBold, fontSize: 16, color: PdfColors.red900)),
+        ]),
+        pw.Spacer(),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), _bt(_t('authorized_sign'), font: shapedBold, fontSize: 10)]),
+          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), _bt(_t('receiver_sign'), font: shapedBold, fontSize: 10)]),
+        ]),
+      ]),
+    ));
+    if (isShare) { await Printing.sharePdf(bytes: await pdf.save(), filename: 'Voucher.pdf'); } else { await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save()); }
+  }
+
   // --- Static Helpers ---
 
   static String _t(String key) => AppTranslations.get(key);
@@ -548,7 +600,7 @@ class ReceiptUtils {
     );
   }
 
-  static pw.Widget _buildRowPos(String label, String value, ShapedFont font) {
+  static pw.Widget _buildRowPos(String label, String value, ShapedFont font, {bool isBold = false}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
@@ -561,15 +613,38 @@ class ReceiptUtils {
     );
   }
 
+  static pw.Widget _buildBillRow(String key, String value, ShapedFont font, {bool isRed = false}) {
+    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 1), child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+      _bt(key, font: font, fontSize: 8), _bt(value, font: font, fontSize: 8, color: isRed ? PdfColors.red : PdfColors.black),
+    ]));
+  }
+
   static pw.Widget _summaryBoxWithFont(String title, String value, PdfColor color, ShapedFont font) {
     return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
       _bt(title, font: font, fontSize: 8), _bt(value, font: font, fontSize: 10, color: color),
     ]));
   }
 
-  static pw.Widget _summaryBoxSmallWithFont(String title, String value, PdfColor color, ShapedFont font) {
-    return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
-      _bt(title, font: font, fontSize: 8), _bt(value, font: font, fontSize: 10, color: color),
+  static pw.Widget _buildVoucherRowWithFont(String label, String value, ShapedFont font) {
+    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 6), child: pw.Row(children: [
+      pw.SizedBox(width: 90, child: _bt(label, font: font, fontSize: 10)), pw.Expanded(child: _bt(value, font: font, fontSize: 10)),
     ]));
+  }
+
+  static Future<void> shareSubscriptionCard({required String name, required String shopName, required String phone, String? plan, String? txId, String? senderDigits, String? rejectionReason, bool isActivation = false, bool isApproval = false, bool isRejection = false}) async {
+    final pdf = pw.Document();
+    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
+    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
+    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
+    final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
+    final image = pw.MemoryImage(imageByte.buffer.asUint8List());
+    String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
+    pdf.addPage(pw.Page(pageFormat: const PdfPageFormat(400, 520, marginAll: 20), build: (context) => pw.Container(decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)), padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
+      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [pw.Image(image, width: 40, height: 40), pw.SizedBox(width: 10), _bt('Amar Dokan', font: shapedBold, fontSize: 22)]),
+      pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontRegular)),
+      pw.SizedBox(height: 20), _buildBillRow(_t('owner_name'), name, shapedBold), _buildBillRow(_t('shop_name'), shopName, shapedBold), _buildBillRow(_t('mobile'), phone, shapedBold),
+      pw.Spacer(), _bt('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', font: shapedRegular, fontSize: 9),
+    ]))));
+    await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
   }
 }
