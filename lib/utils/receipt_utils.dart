@@ -4,7 +4,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/shop_utils.dart';
 import 'translations.dart';
 import 'package:bangla_pdf_fixer/bangla_pdf_fixer.dart';
@@ -17,15 +16,8 @@ class ReceiptUtils {
     return pw.Font.ttf(fontData);
   }
 
-  // ShapedFont loader for bangla_pdf_fixer 3.x.
-  static Future<ShapedFont> _loadShapedFont(
-    String path, {
-    required String name,
-  }) async {
-    return await BanglaFontManager.instance.loadAsset(
-      path,
-      name: name,
-    );
+  static Future<ShapedFont> _loadShapedFont(String path, {required String name}) async {
+    return await BanglaFontManager.instance.loadAsset(path, name: name);
   }
 
   static Future<Map<String, String>> getShopInfo() async {
@@ -49,7 +41,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. POS Bill Receipt (80mm) ---
+  // --- 2. POS Bill Receipt (80mm - Professional Unified Design) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -57,11 +49,8 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
-    
     final shopInfo = await getShopInfo();
 
     String formattedDate = DateFormat('d/M/yyyy h:mm a').format(DateTime.now());
@@ -79,21 +68,28 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
+              // Header (Unified Style)
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 16),
-              pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 9, font: fontRegular)),
+              if (shopInfo['address']!.isNotEmpty)
+                _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800),
+              _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedRegular, fontSize: 9),
+              
               pw.SizedBox(height: 5),
-              pw.Divider(thickness: 0.5),
-              
-              if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
-                _buildBillRow('কাস্টমার:', saleData['customerName'], shapedRegular),
-              if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
-                _buildBillRow('মোবাইল:', saleData['customerPhone'], shapedRegular),
-              
-              pw.SizedBox(height: 4),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              _bt(AppTranslations.get(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title'), font: shapedBold, fontSize: 11),
-              pw.Text(formattedDate, style: pw.TextStyle(fontSize: 7, font: fontRegular)),
+              // Customer Section (100% same as English design)
+              if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
+                _buildRowPos(_t('customer'), saleData['customerName'], shapedRegular),
+              if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
+                _buildRowPos(_t('mobile'), saleData['customerPhone'], shapedRegular),
+              if (saleData['customerAddress'] != null && (saleData['customerAddress'] as String).isNotEmpty)
+                _buildRowPos(_t('address'), saleData['customerAddress'], shapedRegular),
+              
+              pw.SizedBox(height: 2),
+              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              
+              _bt(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title').toUpperCase(), font: shapedBold, fontSize: 11),
+              _bt(formattedDate, font: shapedRegular, fontSize: 7),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
@@ -102,23 +98,28 @@ class ReceiptUtils {
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              if (items.isNotEmpty) ...[
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Expanded(flex: 3, child: _bt(_t('description'), font: shapedBold, fontSize: 8)),
-                    pw.Expanded(flex: 2, child: _bt(_t('discount_label'), align: ShapedTextAlign.center, font: shapedBold, fontSize: 8)),
-                    pw.Expanded(flex: 2, child: _bt(_t('total'), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
-                  ],
-                ),
-                pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              // Table Headers
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Expanded(flex: 3, child: _bt(_t('description'), font: shapedBold, fontSize: 8)),
+                  pw.Expanded(flex: 2, child: _bt(_t('discount_label'), align: ShapedTextAlign.center, font: shapedBold, fontSize: 8)),
+                  pw.Expanded(flex: 2, child: _bt(_t('price'), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
+                ],
+              ),
+              pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
+              // Items List
+              if (items.isNotEmpty) ...[
                 ...items.entries.map((entry) {
                   final item = entry.value;
                   final double qty = (item['qty'] ?? 1.0).toDouble();
                   final unit = item['unit'] ?? 'Pcs';
-                  final discount = (item['discount'] ?? 0.0).toDouble();
+                  final discountPercent = (item['discount'] ?? 0.0).toDouble();
                   final price = (item['price'] ?? 0.0).toDouble();
+                  
+                  double itemTotalBeforeDiscount = price * qty;
+                  double discountAmountTk = (itemTotalBeforeDiscount * discountPercent) / 100;
 
                   return pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
@@ -129,8 +130,9 @@ class ReceiptUtils {
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
                             pw.Expanded(flex: 3, child: _bt(item['name'] ?? '', font: shapedBold, fontSize: 8)),
-                            pw.Expanded(flex: 2, child: _bt(discount > 0 ? '${discount.toStringAsFixed(0)}%' : '-', align: ShapedTextAlign.center, font: shapedRegular, fontSize: 7)),
-                            pw.Expanded(flex: 2, child: _bt((price * qty).toStringAsFixed(2), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
+                            // ডিসকাউন্ট কলাম: এখন % এবং টাকা (৳) উভয়ই দেখাবে
+                            pw.Expanded(flex: 2, child: _bt(discountPercent > 0 ? '${discountPercent.toStringAsFixed(0)}% (${discountAmountTk.toStringAsFixed(0)}tk)' : '-', align: ShapedTextAlign.center, font: shapedRegular, fontSize: 7)),
+                            pw.Expanded(flex: 2, child: _bt((itemTotalBeforeDiscount - discountAmountTk).toStringAsFixed(2), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
                           ],
                         ),
                         _bt('${_t('qty_hint')}: $qty $unit', font: shapedRegular, fontSize: 7, color: PdfColors.grey700),
@@ -139,15 +141,13 @@ class ReceiptUtils {
                   );
                 }),
                 pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
-              ] else if (saleData['note'] != null) ...[
-                _bt('${_t('note')}: ${saleData['note']}', font: shapedRegular, fontSize: 8),
-                pw.SizedBox(height: 5),
               ],
 
+              // Totals Section
               _buildRowPos(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               if ((saleData['globalDiscountTk'] ?? 0) > 0)
                 _buildRowPos(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', shapedRegular),
-              _buildRowPos(_t('total_amount'), (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedBold),
+              _buildRowPos(_t('total_amount'), (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedBold, isBold: true),
               _buildRowPos(_t('paid_amount'), (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               _buildRowPos(_t('due'), (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), shapedBold),
 
@@ -157,6 +157,7 @@ class ReceiptUtils {
               _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10),
               pw.SizedBox(height: 5),
               
+              // Barcode (Same for both versions)
               pw.BarcodeWidget(
                 barcode: pw.Barcode.code128(),
                 data: saleData['customerPhone'] ?? '0123456789',
@@ -180,7 +181,7 @@ class ReceiptUtils {
     }
   }
 
-  // --- 3. Customer Statement Report ---
+  // --- 3. Customer Statement Report (A4) ---
 
   static Future<void> generateCustomerStatement({
     required Map<String, dynamic> customerData,
@@ -190,8 +191,6 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -243,7 +242,7 @@ class ReceiptUtils {
                     _bt(shopInfo['name']!, font: shapedBold, fontSize: 32, color: PdfColors.blue900),
                     if (shopInfo['address']!.isNotEmpty) 
                       _bt(shopInfo['address']!, font: shapedRegular, fontSize: 10, color: PdfColors.grey900),
-                    _bt('মোবাইল: ${shopInfo['phone']}', font: shapedBold, fontSize: 11),
+                    _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedBold, fontSize: 11),
                   ],
                 ),
               ),
@@ -262,20 +261,20 @@ class ReceiptUtils {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  _bt('কাস্টমার: ${customerData['name']}', font: shapedBold, fontSize: 12),
+                  _bt('${_t('customer')}: ${customerData['name']}', font: shapedBold, fontSize: 12),
                   pw.Text('Mobile: ${customerData['phone']}', style: pw.TextStyle(fontSize: 10, font: fontRegular)),
                   if (customerData['address'] != null && customerData['address'].toString().isNotEmpty)
-                    _bt('ঠিকানা: ${customerData['address']}', font: shapedRegular, fontSize: 9),
+                    _bt('${_t('address')}: ${customerData['address']}', font: shapedRegular, fontSize: 9),
                 ],
               ),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  _bt('হিসাব বিবরণী', font: shapedBold, fontSize: 15, color: PdfColors.blue800),
-                  _bt('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', font: shapedRegular, fontSize: 9),
+                  _bt(_t('statement'), font: shapedBold, fontSize: 15, color: PdfColors.blue800),
+                  _bt('${_t('date_range')}: ${DateFormat('dd/MM/yyyy').format(startDate)} - ${DateFormat('dd/MM/yyyy').format(endDate)}', font: shapedRegular, fontSize: 9),
                   pw.SizedBox(height: 5),
-                  _bt('পিরিয়ড মোট বাকি: ৳${periodBaki.toStringAsFixed(0)}', font: shapedBold, fontSize: 9, color: PdfColors.red700),
-                  _bt('পিরিয়ড মোট জমা: ৳${periodJama.toStringAsFixed(0)}', font: shapedBold, fontSize: 9, color: PdfColors.green700),
+                  _bt('${_t('total_period_baki')} ৳${periodBaki.toStringAsFixed(0)}', font: shapedBold, fontSize: 9, color: PdfColors.red700),
+                  _bt('${_t('total_period_jama')} ৳${periodJama.toStringAsFixed(0)}', font: shapedBold, fontSize: 9, color: PdfColors.green700),
                 ],
               ),
             ],
@@ -288,11 +287,11 @@ class ReceiptUtils {
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
-                  _cell('তারিখ', flex: 1, font: shapedBold, isHeader: true),
-                  _cell('বিবরণ', flex: 3, font: shapedBold, isHeader: true),
-                  _cell('মোট', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('জমা', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('date'), flex: 1, font: shapedBold, isHeader: true),
+                  _cell(_t('description'), flex: 3, font: shapedBold, isHeader: true),
+                  _cell(_t('total'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('paid_label'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('due_label'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
                 ],
               ),
               ...dataRows.map((row) => pw.TableRow(
@@ -314,7 +313,7 @@ class ReceiptUtils {
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 decoration: pw.BoxDecoration(color: PdfColors.blue50, border: pw.Border.all(color: PdfColors.blue900, width: 1), borderRadius: pw.BorderRadius.circular(5)),
-                child: _bt('বর্তমান মোট বকেয়া: ৳${customerData['dueAmount']?.toStringAsFixed(2)}', font: shapedBold, fontSize: 13, color: PdfColors.red900),
+                child: _bt('${_t('net_outstanding_due')} ৳${customerData['dueAmount']?.toStringAsFixed(2)}', font: shapedBold, fontSize: 13, color: PdfColors.red900),
               ),
             ],
           ),
@@ -324,7 +323,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 4. Accounts Summary Report ---
+  // --- 4. Accounts Summary Report (A4) ---
 
   static Future<void> generateAccountsReport({
     required List<QueryDocumentSnapshot> sales,
@@ -340,14 +339,10 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
     final shopInfo = await getShopInfo();
-    final currency = AppTranslations.get('currency_symbol');
-
     final double combinedSalary = totalSalary + totalBonus;
     final double netProfit = totalProfit - totalExpense - combinedSalary;
 
@@ -356,13 +351,13 @@ class ReceiptUtils {
         pageFormat: PdfPageFormat.a4,
         header: (context) => pw.Column(children: [
           _bt(shopInfo['name']!, font: shapedBold, fontSize: 22, color: PdfColors.blue900),
-          _bt('হিসাব নিকাশ রিপোর্ট', font: shapedBold, fontSize: 14),
-          _bt('সময়সীমা: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', font: shapedRegular, fontSize: 10),
+          _bt(_t('accounts_report_title'), font: shapedBold, fontSize: 14),
+          _bt('${_t('date_range')}: ${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}', font: shapedRegular, fontSize: 10),
           pw.Divider(thickness: 1, color: PdfColors.blue900),
           pw.SizedBox(height: 10),
         ]),
         build: (context) => [
-          _bt('দৈনিক লেনদেন সারসংক্ষেপ', font: shapedBold, fontSize: 12),
+          _bt(_t('daily_trans_summary'), font: shapedBold, fontSize: 12),
           pw.SizedBox(height: 8),
           pw.Table(
             border: const pw.TableBorder(horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
@@ -370,13 +365,13 @@ class ReceiptUtils {
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
-                  _cell('তারিখ', flex: 1, font: shapedBold, isHeader: true),
-                  _cell('বিক্রি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('লাভ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('খরচ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('বেতন', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('বাকি', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('জমা', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('date'), flex: 1, font: shapedBold, isHeader: true),
+                  _cell(_t('total_sales'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('profit'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('total_expense'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('salary'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('due_label'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('paid_label'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
                 ],
               ),
               ...() {
@@ -387,13 +382,9 @@ class ReceiptUtils {
                   if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
                   dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                   dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                  
                   double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
                   double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
-                  if (due > 0) {
-                    dailyData[dateKey]![4] += due;
-                    dailyData[dateKey]![5] += paid;
-                  }
+                  if (due > 0) { dailyData[dateKey]![4] += due; dailyData[dateKey]![5] += paid; }
                 }
                 for (var doc in expenses) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -430,17 +421,17 @@ class ReceiptUtils {
           ),
           pw.SizedBox(height: 30),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceAround, children: [
-            _summaryBoxWithFont('মোট বিক্রি', '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, shapedBold),
-            _summaryBoxWithFont('মোট লাভ', '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, shapedBold),
-            _summaryBoxWithFont('মোট খরচ', '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, shapedBold),
-            _summaryBoxWithFont('মোট বেতন', '৳${combinedSalary.toStringAsFixed(0)}', PdfColors.orange, shapedBold),
+            _summaryBoxWithFont(_t('total_sales'), '৳${totalSale.toStringAsFixed(0)}', PdfColors.blue, shapedBold),
+            _summaryBoxWithFont(_t('total_profit'), '৳${totalProfit.toStringAsFixed(0)}', PdfColors.green, shapedBold),
+            _summaryBoxWithFont(_t('total_expense'), '৳${totalExpense.toStringAsFixed(0)}', PdfColors.red, shapedBold),
+            _summaryBoxWithFont(_t('salary'), '৳${combinedSalary.toStringAsFixed(0)}', PdfColors.orange, shapedBold),
           ]),
           pw.SizedBox(height: 20),
           pw.Center(child: pw.Container(
             padding: const pw.EdgeInsets.all(15),
             decoration: pw.BoxDecoration(color: netProfit >= 0 ? PdfColors.green50 : PdfColors.red50, border: pw.Border.all(color: netProfit >= 0 ? PdfColors.green : PdfColors.red, width: 2), borderRadius: pw.BorderRadius.circular(10)),
             child: pw.Column(children: [
-              _bt('নিট লাভ', font: shapedBold, fontSize: 14, color: PdfColors.green900),
+              _bt(_t('profit'), font: shapedBold, fontSize: 14, color: PdfColors.green900),
               _bt('৳${netProfit.toStringAsFixed(2)}', font: shapedBold, fontSize: 20, color: netProfit >= 0 ? PdfColors.green900 : PdfColors.red900),
             ]),
           )),
@@ -450,7 +441,7 @@ class ReceiptUtils {
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- 5. Inventory Summary Report ---
+  // --- 5. Inventory Summary Report (A4) ---
 
   static Future<void> generateInventoryReport({
     required List<Map<String, dynamic>> logs,
@@ -459,8 +450,6 @@ class ReceiptUtils {
   }) async {
     final pdf = pw.Document();
     final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
 
@@ -473,7 +462,7 @@ class ReceiptUtils {
 
     String dateRange = (start != null && end != null) 
       ? (start == end ? DateFormat('dd/MM/yyyy').format(start) : "${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}")
-      : "Full Inventory Summary";
+      : _t("Daily Transaction Summary");
 
     Map<String, List<double>> dailyLogs = {};
     for (var log in logs) {
@@ -497,7 +486,7 @@ class ReceiptUtils {
             pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 28, color: PdfColors.blue900),
               if (shopInfo['address']!.isNotEmpty) _bt(shopInfo['address']!, font: shapedRegular, fontSize: 10),
-              _bt('মোবাইল: ${shopInfo['phone']}', font: shapedBold, fontSize: 10),
+              _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedBold, fontSize: 10),
             ])),
             pw.SizedBox(width: 75),
           ]),
@@ -506,8 +495,8 @@ class ReceiptUtils {
         ]),
         build: (context) => [
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            _bt('স্টক ইনভেন্টরি রিপোর্ট', font: shapedBold, fontSize: 14, color: PdfColors.blue800),
-            _bt('সময়সীমা: $dateRange', font: shapedRegular, fontSize: 9),
+            _bt(_t('inventory_report'), font: shapedBold, fontSize: 14, color: PdfColors.blue800),
+            _bt('${_t('date_range')}: $dateRange', font: shapedRegular, fontSize: 9),
           ]),
           pw.SizedBox(height: 15),
           pw.Table(
@@ -516,11 +505,11 @@ class ReceiptUtils {
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 children: [
-                  _cell('তারিখ', flex: 1, font: shapedBold, isHeader: true),
-                  _cell('যুক্ত পণ্য', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('বিনিয়োগ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('বিক্রয়মূল্য', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
-                  _cell('সম্ভাব্য লাভ', flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('date'), flex: 1, font: shapedBold, isHeader: true),
+                  _cell(_t('items_added'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('total_investment'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('potential_sale'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
+                  _cell(_t('potential_profit'), flex: 1, font: shapedBold, isHeader: true, align: ShapedTextAlign.end),
                 ],
               ),
               ...sortedDates.map((date) => pw.TableRow(children: [
@@ -537,61 +526,6 @@ class ReceiptUtils {
       )
     );
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-  }
-
-  // --- 6. Single Voucher ---
-
-  static Future<void> generateSingleAccountPdf({
-    required Map<String, dynamic> data, 
-    required String timeString, 
-    bool isExpense = false,
-    bool isShare = false,
-  }) async {
-    final pdf = pw.Document();
-    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
-
-    final shopInfo = await getShopInfo();
-    final note = data['note'] ?? '';
-    final isSalary = note.contains('বেতন') || note.toLowerCase().contains('salary');
-    final double basicSalary = (data['basicSalary'] as num?)?.toDouble() ?? (data['amount'] as num?)?.toDouble() ?? 0.0;
-    final double bonus = (data['bonus'] as num?)?.toDouble() ?? 0.0;
-    final double totalAmount = (data['amount'] as num?)?.toDouble() ?? (basicSalary + bonus);
-    final String title = isSalary ? 'স্যালারি ভাউচার' : 'খরচ ভাউচার';
-
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            _bt(shopInfo['name']!, font: shapedBold, fontSize: 22, color: PdfColors.blue900),
-            pw.Text('Mobile: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10, font: fontRegular)),
-          ]),
-          pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: _bt(title.toUpperCase(), font: shapedBold, fontSize: 12)),
-        ]),
-        pw.SizedBox(height: 30), pw.Divider(),
-        _buildVoucherRowWithFont('তারিখ:', timeString, shapedBold),
-        _buildVoucherRowWithFont('ক্যাটাগরি:', isSalary ? 'কর্মচারীর বেতন' : 'দোকান খরচ', shapedBold),
-        if (isSalary) ...[
-          if (data['empName'] != null) _buildVoucherRowWithFont('কর্মচারী:', data['empName'], shapedBold),
-          if (data['empPhone'] != null && data['empPhone'].toString().isNotEmpty) _buildVoucherRowWithFont('মোাবাইল:', data['empPhone'], shapedBold),
-          _buildVoucherRowWithFont('মূল বেতন:', '৳${basicSalary.toStringAsFixed(2)}', shapedBold),
-        ],
-        _buildVoucherRowWithFont('বিবরণ:', note, shapedBold),
-        pw.Divider(), pw.SizedBox(height: 10),
-        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.end, children: [
-          pw.Container(padding: const pw.EdgeInsets.all(15), decoration: pw.BoxDecoration(border: pw.Border.all()), child: _bt('মোট: ৳${totalAmount.toStringAsFixed(2)}', font: shapedBold, fontSize: 16, color: PdfColors.red900)),
-        ]),
-        pw.Spacer(),
-        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), _bt('কর্তৃপক্ষ', font: shapedBold, fontSize: 10)]),
-          pw.Column(children: [pw.SizedBox(width: 100, child: pw.Divider()), _bt('প্রাপক', font: shapedBold, fontSize: 10)]),
-        ]),
-      ]),
-    ));
-    if (isShare) { await Printing.sharePdf(bytes: await pdf.save(), filename: 'Voucher.pdf'); } else { await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save()); }
   }
 
   // --- Static Helpers ---
@@ -612,7 +546,7 @@ class ReceiptUtils {
     );
   }
 
-  static pw.Widget _buildRowPos(String label, String value, ShapedFont font, {bool isBold = false}) {
+  static pw.Widget _buildRowPos(String label, String value, ShapedFont font) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
@@ -625,41 +559,15 @@ class ReceiptUtils {
     );
   }
 
-  static pw.Widget _buildBillRow(String key, String value, ShapedFont font, {bool isRed = false}) {
-    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 1), child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-      _bt(key, font: font, fontSize: 8), _bt(value, font: font, fontSize: 8, color: isRed ? PdfColors.red : PdfColors.black),
-    ]));
-  }
-
   static pw.Widget _summaryBoxWithFont(String title, String value, PdfColor color, ShapedFont font) {
     return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
       _bt(title, font: font, fontSize: 8), _bt(value, font: font, fontSize: 10, color: color),
     ]));
   }
 
-  static pw.Widget _buildVoucherRowWithFont(String label, String value, ShapedFont font) {
-    return pw.Padding(padding: const pw.EdgeInsets.symmetric(vertical: 6), child: pw.Row(children: [
-      pw.SizedBox(width: 90, child: _bt(label, font: font, fontSize: 10)), pw.Expanded(child: _bt(value, font: font, fontSize: 10)),
+  static pw.Widget _summaryBoxSmallWithFont(String title, String value, PdfColor color, ShapedFont font) {
+    return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
+      _bt(title, font: font, fontSize: 8), _bt(value, font: font, fontSize: 10, color: color),
     ]));
-  }
-
-  static Future<void> shareSubscriptionCard({required String name, required String shopName, required String phone, String? plan, String? txId, String? senderDigits, String? rejectionReason, bool isActivation = false, bool isApproval = false, bool isRejection = false}) async {
-    final pdf = pw.Document();
-    final fontRegular = await _loadFont("assets/fonts/SolaimanLipi-Normal.ttf");
-    final fontBold = await _loadFont("assets/fonts/SolaimanLipi-Bold.ttf");
-    
-    final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
-    final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
-
-    final imageByte = await rootBundle.load('assets/images/ic_launcher.png');
-    final image = pw.MemoryImage(imageByte.buffer.asUint8List());
-    String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
-    pdf.addPage(pw.Page(pageFormat: const PdfPageFormat(400, 520, marginAll: 20), build: (context) => pw.Container(decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)), padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
-      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [pw.Image(image, width: 40, height: 40), pw.SizedBox(width: 10), _bt('Amar Dokan', font: shapedBold, fontSize: 22)]),
-      pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
-      pw.SizedBox(height: 20), _buildBillRow('মালিক:', name, shapedBold), _buildBillRow('দোকান:', shopName, shapedBold), _buildBillRow('মোবাইল:', phone, shapedBold),
-      pw.Spacer(), _bt('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', font: shapedRegular, fontSize: 9),
-    ]))));
-    await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
   }
 }
