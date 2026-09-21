@@ -615,7 +615,7 @@ class ReceiptUtils {
     );
   }
 
-  static pw.Widget _buildRowPos(String label, String value, ShapedFont font) {
+  static pw.Widget _buildRowPos(String label, String value, ShapedFont font, {bool isBold = false}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
