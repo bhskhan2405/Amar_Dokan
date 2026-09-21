@@ -41,7 +41,7 @@ class ReceiptUtils {
     return {'name': 'Amar Dokan', 'address': '', 'phone': ''};
   }
 
-  // --- 2. POS Bill Receipt (80mm - Professional Unified Design) ---
+  // --- 2. POS Bill Receipt (80mm - Final Identical Design) ---
 
   static Future<void> generatePosReceipt({
     required Map<String, dynamic> saleData,
@@ -52,6 +52,9 @@ class ReceiptUtils {
     final shapedRegular = await _loadShapedFont("assets/fonts/SolaimanLipi-Normal.ttf", name: "SolReg");
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
     final shopInfo = await getShopInfo();
+
+    // ভাষা আপডেট করা (হিস্ট্রির জন্য অত্যন্ত গুরুত্বপূর্ণ)
+    await AppTranslations.loadLanguage();
 
     String formattedDate = DateFormat('d/M/yyyy h:mm a').format(DateTime.now());
     if (saleData['createdAt'] != null && saleData['createdAt'] is Timestamp) {
@@ -68,16 +71,16 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              // Shop Header (Centered)
-              _bt(shopInfo['name']!, font: shapedBold, fontSize: 16, align: ShapedTextAlign.center),
+              // Header Section (Always Centered)
+              pw.Center(child: _bt(shopInfo['name']!, font: shapedBold, fontSize: 16)),
               if (shopInfo['address']!.isNotEmpty)
-                _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800, align: ShapedTextAlign.center),
-              _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedRegular, fontSize: 9, align: ShapedTextAlign.center),
+                pw.Center(child: _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800)),
+              pw.Center(child: _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedRegular, fontSize: 9)),
               
               pw.SizedBox(height: 5),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              // Customer Details (Left Aligned - Like English Version)
+              // Customer Details (Left Aligned - Start)
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
                 _buildRowLeft(_t('customer'), saleData['customerName'], shapedRegular),
               if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
@@ -88,24 +91,25 @@ class ReceiptUtils {
               pw.SizedBox(height: 2),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              // Title & Date (Centered)
-              _bt(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title').toUpperCase(), font: shapedBold, fontSize: 11, align: ShapedTextAlign.center),
-              _bt(formattedDate, font: shapedRegular, fontSize: 7, align: ShapedTextAlign.center),
+              // Receipt Header (Centered)
+              pw.Center(child: _bt(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title').toUpperCase(), font: shapedBold, fontSize: 11)),
+              pw.Center(child: _bt(formattedDate, font: shapedRegular, fontSize: 7)),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
+              // Metadata (Aligned Right/Left)
               _buildRowPos(_t('payment_type'), _t(saleData['paymentType']?.toString().toLowerCase() ?? 'cash'), shapedRegular),
               _buildRowPos(_t('sell_by'), saleData['staffName'] ?? 'Admin', shapedRegular),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Table Headers
+              // Items Table Header
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Expanded(flex: 3, child: _bt(_t('description'), font: shapedBold, fontSize: 8)),
                   pw.Expanded(flex: 2, child: _bt(_t('discount_label'), align: ShapedTextAlign.center, font: shapedBold, fontSize: 8)),
-                  pw.Expanded(flex: 2, child: _bt(_t('price'), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
+                  pw.Expanded(flex: 2, child: _bt(_t('total'), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
                 ],
               ),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
@@ -131,7 +135,7 @@ class ReceiptUtils {
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
                             pw.Expanded(flex: 3, child: _bt(item['name'] ?? '', font: shapedBold, fontSize: 8)),
-                            // Discount % and TK (Unified)
+                            // Discount % and TK (Same as English)
                             pw.Expanded(flex: 2, child: _bt(discountPercent > 0 ? '${discountPercent.toStringAsFixed(0)}% (${discountAmountTk.toStringAsFixed(0)}tk)' : '-', align: ShapedTextAlign.center, font: shapedRegular, fontSize: 7)),
                             pw.Expanded(flex: 2, child: _bt((itemTotalBeforeDiscount - discountAmountTk).toStringAsFixed(2), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
                           ],
@@ -142,9 +146,12 @@ class ReceiptUtils {
                   );
                 }),
                 pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
+              ] else if (saleData['note'] != null) ...[
+                _bt('${_t('note')}: ${saleData['note']}', font: shapedRegular, fontSize: 8),
+                pw.SizedBox(height: 5),
               ],
 
-              // Summary
+              // Totals
               _buildRowPos(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               if ((saleData['globalDiscountTk'] ?? 0) > 0)
                 _buildRowPos(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', shapedRegular),
@@ -156,8 +163,8 @@ class ReceiptUtils {
               
               pw.SizedBox(height: 5),
               // Footer (Centered)
-              _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10, align: ShapedTextAlign.center),
-              _bt(_t('return_policy'), font: shapedRegular, fontSize: 7, color: PdfColors.grey800, align: ShapedTextAlign.center),
+              pw.Center(child: _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10)),
+              pw.Center(child: _bt(_t('return_policy'), font: shapedRegular, fontSize: 7, color: PdfColors.grey800)),
               
               pw.SizedBox(height: 5),
               
@@ -169,7 +176,7 @@ class ReceiptUtils {
               ),
               
               pw.SizedBox(height: 5),
-              pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 5, font: fontRegular, color: PdfColors.grey700)),
+              pw.Center(child: pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 5, font: fontRegular, color: PdfColors.grey700))),
             ],
           );
         },
@@ -385,11 +392,16 @@ class ReceiptUtils {
                   final data = doc.data() as Map<String, dynamic>;
                   final dateKey = DateFormat('dd/MM/yyyy').format((data['createdAt'] as Timestamp).toDate());
                   if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
+                  
                   dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                   dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
+                  
                   double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
                   double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
-                  if (due > 0) { dailyData[dateKey]![4] += due; dailyData[dateKey]![5] += paid; }
+                  if (due > 0) {
+                    dailyData[dateKey]![4] += due;
+                    dailyData[dateKey]![5] += paid;
+                  }
                 }
                 for (var doc in expenses) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -620,7 +632,7 @@ class ReceiptUtils {
     );
   }
 
-  // কাস্টমার তথ্যের জন্য নতুন এলাইনমেন্ট হেল্পার (ইংরেজি ভার্সনের মতো বাম পাশে রাখার জন্য)
+  // Aligns customer info to the left (like English version)
   static pw.Widget _buildRowLeft(String label, String value, ShapedFont font) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
