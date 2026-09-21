@@ -467,6 +467,7 @@ class AppTranslations {
     'currency_symbol': {'en': 'Tk', 'bn': '৳'},
     'date': {'en': 'Date', 'bn': 'তারিখ'},
     'time': {'en': 'Time', 'bn': 'সময়'},
+    'customer': {'en': 'Customer', 'bn': 'কাস্টমার'},
     'mobile': {'en': 'Mobile', 'bn': 'মোবাইল'},
     'address': {'en': 'Address', 'bn': 'ঠিকানা'},
     'email': {'en': 'Email', 'bn': 'ইমেইল'},

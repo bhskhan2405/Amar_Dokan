@@ -53,9 +53,6 @@ class ReceiptUtils {
     final shapedBold = await _loadShapedFont("assets/fonts/SolaimanLipi-Bold.ttf", name: "SolBold");
     final shopInfo = await getShopInfo();
 
-    // ভাষা চেক করা (হিস্ট্রির জন্য অত্যন্ত গুরুত্বপূর্ণ)
-    await AppTranslations.loadLanguage();
-
     String formattedDate = DateFormat('d/M/yyyy h:mm a').format(DateTime.now());
     if (saleData['createdAt'] != null && saleData['createdAt'] is Timestamp) {
       formattedDate = DateFormat('d/M/yyyy h:mm a').format((saleData['createdAt'] as Timestamp).toDate());
@@ -71,7 +68,7 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              // Shop Header (Always Centered)
+              // Shop Header (Centered)
               _bt(shopInfo['name']!, font: shapedBold, fontSize: 16, align: ShapedTextAlign.center),
               if (shopInfo['address']!.isNotEmpty)
                 _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800, align: ShapedTextAlign.center),
@@ -80,18 +77,18 @@ class ReceiptUtils {
               pw.SizedBox(height: 5),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              // Customer Details (Aligned Left & Right)
+              // Customer Details (Left Aligned - Like English Version)
               if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
-                _buildRowPos(_t('customer'), saleData['customerName'], shapedRegular),
+                _buildRowLeft(_t('customer'), saleData['customerName'], shapedRegular),
               if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
-                _buildRowPos(_t('mobile'), saleData['customerPhone'], shapedRegular),
+                _buildRowLeft(_t('mobile'), saleData['customerPhone'], shapedRegular),
               if (saleData['customerAddress'] != null && (saleData['customerAddress'] as String).isNotEmpty)
-                _buildRowPos(_t('address'), saleData['customerAddress'], shapedRegular),
+                _buildRowLeft(_t('address'), saleData['customerAddress'], shapedRegular),
               
               pw.SizedBox(height: 2),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              // Receipt Title & Date (Centered)
+              // Title & Date (Centered)
               _bt(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title').toUpperCase(), font: shapedBold, fontSize: 11, align: ShapedTextAlign.center),
               _bt(formattedDate, font: shapedRegular, fontSize: 7, align: ShapedTextAlign.center),
               
@@ -108,12 +105,12 @@ class ReceiptUtils {
                 children: [
                   pw.Expanded(flex: 3, child: _bt(_t('description'), font: shapedBold, fontSize: 8)),
                   pw.Expanded(flex: 2, child: _bt(_t('discount_label'), align: ShapedTextAlign.center, font: shapedBold, fontSize: 8)),
-                  pw.Expanded(flex: 2, child: _bt(_t('total'), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
+                  pw.Expanded(flex: 2, child: _bt(_t('price'), align: ShapedTextAlign.end, font: shapedBold, fontSize: 8)),
                 ],
               ),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
-              // Items
+              // Items List
               if (items.isNotEmpty) ...[
                 ...items.entries.map((entry) {
                   final item = entry.value;
@@ -158,7 +155,7 @@ class ReceiptUtils {
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
               pw.SizedBox(height: 5),
-              // Footer (Always Centered)
+              // Footer (Centered)
               _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10, align: ShapedTextAlign.center),
               _bt(_t('return_policy'), font: shapedRegular, fontSize: 7, color: PdfColors.grey800, align: ShapedTextAlign.center),
               
@@ -388,16 +385,11 @@ class ReceiptUtils {
                   final data = doc.data() as Map<String, dynamic>;
                   final dateKey = DateFormat('dd/MM/yyyy').format((data['createdAt'] as Timestamp).toDate());
                   if (!dailyData.containsKey(dateKey)) dailyData[dateKey] = [0, 0, 0, 0, 0, 0];
-                  
                   dailyData[dateKey]![0] += (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
                   dailyData[dateKey]![1] += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                  
                   double due = (data['dueAmount'] as num?)?.toDouble() ?? 0.0;
                   double paid = (data['cashPaid'] as num?)?.toDouble() ?? 0.0;
-                  if (due > 0) {
-                    dailyData[dateKey]![4] += due;
-                    dailyData[dateKey]![5] += paid;
-                  }
+                  if (due > 0) { dailyData[dateKey]![4] += due; dailyData[dateKey]![5] += paid; }
                 }
                 for (var doc in expenses) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -569,7 +561,7 @@ class ReceiptUtils {
       build: (context) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            _bt(shopInfo['name']!, font: shapedBold, fontSize: 22, color: PdfColors.blue900),
+            _bt(shopInfo['name']!, font: shapedBold, fontSize: 22, color: PdfColors.blue900, align: ShapedTextAlign.center),
             pw.Text('${_t('mobile')}: ${shopInfo['phone']}', style: pw.TextStyle(fontSize: 10, font: fontRegular)),
           ]),
           pw.Container(padding: const pw.EdgeInsets.all(10), decoration: const pw.BoxDecoration(color: PdfColors.grey200), child: _bt(_t(title).toUpperCase(), font: shapedBold, fontSize: 12)),
@@ -628,6 +620,20 @@ class ReceiptUtils {
     );
   }
 
+  // কাস্টমার তথ্যের জন্য নতুন এলাইনমেন্ট হেল্পার (ইংরেজি ভার্সনের মতো বাম পাশে রাখার জন্য)
+  static pw.Widget _buildRowLeft(String label, String value, ShapedFont font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.start,
+        children: [
+          pw.SizedBox(width: 60, child: _bt(label, font: font, fontSize: 8, align: ShapedTextAlign.start)),
+          _bt(': $value', font: font, fontSize: 8, align: ShapedTextAlign.start),
+        ],
+      ),
+    );
+  }
+
   static pw.Widget _summaryBoxWithFont(String title, String value, PdfColor color, ShapedFont font) {
     return pw.Container(padding: const pw.EdgeInsets.all(8), decoration: pw.BoxDecoration(border: pw.Border.all(color: color), borderRadius: pw.BorderRadius.circular(5)), child: pw.Column(children: [
       _bt(title, font: font, fontSize: 8, align: ShapedTextAlign.center), _bt(value, font: font, fontSize: 10, color: color, align: ShapedTextAlign.center),
@@ -651,8 +657,8 @@ class ReceiptUtils {
     String title = isActivation ? 'PREMIUM ACTIVATED' : (isApproval ? 'ACCOUNT APPROVED' : (isRejection ? 'REQUEST CANCELLED' : 'SUBSCRIPTION REQUEST'));
     pdf.addPage(pw.Page(pageFormat: const PdfPageFormat(400, 520, marginAll: 20), build: (context) => pw.Container(decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.blue900, width: 2), borderRadius: pw.BorderRadius.circular(15)), padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
       pw.Row(mainAxisAlignment: pw.MainAxisAlignment.center, children: [pw.Image(image, width: 40, height: 40), pw.SizedBox(width: 10), _bt('Amar Dokan', font: shapedBold, fontSize: 22, align: ShapedTextAlign.center)]),
-      pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontBold)),
-      pw.SizedBox(height: 20), _bt(_t('owner_name'), font: shapedBold, fontSize: 8), _bt(name, font: shapedRegular, fontSize: 8),
+      pw.SizedBox(height: 10), pw.Divider(), pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, font: fontRegular)),
+      pw.SizedBox(height: 20), _buildRowLeft(_t('owner_name'), name, shapedBold), _buildRowLeft(_t('shop_name'), shopName, shapedBold), _buildRowLeft(_t('mobile'), phone, shapedBold),
       pw.Spacer(), _bt('Date: ${DateFormat('dd MMM yyyy hh:mm a').format(DateTime.now())}', font: shapedRegular, fontSize: 9, align: ShapedTextAlign.center),
     ]))));
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'subscription_card.pdf');
