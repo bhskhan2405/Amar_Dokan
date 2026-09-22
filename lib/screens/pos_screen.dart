@@ -1794,14 +1794,14 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                         icon: const Icon(Icons.share, color: Colors.orange, size: 22),
                                         tooltip: 'শেয়ার করুন',
                                         onPressed: () {
-                                          _processReceipt(data, isPrint: false);
+                                          ReceiptUtils.generatePosReceipt(saleData: data, isPrint: false);
                                         },
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.print, color: Color(0xFF0D47A1), size: 22),
                                         tooltip: 'প্রিন্ট করুন',
                                         onPressed: () {
-                                          _processReceipt(data, isPrint: true);
+                                          ReceiptUtils.generatePosReceipt(saleData: data, isPrint: true);
                                         },
                                       ),
                                     ],
@@ -1857,7 +1857,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.pop(context);
-      _processReceipt(data, isPrint: false);
+      ReceiptUtils.generatePosReceipt(saleData: data, isPrint: false);
     });
   }
 

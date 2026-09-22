@@ -581,6 +581,7 @@ class AppTranslations {
     'customer_phone_missing': {'en': 'Customer phone number missing.', 'bn': 'কাস্টমারের মোবাইল নম্বর পাওয়া যায়নি।'},
     'thank_you_msg': {'en': 'THANK YOU!', 'bn': 'আপনাকে ধন্যবাদ!'},
     'return_policy': {'en': 'Sold items are not returnable.', 'bn': 'বিক্রিত পণ্য ফেরত নেওয়া হয় না।'},
+    'customer': {'en': 'Customer', 'bn': 'কাস্টমার'},
     'sell_by': {'en': 'Sell By', 'bn': 'বিক্রেতা'},
     'cash_receipt': {'en': 'Cash Receipt', 'bn': 'নগদ রিসিট'},
     'payment_type': {'en': 'Payment Type', 'bn': 'পেমেন্ট মাধ্যম'},
