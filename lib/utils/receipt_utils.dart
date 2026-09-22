@@ -70,32 +70,39 @@ class ReceiptUtils {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Center(child: _bt(shopInfo['name']!, font: shapedBold, fontSize: 16)),
+              // 1. Shop Header (Centered)
+              _bt(shopInfo['name']!, font: shapedBold, fontSize: 16, align: ShapedTextAlign.center),
               if (shopInfo['address']!.isNotEmpty)
-                pw.Center(child: _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800)),
-              pw.Center(child: _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedRegular, fontSize: 9)),
+                _bt(shopInfo['address']!, font: shapedRegular, fontSize: 8, color: PdfColors.grey800, align: ShapedTextAlign.center),
+              _bt('${_t('mobile')}: ${shopInfo['phone']}', font: shapedRegular, fontSize: 9, align: ShapedTextAlign.center),
               
               pw.SizedBox(height: 5),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              _buildRowLeft(_t('customer'), saleData['customerName'] ?? '', shapedRegular),
-              _buildRowLeft(_t('mobile'), saleData['customerPhone'] ?? '', shapedRegular),
-              if (saleData['customerAddress'] != null && saleData['customerAddress'].toString().isNotEmpty)
+              // 2. Customer Section (Left Aligned Start)
+              if (saleData['customerName'] != null && (saleData['customerName'] as String).isNotEmpty)
+                _buildRowLeft(_t('customer'), saleData['customerName'] ?? '', shapedRegular),
+              if (saleData['customerPhone'] != null && (saleData['customerPhone'] as String).isNotEmpty)
+                _buildRowLeft(_t('mobile'), saleData['customerPhone'] ?? '', shapedRegular),
+              if (saleData['customerAddress'] != null && (saleData['customerAddress'] as String).isNotEmpty)
                 _buildRowLeft(_t('address'), saleData['customerAddress'], shapedRegular),
               
               pw.SizedBox(height: 2),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
-              pw.Center(child: _bt(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title').toUpperCase(), font: shapedBold, fontSize: 11)),
-              pw.Center(child: _bt(formattedDate, font: shapedRegular, fontSize: 7)),
+              // 3. Receipt Title & Date (Centered)
+              _bt(_t(saleData['type'] == 'sale_due' ? 'credit_sale' : 'cash_receipt_title').toUpperCase(), font: shapedBold, fontSize: 11, align: ShapedTextAlign.center),
+              _bt(formattedDate, font: shapedRegular, fontSize: 7, align: ShapedTextAlign.center),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
+              // 4. Payment Info (Aligned Left & Right)
               _buildRowPos(_t('payment_type'), _t(saleData['paymentType']?.toString().toLowerCase() ?? 'cash'), shapedRegular),
               _buildRowPos(_t('sell_by'), saleData['staffName'] ?? 'Admin', shapedRegular),
               
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
+              // 5. Table Headers
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -106,6 +113,7 @@ class ReceiptUtils {
               ),
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
 
+              // 6. Itemized List
               if (items.isNotEmpty) ...[
                 ...items.entries.map((entry) {
                   final item = entry.value;
@@ -139,6 +147,7 @@ class ReceiptUtils {
                 pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               ],
 
+              // 7. Summary section
               _buildRowPos(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               if ((saleData['globalDiscountTk'] ?? 0) > 0)
                 _buildRowPos(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', shapedRegular),
@@ -149,8 +158,9 @@ class ReceiptUtils {
               pw.Text(divider, style: const pw.TextStyle(fontSize: 8)),
               
               pw.SizedBox(height: 5),
-              pw.Center(child: _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10)),
-              pw.Center(child: _bt(_t('return_policy'), font: shapedRegular, fontSize: 7, color: PdfColors.grey800)),
+              // 8. Footer (Always Centered)
+              _bt(_t('thank_you_msg'), font: shapedBold, fontSize: 10, align: ShapedTextAlign.center),
+              _bt(_t('return_policy'), font: shapedRegular, fontSize: 7, color: PdfColors.grey800, align: ShapedTextAlign.center),
               
               pw.SizedBox(height: 5),
               
@@ -162,7 +172,7 @@ class ReceiptUtils {
               ),
               
               pw.SizedBox(height: 5),
-              pw.Center(child: pw.Text('Powered by Amar Dokan App', style: pw.TextStyle(fontSize: 5, font: fontRegular, color: PdfColors.grey700))),
+              _bt('Powered by Amar Dokan App', font: shapedRegular, fontSize: 5, color: PdfColors.grey700, align: ShapedTextAlign.center),
             ],
           );
         },
