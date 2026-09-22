@@ -151,6 +151,8 @@ class ReceiptUtils {
               _buildRowPos(_t('sub_total'), (saleData['subTotal'] ?? saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               if ((saleData['globalDiscountTk'] ?? 0) > 0)
                 _buildRowPos(_t('discount_label'), '-${(saleData['globalDiscountTk'] as num).toStringAsFixed(2)}', shapedRegular),
+              if ((saleData['vatAmount'] ?? 0) > 0)
+                _buildRowPos('${_t('vat')} (${(saleData['vatPercent'] ?? 0).toStringAsFixed(0)}%)', (saleData['vatAmount'] as num).toStringAsFixed(2), shapedRegular),
               _buildRowPos(_t('total_amount'), (saleData['totalAmount'] ?? 0.0).toStringAsFixed(2), shapedBold, isBold: true),
               _buildRowPos(_t('paid_amount'), (saleData['cashPaid'] ?? 0.0).toStringAsFixed(2), shapedRegular),
               _buildRowPos(_t('due'), (saleData['dueAmount'] ?? 0.0).toStringAsFixed(2), shapedBold),

@@ -595,7 +595,9 @@ class _POSScreenState extends State<POSScreen> {
         totalCost += costPrice * qty;
       });
 
-      double profit = totalRevenue - totalCost;
+      // লাভ হিসেব করার সময় ভ্যাট বাদ দিয়ে নিট বিক্রয়মূল্য নিতে হবে
+      double netRevenue = _subTotalAmount - _globalDiscountTk;
+      double profit = netRevenue - totalCost;
       final timestamp = Timestamp.now();
 
       final cName = _customerNameController.text.trim();
